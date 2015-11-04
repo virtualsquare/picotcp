@@ -1466,7 +1466,6 @@ int pico_ipv6_route_add(struct pico_ip6 address, struct pico_ip6 netmask, struct
         return -1;
     }
 
-
     pico_tree_insert(&IPV6Routes, new);
     pico_ipv6_dbg_route();
     return 0;
@@ -1865,19 +1864,35 @@ struct pico_ipv6_link *pico_ipv6_global_get(struct pico_device *dev)
 
 #define TWO_HOURS ((pico_time)(1000 * 60 * 60 * 2))
 
-void pico_ipv6_check_lifetime_expired(pico_time now, void *arg)
+static uint32_t ipv6_lifetimer_check = 0u;
+
+static void pico_ipv6_check_lifetime_expired(pico_time now, void *arg);
+static void pico_ipv6_nd_enable_lifetime_check(void) 
+{
+    if (!ipv6_lifetimer_check)
+        ipv6_lifetimer_check = pico_timer_add(1000, pico_ipv6_check_lifetime_expired, NULL);
+}
+
+static void pico_ipv6_check_lifetime_expired(pico_time now, void *arg)
 {
     struct pico_tree_node *index = NULL, *temp;
     struct pico_ipv6_link *link = NULL;
+    int check_needed = 0;
     (void)arg;
+
     pico_tree_foreach_safe(index, &IPV6Links, temp) {
         link = index->keyValue;
-        if ((link->expire_time > 0) && (link->expire_time < now)) {
-            dbg("Warning: IPv6 address has expired.\n");
-            pico_ipv6_link_del(link->dev, link->address);
+        if (link->expire_time > 0) {
+            check_needed = 1;
+            if (link->expire_time < now) {
+                dbg("Warning: IPv6 address has expired.\n");
+                pico_ipv6_link_del(link->dev, link->address);
+            }
         }
     }
-    pico_timer_add(1000, pico_ipv6_check_lifetime_expired, NULL);
+    ipv6_lifetimer_check = 0u;
+    if (check_needed)
+        pico_ipv6_nd_enable_lifetime_check();
 }
 
 int pico_ipv6_lifetime_set(struct pico_ipv6_link *l, pico_time expire)
@@ -1894,12 +1909,17 @@ int pico_ipv6_lifetime_set(struct pico_ipv6_link *l, pico_time expire)
     } else {
         l->expire_time = now + TWO_HOURS;
     }
-
+    pico_ipv6_nd_enable_lifetime_check();
     return 0;
 }
 
 int pico_ipv6_dev_routing_enable(struct pico_device *dev)
 {
+    pico_time next_timer_expire;
+    if (!dev->hostvars.routing)  {
+        next_timer_expire = PICO_IPV6_ND_MIN_RADV_INTERVAL + (pico_rand() % (PICO_IPV6_ND_MAX_RADV_INTERVAL - PICO_IPV6_ND_MIN_RADV_INTERVAL));
+        pico_timer_add(next_timer_expire, pico_ipv6_nd_ra_timer_callback, dev);
+    }
     dev->hostvars.routing = 1;
     return 0;
 }

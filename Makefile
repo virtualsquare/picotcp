@@ -55,6 +55,7 @@ PPP?=1
 CYASSL?=0
 WOLFSSL?=0
 POLARSSL?=0
+TICKLESS?=0
 
 #IPv6 related
 IPV6?=1
@@ -182,7 +183,8 @@ CORE_OBJ= stack/pico_stack.o \
           stack/pico_socket.o \
           stack/pico_socket_multicast.o \
           stack/pico_tree.o \
-          stack/pico_md5.o
+          stack/pico_md5.o \
+		  stack/pico_jobs.o
 
 POSIX_OBJ+= modules/pico_dev_vde.o \
             modules/pico_dev_tun.o \
@@ -277,6 +279,9 @@ ifneq ($(WOLFSSL),0)
 endif
 ifneq ($(POLARSSL),0)
   include rules/polarssl.mk
+endif
+ifneq ($(TICKLESS),0)
+  include rules/tickless.mk
 endif
 
 all: mod core lib

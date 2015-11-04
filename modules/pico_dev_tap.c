@@ -74,6 +74,34 @@ static int pico_tap_poll(struct pico_device *dev, int loop_score)
     return 0;
 }
 
+
+#ifdef PICO_SUPPORT_TICKLESS
+#include "pico_jobs.h"
+
+void pico_tap_dsr(void *arg)
+{
+   int len;
+   struct pico_device_tap *tap = (struct pico_device_tap *)arg;
+   unsigned char buf[TUN_MTU];
+   len = read(tap->fd, buf, TUN_MTU);
+   if (len > 0) {
+       pico_stack_recv(&tap->dev, buf, (uint32_t)len);
+   }
+}
+
+int pico_tap_WFI(struct pico_device *dev, int timeout_ms)
+{
+   struct pollfd pfd;
+   struct pico_device_tap *tap = (struct pico_device_tap *) dev;
+   pfd.fd = tap->fd;
+   pfd.events = POLLIN;
+   if (poll(&pfd, 1, timeout_ms) <= 0)
+       return 0;
+   pico_schedule_job(pico_tap_dsr, tap);
+   return 1;
+}
+#endif
+
 /* Public interface: create/destroy. */
 
 void pico_tap_destroy(struct pico_device *dev)
@@ -213,6 +241,9 @@ struct pico_device *pico_tap_create(char *name)
 
     tap->dev.send = pico_tap_send;
     tap->dev.poll = pico_tap_poll;
+#ifdef PICO_SUPPORT_TICKLESS
+    tap->dev.wfi = pico_tap_WFI;
+#endif
     tap->dev.destroy = pico_tap_destroy;
     dbg("Device %s created.\n", tap->dev.name);
     return (struct pico_device *)tap;

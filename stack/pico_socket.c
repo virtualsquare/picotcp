@@ -1949,7 +1949,7 @@ int pico_transport_process_in(struct pico_protocol *self, struct pico_frame *f)
 #define SL_LOOP_MIN 1
 
 #ifdef PICO_SUPPORT_TCP
-static int check_socket_sanity(struct pico_socket *s)
+int pico_socket_sanity_check(struct pico_socket *s)
 {
 
     /* checking for pending connections */
@@ -2042,7 +2042,7 @@ static int pico_sockets_loop_tcp(int loop_score)
                 break;
             }
 
-            if(check_socket_sanity(s) < 0)
+            if(pico_socket_sanity_check(s) < 0)
             {
                 pico_socket_del(s);
                 index_tcp = NULL; /* forcing the restart of loop */

@@ -29,6 +29,7 @@
 #include "pico_tcp.h"
 #include "pico_socket.h"
 #include "heap.h"
+#include "pico_jobs.h"
 
 #define IS_LIMITED_BCAST(f) (((struct pico_ipv4_hdr *) f->net_hdr)->dst.addr == PICO_IP4_BCAST)
 
@@ -892,6 +893,19 @@ static void pico_check_timers(void)
     }
 }
 
+#ifdef PICO_SUPPORT_TICKLESS
+long long int pico_stack_go(void)
+{
+    struct pico_timer_ref *tref; 
+    pico_execute_pending_jobs();
+    pico_check_timers();
+    tref = heap_first(Timers);
+    if (!tref)
+        return -1;
+    return(long long int)(tref->expire - pico_tick); 
+}
+#endif
+
 void MOCKABLE pico_timer_cancel(uint32_t id)
 {
     uint32_t i;
@@ -1000,7 +1014,7 @@ static int calc_score(int *score, int *index, int avg[][PROTO_DEF_AVG_NR], int *
     return 0;
 }
 
-void pico_stack_tick(void)
+static void legacy_pico_stack_tick(void)
 {
     static int score[PROTO_DEF_NR] = {
         PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE
@@ -1062,6 +1076,7 @@ void pico_stack_tick(void)
     /* calculate new loop scores for next iteration */
     calc_score(score, index, (int (*)[])avg, ret);
 }
+
 
 void pico_stack_loop(void)
 {
@@ -1163,3 +1178,13 @@ int pico_stack_init(void)
     return 0;
 }
 
+void pico_stack_tick(void)
+{
+#ifdef PICO_SUPPORT_TICKLESS
+    int interval = 
+        pico_stack_go();
+#else
+    legacy_pico_stack_tick();
+#endif
+
+}

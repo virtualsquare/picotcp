@@ -79,6 +79,34 @@ static int proto_loop_out(struct pico_protocol *proto, int loop_score)
     return loop_score;
 }
 
+static void proto_full_loop_in(void *arg)
+{
+    struct pico_protocol *proto = (struct pico_protocol *)arg;
+    struct pico_frame *f;
+    while(1) {
+        if (proto->q_in->frames <= 0)
+            break;
+
+        f = pico_dequeue(proto->q_in);
+        proto->process_in(proto, f);
+    }
+}
+
+static void proto_full_loop_out(void *arg)
+{
+    struct pico_protocol *proto = (struct pico_protocol *)arg;
+    struct pico_frame *f;
+    while(1) {
+        if (proto->q_out->frames <= 0)
+            break;
+
+        f = pico_dequeue(proto->q_out);
+        proto->process_out(proto, f);
+    }
+}
+
+
+
 static int proto_loop(struct pico_protocol *proto, int loop_score, int direction)
 {
 
@@ -167,17 +195,6 @@ int pico_protocol_socket_loop(int loop_score, int direction)
     return pico_protocol_generic_loop(&proto_rr_socket, loop_score, direction);
 }
 
-int pico_protocols_loop(int loop_score)
-{
-/*
-   loop_score = pico_protocol_datalink_loop(loop_score);
-   loop_score = pico_protocol_network_loop(loop_score);
-   loop_score = pico_protocol_transport_loop(loop_score);
-   loop_score = pico_protocol_socket_loop(loop_score);
- */
-    return loop_score;
-}
-
 static void proto_layer_rr_reset(struct pico_proto_rr *rr)
 {
     rr->node_in = NULL;
@@ -208,6 +225,10 @@ void pico_protocol_init(struct pico_protocol *p)
         proto_layer_rr_reset(&proto_rr_socket);
         break;
     }
+#ifdef PICO_SUPPORT_TICKLESS
+    pico_queue_register_listener(p->q_in, proto_full_loop_in, p);
+    pico_queue_register_listener(p->q_out, proto_full_loop_out, p);
+#endif
     dbg("Protocol %s registered (layer: %d).\n", p->name, p->layer);
 
 }

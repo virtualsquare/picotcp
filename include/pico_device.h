@@ -30,6 +30,9 @@ struct pico_device {
     int (*send)(struct pico_device *self, void *buf, int len); /* Send function. Return 0 if busy */
     int (*poll)(struct pico_device *self, int loop_score);
     void (*destroy)(struct pico_device *self);
+#ifdef PICO_SUPPORT_TICKLESS
+    void (*wfi)(struct pico_device *self, int timeout);
+#endif
     int (*dsr)(struct pico_device *self, int loop_score);
     int __serving_interrupt;
     /* used to signal the upper layer the number of events arrived since the last processing */
@@ -49,6 +52,9 @@ int pico_device_link_state(struct pico_device *dev);
 int pico_device_ipv6_random_ll(struct pico_device *dev);
 #ifdef PICO_SUPPORT_IPV6
 struct pico_ipv6_link *pico_ipv6_link_add_local(struct pico_device *dev, const struct pico_ip6 *prefix);
+#endif
+#ifdef PICO_SUPPORT_TICKLESS
+void pico_device_WFI(int timeout);
 #endif
 
 #endif
