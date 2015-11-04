@@ -79,6 +79,7 @@ static int proto_loop_out(struct pico_protocol *proto, int loop_score)
     return loop_score;
 }
 
+#ifdef PICO_SUPPORT_TICKLESS
 static void proto_full_loop_in(void *arg)
 {
     struct pico_protocol *proto = (struct pico_protocol *)arg;
@@ -104,6 +105,7 @@ static void proto_full_loop_out(void *arg)
         proto->process_out(proto, f);
     }
 }
+#endif
 
 
 

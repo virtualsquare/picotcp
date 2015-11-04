@@ -16,6 +16,7 @@
 #include "pico_ipv4.h"
 #include "pico_icmp6.h"
 #include "pico_eth.h"
+#include "pico_dev_sixlowpan.h"
 #define PICO_DEVICE_DEFAULT_MTU (1500)
 
 struct pico_devices_rr_info {
@@ -51,24 +52,80 @@ static void device_init_ipv6_final(struct pico_device *dev, struct pico_ip6 *lin
     dev->hostvars.hoplimit = PICO_IPV6_DEFAULT_HOP;
 }
 
+static struct pico_ip6 pico_ipv6_address_to_network(const struct pico_ip6 address, const struct pico_ip6 netmask)
+{
+    struct pico_ip6 network = {{ 0 }};
+    uint8_t i = 0;
+    
+    for (i = 0; i < PICO_SIZE_IP6; i++) {
+        /* And address with netmask to get network */
+        network.addr[i] = address.addr[i] & netmask.addr[i];
+    }
+    
+    return network;
+}
+
+struct pico_ipv6_link *pico_ipv6_link_add_sixlowpan(struct pico_device *dev, const struct pico_ip6 prefix)
+{
+    struct pico_ip6 nm64 = {{ 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+                              0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }};
+    struct pico_ieee_addr *ieee = NULL;
+    struct pico_ipv6_link *new = NULL;
+    struct pico_ip6 addr = {{ 0 }};
+    
+    /* First copy the prefix into the new address */
+    addr = pico_ipv6_address_to_network(prefix, nm64);
+    
+    /* Parse in the IEEE802.15.4-addresses from the pico-devices */
+    ieee = (struct pico_ieee_addr *)dev->eth;
+    
+    /* First of all, generate a address derived from the EUI-64 */
+    memcpy(addr.addr + 8, ieee->_ext.addr, PICO_SIZE_IEEE_EXT);
+    addr.addr[8] = addr.addr[8] ^ 0x02; /* Toggle U/L bit */
+    
+    /* But, no DAD should be performed when local IPv6 address is derived from EUI-64, it's unique */
+    new = pico_ipv6_link_add_no_dad(dev, addr, nm64);
+    
+    /* If the device possibly has a 16-bit short address, add link with address from 16-bit short */
+    if (!pico_ipv6_is_linklocal(prefix.addr) && IEEE_AM_BOTH == ieee->_mode && IEEE_ADDR_BCAST_SHORT != ieee->_short.addr) {
+        /* Form the address from the 16-bit short address */
+        memset(addr.addr + 8, 0, PICO_SIZE_IEEE_EXT); /* Clear out IID */
+        addr.addr[11] = 0xFF;
+        addr.addr[12] = 0xFE;
+        addr.addr[14] = (uint8_t)short_be(ieee->_short.addr);
+        addr.addr[15] = (uint8_t)(short_be(ieee->_short.addr) >> 8);
+        
+        /* Add the link with DAD */
+        if (!pico_ipv6_link_add(dev, addr, nm64))
+            return NULL;
+    }
+    
+    return new;
+}
+
 struct pico_ipv6_link *pico_ipv6_link_add_local(struct pico_device *dev, const struct pico_ip6 *prefix)
 {
-    struct pico_ip6 newaddr;
     struct pico_ip6 netmask64 = {{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}};
     struct pico_ipv6_link *link;
-    memcpy(newaddr.addr, prefix->addr, PICO_SIZE_IP6);
-    /* modified EUI-64 + invert universal/local bit */
-    newaddr.addr[8] = (dev->eth->mac.addr[0] ^ 0x02);
-    newaddr.addr[9] = dev->eth->mac.addr[1];
-    newaddr.addr[10] = dev->eth->mac.addr[2];
-    newaddr.addr[11] = 0xff;
-    newaddr.addr[12] = 0xfe;
-    newaddr.addr[13] = dev->eth->mac.addr[3];
-    newaddr.addr[14] = dev->eth->mac.addr[4];
-    newaddr.addr[15] = dev->eth->mac.addr[5];
-    link = pico_ipv6_link_add(dev, newaddr, netmask64);
-    if (link) {
-        device_init_ipv6_final(dev, &newaddr);
+    struct pico_ip6 newaddr;
+    
+    if (LL_MODE_SIXLOWPAN == dev->mode) {
+        /* Add Link Local-interfaces for a 6LoWPAN device */
+        link = pico_ipv6_link_add_sixlowpan(dev, *prefix);
+    } else {
+        memcpy(newaddr.addr, prefix->addr, PICO_SIZE_IP6);
+        /* modified EUI-64 + invert universal/local bit */
+        newaddr.addr[8] = (dev->eth->mac.addr[0] ^ 0x02);
+        newaddr.addr[9] = dev->eth->mac.addr[1];
+        newaddr.addr[10] = dev->eth->mac.addr[2];
+        newaddr.addr[11] = 0xff;
+        newaddr.addr[12] = 0xfe;
+        newaddr.addr[13] = dev->eth->mac.addr[3];
+        newaddr.addr[14] = dev->eth->mac.addr[4];
+        newaddr.addr[15] = dev->eth->mac.addr[5];
+        if ((link = pico_ipv6_link_add(dev, newaddr, netmask64))) {
+            device_init_ipv6_final(dev, &newaddr);
+        }
     }
 
     return link;
@@ -81,7 +138,7 @@ static int device_init_mac(struct pico_device *dev, uint8_t *mac)
     struct pico_ip6 linklocal = {{0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xaa, 0xaa, 0xaa, 0xff, 0xfe, 0xaa, 0xaa, 0xaa}};
     #endif
     dev->eth = PICO_ZALLOC(sizeof(struct pico_ethdev));
-    if (dev->eth) {
+    if (!dev->mode && dev->eth) {
         memcpy(dev->eth->mac.addr, mac, PICO_SIZE_ETH);
         #ifdef PICO_SUPPORT_IPV6
         if (pico_ipv6_link_add_local(dev, &linklocal) == NULL) {
@@ -143,14 +200,47 @@ static int device_init_nomac(struct pico_device *dev)
     return 0;
 }
 
-static void devloop_all_in(void *arg);
-static void devloop_all_out(void *arg);
+#define DEBUG_IPV6(ip)  { \
+                            char ipstr[40] = { 0 }; \
+                            pico_ipv6_to_string(ipstr, (ip).addr); \
+                            dbg("IPv6 (%s)\n", ipstr); \
+                        }
+
+static int device_init_sixlowpan(struct pico_device *dev, struct pico_ieee_addr *addr)
+{
+    struct pico_ip6 linklocal = {{ 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }};
+    struct pico_ipv6_link *link = NULL;
+    struct pico_ieee_addr *slp = NULL;
+    
+    /* Set the device's interface identifier */
+    if (!(dev->eth = PICO_ZALLOC(sizeof(struct pico_ieee_addr))))
+        return -1;
+    slp = (struct pico_ieee_addr *)dev->eth;
+    
+    /* Set the L2-adresses */
+    memcpy(slp->_ext.addr, addr->_ext.addr, PICO_SIZE_IEEE_EXT);
+    slp->_short.addr = addr->_short.addr;
+    slp->_mode = addr->_mode;
+    
+    /* Add an IPv6 link with EUI-64 to the device */
+    link = pico_ipv6_link_add_sixlowpan(dev, linklocal);
+    if (!link) {
+        PICO_FREE(dev->eth);
+        return -1;
+    }
+    
+    /* ICMPv6 Router Solicitation */
+    pico_6lp_nd_start_solicitating(link);
+    
+    return 0;
+}
 
 int pico_device_init(struct pico_device *dev, const char *name, uint8_t *mac)
 {
-
     uint32_t len = (uint32_t)strlen(name);
     int ret = 0;
+    
     if(len > MAX_DEVICE_NAME)
         len = MAX_DEVICE_NAME;
 
@@ -175,12 +265,15 @@ int pico_device_init(struct pico_device *dev, const char *name, uint8_t *mac)
     if (!dev->mtu)
         dev->mtu = PICO_DEVICE_DEFAULT_MTU;
 
-    if (mac) {
-        ret = device_init_mac(dev, mac);
+    if (LL_MODE_SIXLOWPAN == dev->mode) {
+        ret = device_init_sixlowpan(dev, (struct pico_ieee_addr *)mac);
     } else {
-        ret = device_init_nomac(dev);
+        if (mac) {
+            ret = device_init_mac(dev, mac);
+        } else {
+            ret = device_init_nomac(dev);
+        }
     }
-
     return ret;
 }
 
@@ -198,7 +291,7 @@ void pico_device_destroy(struct pico_device *dev)
     pico_queue_destroy(dev->q_in);
     pico_queue_destroy(dev->q_out);
 
-    if (dev->eth)
+    if (!dev->mode && dev->eth)
         PICO_FREE(dev->eth);
 
 #ifdef PICO_SUPPORT_IPV4
@@ -246,7 +339,7 @@ static int devloop_in(struct pico_device *dev, int loop_score)
         /* Receive */
         f = pico_dequeue(dev->q_in);
         if (f) {
-            if (dev->eth) {
+            if (!dev->mode && dev->eth) {
                 f->datalink_hdr = f->buffer;
                 (void)pico_ethernet_receive(f);
             } else {
@@ -263,10 +356,17 @@ static int devloop_in(struct pico_device *dev, int loop_score)
 static int devloop_sendto_dev(struct pico_device *dev, struct pico_frame *f)
 {
 
-    if (dev->eth) {
+    if (!dev->mode && dev->eth) {
         /* Ethernet: pass management of the frame to the pico_ethernet_send() rdv function */
         return pico_ethernet_send(f);
-    } else {
+    }
+#ifdef PICO_SUPPORT_SIXLOWPAN
+    else if (LL_MODE_SIXLOWPAN == dev->mode) {
+        /* Send the entire pico_frame to the sixlowpan_device */
+        return (dev->send(dev, (void *)f, 0) <= 0); /* Return 0 upon success, which is dev->send() > 0 */
+    }
+#endif
+    else {
         /* non-ethernet: no post-processing needed */
         return (dev->send(dev, f->start, (int)f->len) <= 0); /* Return 0 upon success, which is dev->send() > 0 */
     }
@@ -291,9 +391,11 @@ static int devloop_out(struct pico_device *dev, int loop_score)
         } else
             break; /* Don't discard */
     }
+    
     return loop_score;
 }
 
+#ifdef PICO_SUPPORT_TICKLESS
 static void devloop_all_out(void *arg)
 {
     struct pico_device *dev = (struct pico_device *)arg;
@@ -336,6 +438,7 @@ static void devloop_all_in(void *arg)
         }
     }
 }
+#endif
 
 static int devloop(struct pico_device *dev, int loop_score, int direction)
 {

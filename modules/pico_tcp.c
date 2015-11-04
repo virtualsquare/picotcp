@@ -2936,7 +2936,7 @@ void pico_tcp_out_all(void *arg)
     struct pico_socket_tcp *t = (struct pico_socket_tcp *)arg;
     if (t) {
         struct pico_socket *s = &t->sock;
-        pico_tcp_output(&t->sock, (uint32_t)t->tcpq_out.frames);
+        pico_tcp_output(&t->sock, (int)t->tcpq_out.frames);
         if ((s->ev_pending) && s->wakeup) {
             s->wakeup(s->ev_pending, s);
             if(!s->parent)

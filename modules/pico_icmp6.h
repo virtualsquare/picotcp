@@ -19,6 +19,7 @@
 #define PICO_ICMP6HDR_NEIGH_SOL_SIZE    24
 #define PICO_ICMP6HDR_NEIGH_ADV_SIZE    24
 #define PICO_ICMP6HDR_ROUTER_SOL_SIZE   8
+#define PICO_ICMP6HDR_ROUTER_SOL_SIZE_6LP 16
 #define PICO_ICMP6HDR_ROUTER_ADV_SIZE   16
 #define PICO_ICMP6HDR_REDIRECT_SIZE     40
 
@@ -76,6 +77,7 @@
 #define PICO_ND_OPT_REDIRECT           4
 #define PICO_ND_OPT_MTU                5
 #define PICO_ND_OPT_RDNSS             25 /* RFC 5006 */
+#define PICO_ND_OPT_ARO               33 /* RFC 6775 */
 
 /* ND advertisement flags */
 #define PICO_ND_ROUTER             0x80000000
@@ -93,6 +95,13 @@
 #define PICO_ICMP6_ND_ANYCAST          1
 #define PICO_ICMP6_ND_SOLICITED        2
 #define PICO_ICMP6_ND_DAD              3
+
+/* 6LoWPAN option sizes */
+#define PICO_6LP_ND_LLAO_LEN_SHORT      (8u)
+#define PICO_6LP_ND_LLAO_LEN_EXTENDED   (16u)
+
+/* 6LoWPAN address registration lifetime */
+#define PICO_6LP_ND_DEFAULT_LIFETIME    (120) /* TWO HOURS */
 
 #define PICO_ICMP6_MAX_RTR_SOL_DELAY   1000
 
@@ -170,13 +179,19 @@ PACKED_STRUCT_DEF pico_icmp6_hdr {
     } msg;
 };
 
+PACKED_UNION_DEF pico_hw_addr {
+    struct pico_eth mac;
+#ifdef PICO_SUPPORT_SIXLOWPAN
+    struct pico_ieee_addr_short _short;
+    struct pico_ieee_addr_ext _ext;
+#endif /* PICO_SUPPORT_SIXLOWPAN */
+};
+
 PACKED_STRUCT_DEF pico_icmp6_opt_lladdr
 {
     uint8_t type;
     uint8_t len;
-    PACKED_UNION_DEF icmp6_opt_hw_addr_u {
-        struct pico_eth mac;
-    } addr;
+    union pico_hw_addr addr;
 };
 
 PACKED_STRUCT_DEF pico_icmp6_opt_prefix
@@ -222,6 +237,28 @@ PACKED_STRUCT_DEF pico_icmp6_opt_na
 {
     uint8_t type;
     uint8_t len;
+};
+
+PACKED_STRUCT_DEF pico_icmp6_opt_aro
+{
+    uint8_t type;
+    uint8_t len;
+    uint8_t status;
+    uint8_t res0;
+    uint16_t res1;
+    uint16_t lifetime;
+    struct pico_ieee_addr_ext eui64;
+};
+
+PACKED_STRUCT_DEF pico_icmp6_6co
+{
+    uint8_t type;
+    uint8_t len;
+    uint8_t clen;
+    uint8_t comp_id;
+    uint16_t res0;
+    uint16_t lifetime;
+    uint8_t prefix[0];
 };
 
 struct pico_icmp6_stats
