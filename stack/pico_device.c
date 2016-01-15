@@ -206,6 +206,9 @@ static int device_init_nomac(struct pico_device *dev)
                             dbg("IPv6 (%s)\n", ipstr); \
                         }
 
+static void devloop_all_in(void *arg);
+static void devloop_all_out(void *arg);
+
 static int device_init_sixlowpan(struct pico_device *dev, const struct pico_ieee_addr *addr)
 {
     struct pico_ip6 linklocal = {{ 0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
