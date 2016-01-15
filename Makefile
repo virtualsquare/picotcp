@@ -7,7 +7,7 @@ AR:=$(CROSS_COMPILE)ar
 RANLIB:=$(CROSS_COMPILE)ranlib
 SIZE:=$(CROSS_COMPILE)size
 STRIP_BIN:=$(CROSS_COMPILE)strip
-TEST_LDFLAGS=-pthread  $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug
+TEST_LDFLAGS=-pthread  $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug #-lpcap
 LIBNAME:="libpicotcp.a"
 
 PREFIX?=$(PWD)/build
@@ -196,6 +196,7 @@ POSIX_OBJ+= modules/pico_dev_vde.o \
             modules/pico_dev_tun.o \
             modules/pico_dev_ipc.o \
             modules/pico_dev_tap.o \
+			modules/pico_dev_radiotest.o \
             modules/pico_dev_mock.o
 
 ifneq ($(ETH),0)

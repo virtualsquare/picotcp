@@ -23,8 +23,8 @@
 #define PICO_ROUTE_CHECK_INTERVAL 200
 #define PICO_LIFET_CHECK_INTERVAL 1000
 
-//#define nd_dbg(...) do {} while(0)
-#define nd_dbg dbg
+#define nd_dbg(...) do {} while(0)
+//#define nd_dbg dbg
 
 #define ND_ARO_STATUS_SUCCES        (0u)
 #define ND_ARO_STATUS_DUPLICATE     (1u)
@@ -68,7 +68,7 @@ static struct pico_ipv6_neighbor *pico_nd_find_neighbor(struct pico_ip6 *dst)
         0
     };
 
-    test.address = *dst;
+    memcpy(test.address.addr, dst->addr, PICO_SIZE_IP6);
     return pico_tree_findKey(&NCache, &test);
 }
 
@@ -121,11 +121,17 @@ static void pico_ipv6_nd_timer_callback(pico_time now, void *arg)
 
 static struct pico_ipv6_neighbor *pico_nd_add(struct pico_ip6 *addr, struct pico_device *dev)
 {
-    struct pico_ipv6_neighbor *n = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
+    struct pico_ipv6_neighbor *n, test; 
     char address[120];
+
+    memcpy(test.address.addr, addr->addr, PICO_SIZE_IP6);
+    n = pico_tree_findKey(&NCache, &test);
+    if (n)
+        return n;
+
+    n = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
     if (!n)
         return NULL;
-
     pico_ipv6_to_string(address, addr->addr);
     nd_dbg("Adding address %s to cache...\n", address);
     memcpy(&n->address, addr, sizeof(struct pico_ip6));
@@ -392,7 +398,8 @@ static int nd_options(uint8_t *options, struct pico_icmp6_opt_lladdr *opt, uint8
             if (found > 0)
                 return -1; /* malformed option: option is there twice. */
 
-            memcpy(opt, (struct pico_icmp6_opt_lladdr *)options, (size_t)(len << 3));
+
+            memcpy(opt, (struct pico_icmp6_opt_lladdr *)options, sizeof(struct pico_icmp6_opt_lladdr));
             found++;
         }
 
@@ -609,8 +616,6 @@ static int neigh_adv_process(struct pico_frame *f)
 
 }
 
-
-
 static struct pico_ipv6_neighbor *pico_ipv6_neighbor_from_sol_new(struct pico_ip6 *ip, struct pico_icmp6_opt_lladdr *opt, struct pico_device *dev)
 {
     struct pico_ipv6_neighbor *n = NULL;
@@ -657,6 +662,7 @@ static struct pico_ipv6_neighbor *pico_nd_add_6lp(struct pico_ip6 naddr, struct 
     
     if ((new = pico_nd_add(&naddr, dev))) {
         new->expire = PICO_TIME_MS() + (pico_time)(ONE_MINUTE * aro->lifetime);
+        dbg("ARO Lifetime: %d minutes\n", aro->lifetime);
     }
     
     return new;
@@ -698,10 +704,8 @@ static int neigh_sol_detect_dad_6lp(struct pico_frame *f)
     struct pico_ipv6_neighbor *n = NULL;
     struct pico_icmp6_opt_lladdr *sllao = NULL;
     struct pico_icmp6_hdr *icmp = NULL;
-    struct pico_ipv6_hdr *ip = NULL;
     struct pico_icmp6_opt_aro *aro = NULL;
     
-    ip = (struct pico_ipv6_hdr *)f->net_hdr;
     icmp = (struct pico_icmp6_hdr *)f->transport_hdr;
     sllao = (struct pico_icmp6_opt_lladdr *)((uint8_t *)&icmp->msg.info.neigh_sol + sizeof(struct neigh_sol_s));
     aro = (struct pico_icmp6_opt_aro *)(((uint8_t *)&icmp->msg.info.neigh_sol) + sizeof(struct neigh_sol_s) + (sllao->len * 8));
@@ -711,7 +715,7 @@ static int neigh_sol_detect_dad_6lp(struct pico_frame *f)
         return -1;
     
     /* Find an NCE for the source */
-    if (!(n = pico_nd_find_neighbor(&ip->src))) {
+    if (!(n = pico_nd_find_neighbor(&icmp->msg.info.neigh_sol.target))) {
         /* No dup, add neighbor to cache */
         if (pico_nd_add_6lp(icmp->msg.info.neigh_sol.target, aro, f->dev))
             neigh_sol_dad_reply(f, sllao, aro, ND_ARO_STATUS_SUCCES);

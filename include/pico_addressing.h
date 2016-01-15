@@ -36,7 +36,6 @@ enum pico_ll_mode
     LL_MODE_SIXLOWPAN
 };
 
-#ifdef PICO_SUPPORT_SIXLOWPAN
 PACKED_STRUCT_DEF pico_ieee_addr_short
 {
     uint16_t addr;
@@ -64,9 +63,8 @@ struct pico_ieee_addr
     enum ieee_am _mode;
 };
 
-#define pico_ieee_addr_len(am) (IEEE_AM_BOTH == (am) || IEEE_AM_SHORT == (am) ? (2u) : \
-                                (IEEE_AM_EXTENDED == (am) ? (8u) : (0u)))
-#endif
+#define pico_ieee_addr_len(am) ((IEEE_AM_BOTH == (int)(am) || IEEE_AM_SHORT == (int)(am)) ? (2u) : \
+                                (((IEEE_AM_EXTENDED == (int)(am)) ? (8u) : (0u))))
 
 extern const uint8_t PICO_ETHADDR_ALL[];
 
