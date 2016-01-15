@@ -33,8 +33,9 @@
 #define PICO_SIXLOWPAN_MAX_RTR_SOLICITATIONS            (3)
 #define PICO_SIXLOWPAN_RTR_SOLICITATION_INTERVAL        (10000)
 #define PICO_SIXLOWPAN_MAX_RTR_SOLICITATION_INTERVAL    (60000)
-
-static struct pico_frame *frames_queued_v6[PICO_ND_MAX_FRAMES_QUEUED] = { 0 };
+static struct pico_frame *frames_queued_v6[PICO_ND_MAX_FRAMES_QUEUED] = {
+    0
+};
 
 enum pico_ipv6_neighbor_state {
     PICO_ND_STATE_INCOMPLETE = 0,
@@ -81,7 +82,8 @@ static void pico_ipv6_nd_queued_trigger(void)
         if (f) {
             (void)pico_ethernet_send(f);
             if(frames_queued_v6[i])
-              pico_frame_discard(frames_queued_v6[i]);
+                pico_frame_discard(frames_queued_v6[i]);
+
             frames_queued_v6[i] = NULL;
         }
     }
@@ -313,6 +315,10 @@ static void pico_nd_new_expire_time(struct pico_ipv6_neighbor *n)
 static void pico_nd_discover(struct pico_ipv6_neighbor *n)
 {
     char IPADDR[64];
+
+    if (!n)
+        return;
+
     if (n->expire != (pico_time)0)
         return;
 
