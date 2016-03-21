@@ -755,8 +755,6 @@ int main(int argc, char **argv)
                 app_tftp(args);
 #endif
             } else IF_APPNAME("noop") {
-                app_noop();
-                exit(0);
 #ifdef PICO_SUPPORT_OLSR
             } else IF_APPNAME("olsr") {
                 dev = pico_get_device("pic0");
@@ -768,9 +766,6 @@ int main(int argc, char **argv)
                 if(dev) {
                     pico_olsr_add(dev);
                 }
-
-                app_noop();
-                exit(0);
 #endif
             } else IF_APPNAME("slaacv4") {
 #ifndef PICO_SUPPORT_SLAACV4
@@ -801,29 +796,35 @@ int main(int argc, char **argv)
     printf("number of vde devices: %d\n", uses_vde);
 #ifdef PICO_SUPPORT_TICKLESS
     pico_time interval = 0;
-    struct timespec idle_time = {0, 0};
-    printf("%s: launching PicoTCP loop in TICKLESS mode\n", __FUNCTION__);
-    while(1) {
-        interval = pico_stack_go();
-        if (interval != 0) {
-            int ret;
-            clock_gettime(CLOCK_REALTIME, &idle_time);
-            idle_time.tv_sec += interval / 1000LLU;
-            idle_time.tv_nsec += ((interval % 1000) * 1000000LLU);
-            while (idle_time.tv_nsec > 1000000000) {
-                idle_time.tv_nsec -= 1000000000;
-                idle_time.tv_sec++;
+    if (uses_vde) {
+        struct timespec idle_time = {0, 0};
+        printf("%s: launching PicoTCP loop in TICKLESS mode\n", __FUNCTION__);
+        while(1) {
+            interval = pico_stack_go();
+            if (interval != 0) {
+                int ret;
+                clock_gettime(CLOCK_REALTIME, &idle_time);
+                idle_time.tv_sec += interval / 1000LLU;
+                idle_time.tv_nsec += ((interval % 1000) * 1000000LLU);
+                while (idle_time.tv_nsec > 1000000000) {
+                    idle_time.tv_nsec -= 1000000000;
+                    idle_time.tv_sec++;
+                }
+
+                pthread_mutex_lock(&IRQ_mutex);
+                ret = pthread_cond_timedwait(&IRQ_condition, &IRQ_mutex, &idle_time);
+                //printf("Unlocked PicoTCP! ret = %d was idle=%llu\n", ret, interval);
+                pthread_mutex_unlock(&IRQ_mutex);
+                if (ret == 0)  {
+                    IRQ_dispatcher();
+                }
+
+
             }
-
-            pthread_mutex_lock(&IRQ_mutex);
-            ret = pthread_cond_timedwait(&IRQ_condition, &IRQ_mutex, &idle_time);
-            //printf("Unlocked PicoTCP! ret = %d was idle=%llu\n", ret, interval);
-            pthread_mutex_unlock(&IRQ_mutex);
-            if (ret == 0)  {
-                IRQ_dispatcher();
-            }
-
-
+        }
+    } else {
+        while(1) {
+            interval = pico_stack_go();
         }
     }
     exit(0);
