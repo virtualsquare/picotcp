@@ -340,7 +340,7 @@ tst: test
 $(PREFIX)/include/pico_defines.h:
 	@mkdir -p $(PREFIX)/lib
 	@mkdir -p $(PREFIX)/include
-	@bash ./mkdeps.sh $(PREFIX) $(OPTIONS)
+	bash ./mkdeps.sh $(PREFIX) $(OPTIONS)
 
 
 deps: $(PREFIX)/include/pico_defines.h
