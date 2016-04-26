@@ -883,7 +883,7 @@ static void pico_check_timers(void)
     struct pico_timer *t;
     struct pico_timer_ref tref_unused, *tref = heap_first(Timers);
     pico_tick = PICO_TIME_MS();
-    while((tref) && (tref->expire < pico_tick)) {
+    while((tref) && (tref->expire <= pico_tick)) {
         t = tref->tmr;
         if (t && t->timer)
             t->timer(pico_tick, t->arg);
@@ -907,6 +907,8 @@ long long int pico_stack_go(void)
     tref = heap_first(Timers);
     if (!tref)
         return -1;
+    /* Execute jobs again, in case they were scheduled in timer execution */
+    pico_execute_pending_jobs();
     return(long long int)((tref->expire - pico_tick) + 1); 
 }
 #endif

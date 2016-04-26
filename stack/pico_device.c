@@ -393,7 +393,7 @@ static int devloop_out(struct pico_device *dev, int loop_score)
             f = pico_dequeue(dev->q_out);
             pico_frame_discard(f); /* SINGLE POINT OF DISCARD for OUTGOING FRAMES */
             loop_score--;
-        } else
+        } else 
             break; /* Don't discard */
     }
 
@@ -401,6 +401,7 @@ static int devloop_out(struct pico_device *dev, int loop_score)
 }
 
 #ifdef PICO_SUPPORT_TICKLESS
+
 static void devloop_all_out(void *arg)
 {
     struct pico_device *dev = (struct pico_device *)arg;
@@ -417,8 +418,10 @@ static void devloop_all_out(void *arg)
         if (devloop_sendto_dev(dev, f) == 0) { /* success. */
             f = pico_dequeue(dev->q_out);
             pico_frame_discard(f); /* SINGLE POINT OF DISCARD for OUTGOING FRAMES */
-        } else
+        } else {
+            pico_schedule_job(devloop_all_out, dev);
             break; /* Don't discard */
+        }
     }
 }
 
