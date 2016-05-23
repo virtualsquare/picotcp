@@ -39,11 +39,9 @@ static void pico_arp_queued_trigger(void)
     {
         f = frames_queued[i];
         if (f) {
-            if (!pico_ethernet_send(f))
-            {
+            if (pico_datalink_send(f) <= 0)
                 pico_frame_discard(f);
-                frames_queued[i] = NULL;
-            }
+            frames_queued[i] = NULL;
         }
     }
 }
@@ -228,7 +226,7 @@ void pico_arp_postpone(struct pico_frame *f)
     {
         if (!frames_queued[i]) {
             if (f->failure_count < 4)
-                frames_queued[i] = pico_frame_copy(f);
+                frames_queued[i] = f;
 
             return;
         }

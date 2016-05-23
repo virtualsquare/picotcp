@@ -16,7 +16,7 @@
 #include "pico_ipv4.h"
 #include "pico_icmp6.h"
 #include "pico_eth.h"
-#include "pico_dev_sixlowpan.h"
+
 #define PICO_DEVICE_DEFAULT_MTU (1500)
 
 struct pico_devices_rr_info {
@@ -32,6 +32,7 @@ static int pico_dev_cmp(void *ka, void *kb)
     struct pico_device *a = ka, *b = kb;
     if (a->hash < b->hash)
         return -1;
+
 
     if (a->hash > b->hash)
         return 1;
@@ -53,6 +54,7 @@ static void device_init_ipv6_final(struct pico_device *dev, struct pico_ip6 *lin
 }
 
 #ifdef PICO_SUPPORT_SIXLOWPAN
+#include "pico_dev_sixlowpan.h"
 static struct pico_ip6 pico_ipv6_address_to_network(const struct pico_ip6 address, const struct pico_ip6 netmask)
 {
     struct pico_ip6 network = {{ 0 }};
@@ -351,14 +353,7 @@ static int devloop_in(struct pico_device *dev, int loop_score)
         /* Receive */
         f = pico_dequeue(dev->q_in);
         if (f) {
-            if (!dev->mode && dev->eth) {
-                f->datalink_hdr = f->buffer;
-                (void)pico_ethernet_receive(f);
-            } else {
-                f->net_hdr = f->buffer;
-                pico_network_receive(f);
-            }
-
+            pico_datalink_receive(f);
             loop_score--;
         }
     }
@@ -367,14 +362,7 @@ static int devloop_in(struct pico_device *dev, int loop_score)
 
 static int devloop_sendto_dev(struct pico_device *dev, struct pico_frame *f)
 {
-
-    if (dev->eth) {
-        /* Ethernet: pass management of the frame to the pico_ethernet_send() rdv function */
-        return pico_ethernet_send(f);
-    } else {
-        /* non-ethernet: no post-processing needed */
-        return (dev->send(dev, f->start, (int)f->len) <= 0); /* Return 0 upon success, which is dev->send() > 0 */
-    }
+    return (dev->send(dev, f->start, (int)f->len) <= 0);
 }
 
 static int devloop_out(struct pico_device *dev, int loop_score)

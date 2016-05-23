@@ -16,7 +16,7 @@
 #include "pico_eth.h"
 #include "pico_addressing.h"
 #include "pico_ipv6_nd.h"
-#include "pico_dev_sixlowpan.h"
+#include "pico_ethernet.h"
 
 #ifdef PICO_SUPPORT_IPV6
 #define PICO_NEIGH_CHECK_INTERVAL 400
@@ -82,10 +82,8 @@ static void pico_ipv6_nd_queued_trigger(void)
     {
         f = frames_queued_v6[i];
         if (f) {
-            (void)pico_ethernet_send(f);
-            if(frames_queued_v6[i])
-                pico_frame_discard(frames_queued_v6[i]);
-
+            if (pico_datalink_send(f) <= 0)
+                pico_frame_discard(f);
             frames_queued_v6[i] = NULL;
         }
     }
@@ -1335,11 +1333,10 @@ void pico_ipv6_nd_postpone(struct pico_frame *f)
 {
     int i;
     static int last_enq = -1;
-    struct pico_frame *cp = pico_frame_copy(f);
     for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; i++)
     {
         if (!frames_queued_v6[i]) {
-            frames_queued_v6[i] = cp;
+            frames_queued_v6[i] = f;
             last_enq = i;
             return;
         }
@@ -1352,7 +1349,7 @@ void pico_ipv6_nd_postpone(struct pico_frame *f)
     if (frames_queued_v6[last_enq])
         pico_frame_discard(frames_queued_v6[last_enq]);
 
-    frames_queued_v6[last_enq] = cp;
+    frames_queued_v6[last_enq] = f;
 }
 
 

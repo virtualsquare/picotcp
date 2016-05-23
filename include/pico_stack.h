@@ -14,18 +14,41 @@
 #define PICO_ETH_MRU (1514u)
 #define PICO_IP_MRU (1500u)
 
-/* ===== RECEIVING FUNCTIONS (from dev up to socket) ===== */
+/*******************************************************************************
+ *  TRANSPORT LAYER
+ ******************************************************************************/
 
-/* TRANSPORT LEVEL */
-/* interface towards network */
+/* From dev up to socket */
 int32_t pico_transport_receive(struct pico_frame *f, uint8_t proto);
 
-/* NETWORK LEVEL */
-/* interface towards ethernet */
+/*******************************************************************************
+ *  NETWORK LAYER
+ ******************************************************************************/
+
+/* From socket down to dev */
+int32_t pico_network_send(struct pico_frame *f);
+
+/* From dev up to socket */
 int32_t pico_network_receive(struct pico_frame *f);
 
+/*******************************************************************************
+ *  DATALINK LAYER
+ ******************************************************************************/
 
-/* LOWEST LEVEL: interface towards devices. */
+/* From socket down to dev */
+int pico_datalink_send(struct pico_frame *f);
+
+/* From dev up to socket */
+int pico_datalink_receive(struct pico_frame *f);
+
+/*******************************************************************************
+ *  PHYSICAL LAYER
+ ******************************************************************************/
+
+/* Enqueues the frame in the device-queue. From socket down to dev */
+int32_t pico_sendto_dev(struct pico_frame *f);
+
+/* LOWEST LEVEL: interface towards stack from devices */
 /* Device driver will call this function which returns immediately.
  * Incoming packet will be processed later on in the dev loop.
  * The zerocopy version will associate the current buffer to the newly created frame.
@@ -76,6 +99,8 @@ int pico_source_is_local(struct pico_frame *f);
 int pico_frame_dst_is_unicast(struct pico_frame *f);
 void pico_store_network_origin(void *src, struct pico_frame *f);
 uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void *arg);
+uint32_t pico_timer_add_hashed(pico_time expire, void (*timer)(pico_time, void *), void *arg, uint32_t hash);
+void pico_timer_cancel_hashed(uint32_t hash);
 void pico_timer_cancel(uint32_t id);
 uint32_t pico_rand(void);
 void pico_rand_feed(uint32_t feed);
