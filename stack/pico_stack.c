@@ -32,24 +32,6 @@
 #include "heap.h"
 #include "pico_jobs.h"
 
-#define IS_LIMITED_BCAST(f) (((struct pico_ipv4_hdr *) f->net_hdr)->dst.addr == PICO_IP4_BCAST)
-
-const uint8_t PICO_ETHADDR_ALL[6] = {
-    0xff, 0xff, 0xff, 0xff, 0xff, 0xff
-};
-
-# define PICO_SIZE_MCAST 3
-static const uint8_t PICO_ETHADDR_MCAST[6] = {
-    0x01, 0x00, 0x5e, 0x00, 0x00, 0x00
-};
-
-#ifdef PICO_SUPPORT_IPV6
-# define PICO_SIZE_MCAST6 2
-static const uint8_t PICO_ETHADDR_MCAST6[6] = {
-    0x33, 0x33, 0x00, 0x00, 0x00, 0x00
-};
-#endif
-
 /* Mockables */
 #if defined UNIT_TEST
 #   define MOCKABLE __attribute__((weak))
