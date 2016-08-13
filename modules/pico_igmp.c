@@ -585,6 +585,11 @@ int pico_igmp_state_change(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_g
 {
     struct mcast_parameters *p = NULL;
 
+    if (!mcast_link || !mcast_group) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+
     if (mcast_group->addr == IGMP_ALL_HOST_GROUP)
         return 0;
 
@@ -595,12 +600,6 @@ int pico_igmp_state_change(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_g
             pico_err = PICO_ERR_ENOMEM;
             return -1;
         }
-
-        if (!mcast_link || !mcast_group) {
-            pico_err = PICO_ERR_EINVAL;
-            return -1;
-        }
-
         p->state = IGMP_STATE_NON_MEMBER;
         p->mcast_link.ip4 = *mcast_link;
         p->mcast_group.ip4 = *mcast_group;

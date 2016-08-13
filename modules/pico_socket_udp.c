@@ -27,6 +27,22 @@ struct pico_socket *pico_socket_udp_open(void)
 }
 
 
+#if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
+static int pico_enqueue_and_wakeup_if_needed(struct pico_queue *q_in, struct pico_socket* s, struct pico_frame* cpy)
+{
+        if (pico_enqueue(q_in, cpy) > 0) {
+            if (s->wakeup){
+                s->wakeup(PICO_SOCK_EV_RD, s);
+            }
+        }
+        else {
+            pico_frame_discard(cpy);
+            return -1;
+        }
+        return 0;
+}
+#endif
+
 #ifdef PICO_SUPPORT_IPV4
 static int pico_enqueue_and_wakeup_if_needed(struct pico_queue *q_in, struct pico_socket* s, struct pico_frame* cpy)
 {
