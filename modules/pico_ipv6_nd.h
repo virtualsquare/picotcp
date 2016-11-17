@@ -29,7 +29,4 @@ void pico_ipv6_nd_postpone(struct pico_frame *f);
 int pico_ipv6_nd_recv(struct pico_frame *f);
 void pico_ipv6_nd_ra_timer_callback(pico_time now, void *arg);
 
-#ifdef PICO_SUPPORT_SIXLOWPAN
-int pico_6lp_nd_start_solicitating(struct pico_ipv6_link *l);
-#endif /* PICO_SUPPORT_SIXLOWPAN */
 #endif

@@ -19,7 +19,6 @@
 #define PICO_ICMP6HDR_NEIGH_SOL_SIZE    24
 #define PICO_ICMP6HDR_NEIGH_ADV_SIZE    24
 #define PICO_ICMP6HDR_ROUTER_SOL_SIZE   8
-#define PICO_ICMP6HDR_ROUTER_SOL_SIZE_6LP 16
 #define PICO_ICMP6HDR_ROUTER_ADV_SIZE   16
 #define PICO_ICMP6HDR_REDIRECT_SIZE     40
 
@@ -95,13 +94,6 @@
 #define PICO_ICMP6_ND_ANYCAST          1
 #define PICO_ICMP6_ND_SOLICITED        2
 #define PICO_ICMP6_ND_DAD              3
-
-/* 6LoWPAN option sizes */
-#define PICO_6LP_ND_LLAO_LEN_SHORT      (8u)
-#define PICO_6LP_ND_LLAO_LEN_EXTENDED   (16u)
-
-/* 6LoWPAN address registration lifetime */
-#define PICO_6LP_ND_DEFAULT_LIFETIME    (120) /* TWO HOURS */
 
 #define PICO_ICMP6_MAX_RTR_SOL_DELAY   1000
 
@@ -180,10 +172,6 @@ PACKED_STRUCT_DEF pico_icmp6_hdr {
 
 PACKED_UNION_DEF pico_hw_addr {
     struct pico_eth mac;
-#ifdef PICO_SUPPORT_SIXLOWPAN
-    struct pico_ieee_addr_short _short;
-    struct pico_ieee_addr_ext _ext;
-#endif /* PICO_SUPPORT_SIXLOWPAN */
 };
 
 PACKED_STRUCT_DEF pico_icmp6_opt_lladdr

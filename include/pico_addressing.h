@@ -39,7 +39,6 @@ PACKED_STRUCT_DEF pico_eth
 enum pico_ll_mode
 {
     LL_MODE_ETHERNET = 0,
-    LL_MODE_SIXLOWPAN
 };
 
 PACKED_STRUCT_DEF pico_ieee_addr_short
