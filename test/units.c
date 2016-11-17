@@ -14,6 +14,9 @@
 #include "pico_frame.c"
 #include "pico_stack.c"
 #include "pico_protocol.c"
+#include "pico_802154.c"
+#include "pico_6lowpan.c"
+#include "pico_6lowpan_ll.c"
 #include "pico_ipv4.c"
 #include "pico_socket.c"
 #include "pico_socket_multicast.c"
@@ -67,6 +70,8 @@
 #include "unit_timer.c"
 #include "unit_arp.c"
 #include "unit_ipv6.c"
+
+Suite *pico_suite(void);
 
 START_TEST (test_frame)
 {

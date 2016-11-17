@@ -7,7 +7,10 @@ AR:=$(CROSS_COMPILE)ar
 RANLIB:=$(CROSS_COMPILE)ranlib
 SIZE:=$(CROSS_COMPILE)size
 STRIP_BIN:=$(CROSS_COMPILE)strip
-TEST_LDFLAGS=-pthread  $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug -lpcap
+TEST_LDFLAGS=-pthread  $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug
+UNIT_LDFLAGS=-lcheck -lm -pthread -lrt -lsubunit
+UNIT_CFLAGS= $(CFLAGS) -Wno-missing-braces
+
 LIBNAME:="libpicotcp.a"
 
 PREFIX?=$(PWD)/build
@@ -53,6 +56,8 @@ TUN?=0
 TAP?=0
 PCAP?=0
 PPP?=1
+6LOWPAN?=0
+IEEE802154?=0
 IPC?=0
 CYASSL?=0
 WOLFSSL?=0
@@ -61,6 +66,26 @@ TICKLESS?=0
 
 #IPv6 related
 IPV6?=1
+
+TEST?=0
+ifeq ($(TEST),1)
+	6LOWPAN=1
+	IEEE802154=1
+endif
+
+UNITS?=0
+ifeq ($(UNITS),1)
+	6LOWPAN=1
+	IEEE802154=1
+	ARCH=faulty
+endif
+
+UNITS_MM?=0
+ifeq ($(UNITS_MM),1)
+	6LOWPAN=1
+	IEEE802154=1
+	MEMORY_MANAGER=1
+endif
 
 EXTRA_CFLAGS+=-DPICO_COMPILE_TIME=`date +%s`
 EXTRA_CFLAGS+=$(PLATFORM_CFLAGS)
@@ -75,7 +100,6 @@ CFLAGS+= -Wno-missing-field-initializers
 ifeq ($(CC),clang)
 CFLAGS+= -Wunreachable-code-break -Wpointer-bool-conversion -Wmissing-variable-declarations
 endif
-
 
 ifeq ($(DEBUG),1)
   CFLAGS+=-ggdb
@@ -208,8 +232,10 @@ POSIX_OBJ+= modules/pico_dev_vde.o \
             modules/pico_dev_tun.o \
             modules/pico_dev_ipc.o \
             modules/pico_dev_tap.o \
-			modules/pico_dev_radiotest.o \
-            modules/pico_dev_mock.o
+            modules/pico_dev_mock.o \
+			modules/pico_dev_radio_mgr.o
+
+include rules/debug.mk
 
 ifneq ($(ETH),0)
   include rules/eth.mk
@@ -291,6 +317,9 @@ endif
 ifneq ($(PPP),0)
   include rules/ppp.mk
 endif
+ifneq ($(6LOWPAN), 0)
+  include rules/6lowpan.mk
+endif
 ifneq ($(IPC),0)
   include rules/ipc.mk
 endif
@@ -326,6 +355,10 @@ TEST6_ELF= test/picoapp6.elf
 
 
 test: posix
+	@if [ $(TEST) -eq 0 ]; then \
+	echo "\n\nsmoke tests should be compiled with TEST=1 from now on!"; \
+	exit 1; \
+	fi
 	@mkdir -p $(PREFIX)/test/
 	@make -C test/examples PREFIX=$(PREFIX)
 	@echo -e "\t[CC] picoapp.o"
@@ -368,37 +401,43 @@ loop: mod core
 	@$(CC) -c -o $(PREFIX)/loop_ping.o test/loop_ping.c $(CFLAGS) -ggdb
 
 units: mod core lib $(UNITS_OBJ) $(MOD_OBJ)
+	@if [ $(UNITS) -eq 0 ]; then \
+	echo "\n\nunit tests should be compiled with UNITS=1 from now on!"; \
+	exit 1; \
+	fi
 	@echo -e "\n\t[UNIT TESTS SUITE]"
 	@mkdir -p $(PREFIX)/test
 	@echo -e "\t[CC] units.o"
-	@$(CC) -g -c -o $(PREFIX)/test/units.o test/units.c $(CFLAGS) -I stack -I modules -I includes -I test/unit -DUNIT_TEST
+	@$(CC) -g -c -o $(PREFIX)/test/units.o test/units.c $(UNIT_CFLAGS) -I stack -I modules -I includes -I test/unit -DUNIT_TEST
 	@echo -e "\t[LD] $(PREFIX)/test/units"
-	@$(CC) -o $(PREFIX)/test/units $(CFLAGS) $(PREFIX)/test/units.o -lcheck -lm -pthread -lrt \
-		$(UNITS_OBJ) $(PREFIX)/modules/pico_aodv.o \
-		$(PREFIX)/modules/pico_fragments.o
-	@$(CC) -o $(PREFIX)/test/modunit_pico_protocol.elf $(CFLAGS) -I. test/unit/modunit_pico_protocol.c stack/pico_tree.c -lcheck -lm -pthread -lrt $(UNITS_OBJ)
-	@$(CC) -o $(PREFIX)/test/modunit_pico_frame.elf $(CFLAGS) -I. test/unit/modunit_pico_frame.c stack/pico_tree.c -lcheck -lm -pthread -lrt $(UNITS_OBJ)
-	@$(CC) -o $(PREFIX)/test/modunit_seq.elf $(CFLAGS) -I. test/unit/modunit_seq.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_tcp.elf $(CFLAGS) -I. test/unit/modunit_pico_tcp.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_dns_client.elf $(CFLAGS) -I. test/unit/modunit_pico_dns_client.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_dns_common.elf $(CFLAGS) -I. test/unit/modunit_pico_dns_common.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_mdns.elf $(CFLAGS) -I. test/unit/modunit_pico_mdns.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_dns_sd.elf $(CFLAGS) -I. test/unit/modunit_pico_dns_sd.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_dev_loop.elf $(CFLAGS) -I. test/unit/modunit_pico_dev_loop.c -lcheck -lm -pthread -lrt $(UNITS_OBJ)
-	@$(CC) -o $(PREFIX)/test/modunit_ipv6_nd.elf $(CFLAGS) -I. test/unit/modunit_pico_ipv6_nd.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_ethernet.elf $(CFLAGS) -I. test/unit/modunit_pico_ethernet.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_pico_stack.elf $(CFLAGS) -I. test/unit/modunit_pico_stack.c -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_tftp.elf $(CFLAGS) -I. test/unit/modunit_pico_tftp.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_sntp_client.elf $(CFLAGS) -I. test/unit/modunit_pico_sntp_client.c -lcheck -lm -pthread -lrt $(UNITS_OBJ)
-	@$(CC) -o $(PREFIX)/test/modunit_ipfilter.elf $(CFLAGS) -I. test/unit/modunit_pico_ipfilter.c stack/pico_tree.c -lcheck -lm -pthread -lrt $(UNITS_OBJ)
-	@$(CC) -o $(PREFIX)/test/modunit_aodv.elf $(CFLAGS) -I. test/unit/modunit_pico_aodv.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_fragments.elf $(CFLAGS) -I. test/unit/modunit_pico_fragments.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_queue.elf $(CFLAGS) -I. test/unit/modunit_queue.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ)
-	@$(CC) -o $(PREFIX)/test/modunit_dev_ppp.elf $(CFLAGS) -I. test/unit/modunit_pico_dev_ppp.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_mld.elf $(CFLAGS) -I. test/unit/modunit_pico_mld.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_igmp.elf $(CFLAGS) -I. test/unit/modunit_pico_igmp.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_hotplug_detection.elf $(CFLAGS) -I. test/unit/modunit_pico_hotplug_detection.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
-	@$(CC) -o $(PREFIX)/test/modunit_strings.elf $(CFLAGS) -I. test/unit/modunit_pico_strings.c  -lcheck -lm -pthread -lrt $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/units $(UNIT_CFLAGS) $(PREFIX)/test/units.o $(UNIT_LDFLAGS) \
+	   $(UNITS_OBJ) $(PREFIX)/modules/pico_aodv.o \
+	   $(PREFIX)/modules/pico_fragments.o
+	@$(CC) -o $(PREFIX)/test/modunit_pico_protocol.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_protocol.c stack/pico_tree.c $(UNIT_LDFLAGS) $(UNITS_OBJ)
+	@$(CC) -o $(PREFIX)/test/modunit_pico_frame.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_frame.c stack/pico_tree.c $(UNIT_LDFLAGS) $(UNITS_OBJ)
+	@$(CC) -o $(PREFIX)/test/modunit_seq.elf $(UNIT_CFLAGS) -I. test/unit/modunit_seq.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_tcp.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_tcp.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_dns_client.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_dns_client.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_dns_common.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_dns_common.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_mdns.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_mdns.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_dns_sd.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_dns_sd.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_dev_loop.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_dev_loop.c $(UNIT_LDFLAGS) $(UNITS_OBJ)
+	@$(CC) -o $(PREFIX)/test/modunit_ipv6_nd.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_ipv6_nd.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_ethernet.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_ethernet.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_pico_stack.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_stack.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_tftp.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_tftp.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_sntp_client.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_sntp_client.c $(UNIT_LDFLAGS) $(UNITS_OBJ)
+	@$(CC) -o $(PREFIX)/test/modunit_ipfilter.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_ipfilter.c stack/pico_tree.c $(UNIT_LDFLAGS) $(UNITS_OBJ)
+	@$(CC) -o $(PREFIX)/test/modunit_aodv.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_aodv.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_fragments.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_fragments.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_queue.elf $(UNIT_CFLAGS) -I. test/unit/modunit_queue.c  $(UNIT_LDFLAGS) $(UNITS_OBJ)
+	@$(CC) -o $(PREFIX)/test/modunit_dev_ppp.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_dev_ppp.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_mld.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_mld.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_igmp.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_igmp.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_hotplug_detection.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_hotplug_detection.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_802154.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_802154.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_6lowpan.elf $(UNIT_CFLAGS) -I. -I test/examples test/unit/modunit_pico_6lowpan.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_strings.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_strings.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
 
 devunits: mod core lib
 	@echo -e "\n\t[UNIT TESTS SUITE: device drivers]"
@@ -410,6 +449,10 @@ devunits: mod core lib
 	@$(CC) -o $(PREFIX)/test/devunits $(CFLAGS) -I stack $(PREFIX)/test/unit/device/*.o -lcheck -lm -pthread -lrt
 
 units_mm: mod core lib
+	@if [ $(UNITS_MM) -eq 0 ]; then \
+	echo "\n\nMM unit tests should be compiled with UNITS_MM=1 from now on!"; \
+	exit 1; \
+	fi
 	@echo -e "\n\t[UNIT TESTS SUITE]"
 	@mkdir -p $(PREFIX)/test
 	@echo -e "\t[CC] units_mm.o"

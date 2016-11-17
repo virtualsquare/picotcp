@@ -19,8 +19,12 @@
 #ifdef PICO_SUPPORT_IPV4
 #ifdef PICO_SUPPORT_NAT
 
+#ifdef DEBUG_NAT
+#define nat_dbg dbg
+#else
 #define nat_dbg(...) do {} while(0)
-/* #define nat_dbg dbg */
+#endif
+
 #define PICO_NAT_TIMEWAIT  240000 /* msec (4 mins) */
 
 #define PICO_NAT_INBOUND   0
@@ -379,7 +383,10 @@ static void pico_ipv4_nat_table_cleanup(pico_time now, void *_unused)
 
     nat_dbg("NAT: after table cleanup:\n");
     pico_ipv4_nat_print_table();
-    pico_timer_add(PICO_NAT_TIMEWAIT, pico_ipv4_nat_table_cleanup, NULL);
+    if (!pico_timer_add(PICO_NAT_TIMEWAIT, pico_ipv4_nat_table_cleanup, NULL)) {
+        nat_dbg("NAT: Failed to start cleanup timer\n");
+        /* TODO no more NAT table cleanup now */
+    }
 }
 
 int pico_ipv4_port_forward(struct pico_ip4 nat_addr, uint16_t nat_port, struct pico_ip4 src_addr, uint16_t src_port, uint8_t proto, uint8_t flag)
@@ -551,8 +558,13 @@ int pico_ipv4_nat_enable(struct pico_ipv4_link *link)
         return -1;
     }
 
+    if (!pico_timer_add(PICO_NAT_TIMEWAIT, pico_ipv4_nat_table_cleanup, NULL)) {
+        nat_dbg("NAT: Failed to start cleanup timer\n");
+        return -1;
+    }
+
     nat_link = link;
-    pico_timer_add(PICO_NAT_TIMEWAIT, pico_ipv4_nat_table_cleanup, NULL);
+
     return 0;
 }
 

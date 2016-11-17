@@ -18,8 +18,11 @@
 
 #ifdef PICO_SUPPORT_IPV4
 
-#define dns_dbg(...) do {} while(0)
-/* #define dns_dbg dbg */
+#ifdef DEBUG_DNS
+    #define dns_dbg dbg
+#else
+    #define dns_dbg(...) do {} while(0)
+#endif
 
 /* DNS response length */
 #define PICO_DNS_MAX_QUERY_LEN 255
@@ -111,9 +114,12 @@ static struct pico_dns_ns *pico_dns_client_add_ns(struct pico_ip4 *ns_addr)
     dns->ns = *ns_addr;
 
     found = pico_tree_insert(&NSTable, dns);
-    if (found) { /* nameserver already present */
+    if (found) { /* nameserver already present or out of memory */
         PICO_FREE(dns);
-        return found;
+        if ((void *)found == (void *)&LEAF)
+            return NULL;
+        else
+            return found;
     }
 
     /* default NS found, remove it */
@@ -169,7 +175,8 @@ static struct pico_dns_query *pico_dns_client_add_query(struct pico_dns_header *
 
     found = pico_tree_insert(&DNSTable, q);
     if (found) {
-        pico_err = PICO_ERR_EAGAIN;
+        if ((void *)found != (void *)&LEAF) /* If found == &LEAF we're out of memory and pico_err is set */
+            pico_err = PICO_ERR_EAGAIN;
         pico_socket_close(q->s);
         PICO_FREE(q);
         return NULL;
@@ -300,7 +307,7 @@ static int pico_dns_client_check_asuffix(struct pico_dns_record_suffix *suf, str
     }
 
     if (long_be(suf->rttl) > PICO_DNS_MAX_TTL) {
-        dns_dbg("DNS WARNING: received TTL (%u) > MAX (%u)\n", short_be(suf->rttl), PICO_DNS_MAX_TTL);
+        dns_dbg("DNS WARNING: received TTL (%u) > MAX (%u)\n", long_be(suf->rttl), PICO_DNS_MAX_TTL);
         return -1;
     }
 
@@ -371,7 +378,10 @@ static int pico_dns_client_send(struct pico_dns_query *q)
 
     pico_socket_send(q->s, q->query, q->len);
     *paramID = q->id;
-    pico_timer_add(PICO_DNS_CLIENT_RETRANS, pico_dns_client_retransmission, paramID);
+    if (!pico_timer_add(PICO_DNS_CLIENT_RETRANS, pico_dns_client_retransmission, paramID)) {
+        dns_dbg("DNS: Failed to start retransmission timer\n");
+        goto failure;
+    }
 
     return 0;
 

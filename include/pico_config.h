@@ -7,6 +7,7 @@
 #ifndef INCLUDE_PICO_CONFIG
 #define INCLUDE_PICO_CONFIG
 #ifndef __KERNEL__
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -164,7 +165,6 @@ static inline uint64_t long_long_be(uint64_t le)
 
 #   endif /* BYTESWAP_GCC */
 #endif
-
 
 /* Mockables */
 #if defined UNIT_TEST

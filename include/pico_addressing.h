@@ -7,12 +7,7 @@
 #define INCLUDE_PICO_ADDRESSING
 
 #include "pico_config.h"
-
-#define IEEE_AM_NONE 0
-#define IEEE_AM_RES 1
-#define IEEE_AM_SHORT 2
-#define IEEE_AM_EXTENDED 3
-#define IEEE_AM_BOTH 4
+#include "pico_constants.h"
 
 PACKED_STRUCT_DEF pico_ip4
 {
@@ -30,47 +25,94 @@ union pico_address
     struct pico_ip6 ip6;
 };
 
+/******************************************************************************
+ *  Ethernet Address Definitions
+ ******************************************************************************/
+
 PACKED_STRUCT_DEF pico_eth
 {
     uint8_t addr[6];
     uint8_t padding[2];
 };
 
-enum pico_ll_mode
-{
-    LL_MODE_ETHERNET = 0,
-};
+extern const uint8_t PICO_ETHADDR_ALL[];
 
-PACKED_STRUCT_DEF pico_ieee_addr_short
+/******************************************************************************
+ *  Generic 6LoWPAN Address Definitions
+ ******************************************************************************/
+
+/* 6lowpan supports 16-bit short addresses */
+PACKED_STRUCT_DEF pico_6lowpan_short
 {
     uint16_t addr;
 };
 
-PACKED_STRUCT_DEF pico_ieee_addr_ext
+/* And also EUI-64 addresses */
+PACKED_STRUCT_DEF pico_6lowpan_ext
 {
     uint8_t addr[8];
 };
 
-// ADDRESS MODE DEFINITIONS (IEEE802.15.4)
-struct pico_ieee_addr
+/* Address memory as either a short 16-bit address or a 64-bit address */
+union pico_6lowpan_u
 {
-    struct pico_ieee_addr_short _short;
-    struct pico_ieee_addr_ext _ext;
-    uint8_t _mode;
-    uint8_t padding;
+    uint8_t data[8];
+    struct pico_6lowpan_short _short;
+    struct pico_6lowpan_ext _ext;
 };
 
-#define pico_ieee_addr_len(am) ((IEEE_AM_BOTH == (int)(am) || IEEE_AM_SHORT == (int)(am)) ? (2u) : \
-                                (((IEEE_AM_EXTENDED == (int)(am)) ? (8u) : (0u))))
+/* Info data structure to pass to pico_device_init by the device driver */
+struct pico_6lowpan_info
+{
+    struct pico_6lowpan_short addr_short;
+    struct pico_6lowpan_ext addr_ext;
+    struct pico_6lowpan_short pan_id;
+};
 
-extern const uint8_t PICO_ETHADDR_ALL[];
+/* Different addressing modes for IEEE802.15.4 addresses */
+#define AM_6LOWPAN_NONE      (0u)
+#define AM_6LOWPAN_RES       (1u)
+#define AM_6LOWPAN_SHORT     (2u)
+#define AM_6LOWPAN_EXT       (3u)
+#define SIZE_6LOWPAN_SHORT   (2u)
+#define SIZE_6LOWPAN_EXT     (8u)
+#define SIZE_6LOWPAN(m) (((m) == 2) ? (2) : (((m) == 3) ? (8) : (0)))
 
+/******************************************************************************
+ *  Generic 6LoWPAN Address Definitions
+ ******************************************************************************/
+
+/* Storage data structure for IEEE802.15.4 addresses */
+struct pico_802154
+{
+    union pico_6lowpan_u addr;
+    uint8_t mode;
+};
+
+/******************************************************************************
+ *  Link Layer addresses
+ ******************************************************************************/
+
+#define IID_16(iid) (0 == (iid)[2] && 0xff == (iid)[3] && 0xfe == (iid)[4] && 0 == (iid)[5])
+
+enum pico_ll_mode
+{
+    LL_MODE_ETHERNET = 0,
+#ifdef PICO_SUPPORT_802154
+    LL_MODE_IEEE802154,
+#endif
+};
+
+union pico_ll_addr
+{
+    struct pico_eth eth;
+    struct pico_802154 pan;
+};
 
 PACKED_STRUCT_DEF pico_trans
 {
     uint16_t sport;
     uint16_t dport;
-
 };
 
 /* Here are some protocols. */

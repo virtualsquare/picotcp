@@ -81,8 +81,33 @@ static void timer_cb(__attribute__((unused)) pico_time t, __attribute__((unused)
     }
 
     timer_id = pico_timer_add(PICO_HOTPLUG_INTERVAL, &timer_cb, NULL);
+    if (timer_id == 0) {
+        dbg("HOTPLUG: Failed to start timer\n");
+    }
 }
 
+static int ensure_hotplug_timer(void)
+{
+    if (timer_id == 0)
+    {
+        timer_id = pico_timer_add(PICO_HOTPLUG_INTERVAL, &timer_cb, NULL);
+        if (timer_id == 0) {
+            dbg("HOTPLUG: Failed to start timer\n");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+static void disable_hotplug_timer(void)
+{
+    if (timer_id != 0)
+    {
+        pico_timer_cancel(timer_id);
+        timer_id = 0;
+    }
+}
 
 int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device *dev, int event))
 {
@@ -114,15 +139,26 @@ int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device
         hotplug_dev->callbacks.compare = &callback_compare;
         hotplug_dev->init_callbacks.root = &LEAF;
         hotplug_dev->init_callbacks.compare = &callback_compare;
-        pico_tree_insert(&Hotplug_device_tree, hotplug_dev);
+        if (pico_tree_insert(&Hotplug_device_tree, hotplug_dev)) {
+            PICO_FREE(hotplug_dev);
+        	return -1;
+		}
     }
 
-    pico_tree_insert(&(hotplug_dev->callbacks), cb);
-    pico_tree_insert(&(hotplug_dev->init_callbacks), cb);
+    if (pico_tree_insert(&(hotplug_dev->callbacks), cb) == &LEAF) {
+        PICO_FREE(hotplug_dev);
+        return -1;
+	}
 
-    if (timer_id == 0)
-    {
-        timer_id = pico_timer_add(PICO_HOTPLUG_INTERVAL, &timer_cb, NULL);
+    if (pico_tree_insert(&(hotplug_dev->init_callbacks), cb) == &LEAF) {
+        pico_tree_delete(&(hotplug_dev->callbacks), cb);
+        PICO_FREE(hotplug_dev);
+		return -1;
+	}
+
+    if (ensure_hotplug_timer() < 0) {
+        pico_hotplug_deregister((struct pico_device *)hotplug_dev, cb);
+        return -1;
     }
 
     return 0;

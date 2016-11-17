@@ -25,7 +25,11 @@
 #include "pico_constants.h"
 #include "pico_fragments.h"
 
-#define frag_dbg(...) do {} while(0)
+#ifdef DEBUG_FRAG
+    #define frag_dbg dbg
+#else
+    #define frag_dbg(...) do {} while(0)
+#endif
 
 #if defined(PICO_SUPPORT_IPV6) && defined(PICO_SUPPORT_IPV6FRAG)
 #define IP6_FRAG_OFF(x)         ((x & 0xFFF8u))
@@ -60,6 +64,7 @@ static int pico_fragments_get_more_flag(struct pico_frame *frame, uint8_t net);
 static uint32_t pico_fragments_get_offset(struct pico_frame *frame, uint8_t net);
 static void pico_fragments_send_notify(struct pico_frame *first);
 static uint16_t pico_fragments_get_header_length(uint8_t net);
+static void pico_fragments_empty_tree(struct pico_tree *tree);
 
 #if defined(PICO_SUPPORT_IPV6) && defined(PICO_SUPPORT_IPV6FRAG)
 static uint32_t ipv6_cur_frag_id = 0u;
@@ -90,6 +95,10 @@ static void pico_ipv6_fragments_complete(unsigned int len, uint8_t proto)
 static void pico_ipv6_frag_timer_on(void)
 {
     ipv6_fragments_timer = pico_timer_add(PICO_IPV6_FRAG_TIMEOUT, pico_frag_expire, &ipv6_fragments);
+    if (!ipv6_fragments_timer) {
+        frag_dbg("FRAG: Failed to start IPv6 expiration timer\n");
+        pico_fragments_empty_tree(&ipv6_fragments);
+    }
 }
 
 static int pico_ipv6_frag_match(struct pico_frame *a, struct pico_frame *b)
@@ -142,6 +151,10 @@ static void pico_ipv4_fragments_complete(unsigned int len, uint8_t proto)
 static void pico_ipv4_frag_timer_on(void)
 {
     ipv4_fragments_timer = pico_timer_add( PICO_IPV4_FRAG_TIMEOUT, pico_frag_expire, &ipv4_fragments);
+    if (!ipv4_fragments_timer) {
+        frag_dbg("FRAG: Failed to start IPv4 expiration timer\n");
+        pico_fragments_empty_tree(&ipv4_fragments);
+    }
 }
 
 static int pico_ipv4_frag_match(struct pico_frame *a, struct pico_frame *b)
@@ -211,13 +224,15 @@ static int pico_fragments_check_complete(struct pico_tree *tree, uint8_t proto, 
 
     pico_tree_foreach_safe(index, tree, temp) {
         cur = index->keyValue;
-        if (pico_fragments_get_offset(cur, net) != bookmark)
-            return -1;
+        if (cur) {
+            if (pico_fragments_get_offset(cur, net) != bookmark)
+                return -1;
 
-        bookmark += cur->transport_len;
-        if (!pico_fragments_get_more_flag(cur, net)) {
-            pico_fragments_complete(bookmark, proto, net);
-            return 0;
+            bookmark += cur->transport_len;
+            if (!pico_fragments_get_more_flag(cur, net)) {
+                pico_fragments_complete(bookmark, proto, net);
+                return 0;
+            }
         }
     }
     return 1;
@@ -428,18 +443,22 @@ void pico_ipv6_process_frag(struct pico_ipv6_exthdr *frag, struct pico_frame *f,
 
     if (first)
     {
-      if ((pico_ipv6_frag_match(f, first) == 0 && (IP6_FRAG_ID(frag) == ipv6_cur_frag_id))) {
-        struct pico_frame *temp = NULL;
+        if ((pico_ipv6_frag_match(f, first) == 0 && (IP6_FRAG_ID(frag) == ipv6_cur_frag_id))) {
+            struct pico_frame *temp = NULL;
 
-        temp = pico_frame_copy(f);
+            temp = pico_frame_copy(f);
 
-        if (!temp) {
-            frag_dbg("Could not allocate memory to continue reassembly of IPV6 fragmented packet (id: %hu)\n", ipv6_cur_frag_id);
-            return;
+            if (!temp) {
+                frag_dbg("Could not allocate memory to continue reassembly of IPV6 fragmented packet (id: %hu)\n", ipv6_cur_frag_id);
+                return;
+            }
+
+            if (pico_tree_insert(&ipv6_fragments, temp)) {
+                frag_dbg("FRAG: Could not insert picoframe in tree\n");
+                pico_frame_discard(temp);
+                return;
+            }
         }
-
-        pico_tree_insert(&ipv6_fragments, temp);
-      }
     }
     else
     {
@@ -462,7 +481,11 @@ void pico_ipv6_process_frag(struct pico_ipv6_exthdr *frag, struct pico_frame *f,
         ipv6_cur_frag_id = IP6_FRAG_ID(frag);
         frag_dbg("Started new reassembly, ID:%hu\n", ipv6_cur_frag_id);
 
-        pico_tree_insert(&ipv6_fragments, temp);
+        if (pico_tree_insert(&ipv6_fragments, temp)) {
+            frag_dbg("FRAG: Could not insert picoframe in tree\n");
+            pico_frame_discard(temp);
+            return;
+        }
     }
 
     pico_fragments_check_complete(&ipv6_fragments, proto, PICO_PROTO_IPV6);
@@ -506,7 +529,11 @@ void pico_ipv4_process_frag(struct pico_ipv4_hdr *hdr, struct pico_frame *f, uin
                 return;
             }
 
-            pico_tree_insert(&ipv4_fragments, temp);
+            if (pico_tree_insert(&ipv4_fragments, temp)) {
+            	frag_dbg("FRAG: Could not insert picoframe in tree\n");
+                pico_frame_discard(temp);
+                return;
+			}
         }
     }
     else
@@ -529,7 +556,11 @@ void pico_ipv4_process_frag(struct pico_ipv4_hdr *hdr, struct pico_frame *f, uin
         ipv4_cur_frag_id = IP4_FRAG_ID(hdr);
         frag_dbg("Started new reassembly, ID:%hu\n", ipv4_cur_frag_id);
 
-        pico_tree_insert(&ipv4_fragments, temp);
+        if (pico_tree_insert(&ipv4_fragments, temp)) {
+            frag_dbg("FRAG: Could not insert picoframe in tree\n");
+            pico_frame_discard(temp);
+            return;
+        }
     }
 
     pico_fragments_check_complete(&ipv4_fragments, proto, PICO_PROTO_IPV4);
