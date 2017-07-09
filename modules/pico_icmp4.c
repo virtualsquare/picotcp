@@ -15,6 +15,7 @@
 #include "pico_device.h"
 #include "pico_stack.h"
 #include "pico_tree.h"
+#include "pico_socket.h"
 
 /* Queues */
 static struct pico_queue icmp_in = {
@@ -44,13 +45,92 @@ static int pico_icmp4_checksum(struct pico_frame *f)
 static void ping_recv_reply(struct pico_frame *f);
 #endif
 
+
+/******************************/
+/* ICMP socket implementation */
+/******************************/
+static uint16_t I4Socket_id = 0;
+struct pico_socket_icmp4 
+{
+    struct pico_socket sock;
+    uint16_t id;
+};
+
+
+static int icmp4_socket_cmp(void *ka, void *kb)
+{
+    struct pico_socket_icmp4 *a = ka, *b = kb;
+    if (a->id < b->id)
+        return -1;
+    if (a->id > b->id)
+        return 1;
+    return (0);
+}
+
+
+static PICO_TREE_DECLARE(I4Sockets, icmp4_socket_cmp);
+
+struct pico_socket *pico_socket_icmp4_open(void)
+{
+    struct pico_socket_icmp4 *s;
+    s = PICO_ZALLOC(sizeof(struct pico_socket_icmp4));
+    if (!s) {
+        pico_err = PICO_ERR_ENOMEM;
+        return NULL;
+    }
+    s->id = I4Socket_id++;
+    pico_tree_insert(&I4Sockets, s);
+    return (struct pico_socket *)s;
+}
+
+int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig,
+                                  uint16_t *remote_port)
+{
+    struct pico_frame *f;
+    f = pico_dequeue(&s->q_in);
+    if (f->transport_len < len) {
+        len = f->transport_len;
+    }
+    memcpy(buf, f->transport_hdr, (size_t)len);
+    /* TODO: set orig */
+    (void)orig;
+    *remote_port = 0;
+    pico_frame_discard(f);
+    return len;
+}
+
+int pico_socket_icmp4_close(struct pico_socket *arg)
+{
+    struct pico_socket_icmp4 *s = (struct pico_socket_icmp4 *)arg;
+    if (s) {
+        pico_tree_delete(&I4Sockets, s);
+        return 0;
+    }
+    pico_err = PICO_ERR_ENOENT;
+    return -1;
+}
+
 static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *f)
 {
     struct pico_icmp4_hdr *hdr = (struct pico_icmp4_hdr *) f->transport_hdr;
     static int firstpkt = 1;
     static uint16_t last_id = 0;
     static uint16_t last_seq = 0;
+    struct pico_socket_icmp4 *s = NULL;
+    struct pico_tree_node *node;
     IGNORE_PARAMETER(self);
+
+    pico_tree_foreach(node, &I4Sockets) {
+        struct pico_frame *cp;
+        s = (struct pico_socket_icmp4 *) node->keyValue;
+        cp = pico_frame_copy(f);
+        if (cp) {
+            pico_enqueue(&s->sock.q_in, cp);
+            if (s->sock.wakeup) {
+                s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
+            }
+        }
+    }
 
     if (hdr->type == PICO_ICMP_ECHO) {
         hdr->type = PICO_ICMP_ECHOREPLY;
@@ -187,6 +267,8 @@ int pico_icmp4_param_problem(struct pico_frame *f, uint8_t code)
 {
     return pico_icmp4_notify(f, PICO_ICMP_PARAMPROB, code);
 }
+
+
 
 /***********************/
 /* Ping implementation */

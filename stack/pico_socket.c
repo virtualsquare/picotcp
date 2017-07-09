@@ -605,6 +605,11 @@ static struct pico_socket *pico_socket_transport_open(uint16_t proto, uint16_t f
 
 #endif
 
+#ifdef PICO_SUPPORT_ICMP4
+    if (proto == PICO_PROTO_ICMP4)
+        s = pico_socket_icmp4_open();
+#endif
+
     return s;
 
 }
@@ -1395,17 +1400,30 @@ int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, voi
         return -1;
     } else {
         /* check if exists in tree */
-        if (pico_check_socket(s) != 0) {
+        if ((PROTO(s) != PICO_PROTO_ICMP4) && pico_check_socket(s) != 0) {
             pico_err = PICO_ERR_EINVAL;
             /* See task #178 */
             return -1;
         }
     }
 
+    /* forward request to icmp layer */
+#ifdef PICO_SUPPORT_ICMP4
+    if (PROTO(s) == PICO_PROTO_ICMP4) {
+        if(len > 0xFFFF) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
+        return pico_socket_icmp4_recv(s, buf, (uint16_t)len, orig, remote_port);
+    }
+#endif
+
     if ((s->state & PICO_SOCKET_STATE_BOUND) == 0) {
         pico_err = PICO_ERR_EADDRNOTAVAIL;
         return -1;
     }
+   
+    
 
 #ifdef PICO_SUPPORT_UDP
     if (PROTO(s) == PICO_PROTO_UDP) {
@@ -1860,6 +1878,15 @@ int MOCKABLE pico_socket_close(struct pico_socket *s)
 {
     if (!s)
         return -1;
+
+#ifdef PICO_SUPPORT_ICMP4
+    if (PROTO(s) == PICO_PROTO_ICMP4) {
+        pico_socket_icmp4_close(s);
+        socket_clean_queues(s);
+        PICO_FREE(s);
+        return 0;
+    }
+#endif
 
 #ifdef PICO_SUPPORT_TCP
     if (PROTO(s) == PICO_PROTO_TCP) {
