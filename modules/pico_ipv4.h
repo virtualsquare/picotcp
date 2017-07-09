@@ -113,4 +113,11 @@ int pico_ipv4_mcast_leave(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_gr
 struct pico_ipv4_link *pico_ipv4_get_default_mcastlink(void);
 int pico_ipv4_cleanup_links(struct pico_device *dev);
 
+/* Raw socket support */
+struct pico_socket_ipv4;
+struct pico_socket *pico_socket_ipv4_open(void);
+int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port);
+
+
+
 #endif /* _INCLUDE_PICO_IPV4 */

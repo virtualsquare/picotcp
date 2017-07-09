@@ -374,7 +374,86 @@ static void pico_ipv4_process_finally_try_forward(struct pico_frame *f)
     }
 }
 
+/* Raw sockets support */
+struct pico_socket_ipv4 
+{
+    struct pico_socket sock;
+    uint16_t id;
+};
 
+
+static uint16_t IP4Socket_id = 0;
+
+static int ipv4_socket_cmp(void *ka, void *kb)
+{
+    struct pico_socket_ipv4 *a = ka, *b = kb;
+    if (a->id < b->id)
+        return -1;
+    if (a->id > b->id)
+        return 1;
+    return (0);
+}
+
+
+static PICO_TREE_DECLARE(IP4Sockets, ipv4_socket_cmp);
+
+struct pico_socket *pico_socket_ipv4_open(void)
+{
+    struct pico_socket_ipv4 *s;
+    s = PICO_ZALLOC(sizeof(struct pico_socket_ipv4));
+    if (!s) {
+        pico_err = PICO_ERR_ENOMEM;
+        return NULL;
+    }
+    s->id = IP4Socket_id++;
+    pico_tree_insert(&IP4Sockets, s);
+    return (struct pico_socket *)s;
+}
+
+int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig,
+                                  uint16_t *remote_port)
+{
+    struct pico_frame *f;
+    f = pico_dequeue(&s->q_in);
+    if (f->transport_len < len) {
+        len = f->transport_len;
+    }
+    memcpy(buf, f->transport_hdr, (size_t)len);
+    /* TODO: set orig */
+    (void)orig;
+    (void)remote_port;
+    pico_frame_discard(f);
+    return len;
+}
+
+int pico_socket_ipv4_close(struct pico_socket *arg)
+{
+    struct pico_socket_ipv4 *s = (struct pico_socket_ipv4 *)arg;
+    if (s) {
+        pico_tree_delete(&IP4Sockets, s);
+        return 0;
+    }
+    pico_err = PICO_ERR_ENOENT;
+    return -1;
+}
+
+static void pico_ipv4_process_raw_socket(struct pico_frame *f)
+{
+    struct pico_tree_node *node;
+    pico_tree_foreach(node, &IP4Sockets) {
+        struct pico_socket_ipv4 *s;
+        struct pico_frame *cp;
+        s = (struct pico_socket_ipv4 *) node->keyValue;
+        cp = pico_frame_copy(f);
+        if (cp) {
+            pico_enqueue(&s->sock.q_in, cp);
+            if (s->sock.wakeup) {
+                s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
+            }
+        }
+    }
+
+}
 
 static int pico_ipv4_process_in(struct pico_protocol *self, struct pico_frame *f)
 {
@@ -447,6 +526,8 @@ static int pico_ipv4_process_in(struct pico_protocol *self, struct pico_frame *f
         pico_frame_discard(f);
         return 0;
     }
+
+    pico_ipv4_process_raw_socket(f);
 
     if (pico_ipv4_process_bcast_in(f) > 0)
         return 0;
