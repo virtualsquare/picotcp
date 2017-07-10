@@ -1564,6 +1564,12 @@ int MOCKABLE pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t 
         return -1;
     }
 
+    #ifdef PICO_SUPPORT_ICMP4
+    if (PROTO(s) == PICO_PROTO_ICMP4) {
+        return pico_socket_icmp4_bind(s, local_addr, *port);
+    }
+    #endif
+
     /* When given port = 0, get a random high port to bind to. */
     if (*port == 0) {
         *port = pico_socket_high_port(PROTO(s));

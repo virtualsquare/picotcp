@@ -83,6 +83,20 @@ struct pico_socket *pico_socket_icmp4_open(void)
     return (struct pico_socket *)s;
 }
 
+int pico_socket_icmp4_bind(struct pico_socket *s, void *addr, uint16_t port)
+{
+    struct pico_socket_icmp4 test;
+    test.id = port;
+    if (pico_tree_findKey(&I4Sockets, &test)) {
+        pico_err = PICO_ERR_EADDRINUSE;
+        return -1;
+    }
+    pico_tree_delete(&I4Sockets, s);
+    s->id = port;
+    pico_tree_insert(&I4Sockets, s);
+    return 0;
+}
+
 int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig,
                                   uint16_t *remote_port)
 {
@@ -92,12 +106,52 @@ int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *
         len = f->transport_len;
     }
     memcpy(buf, f->transport_hdr, (size_t)len);
-    /* TODO: set orig */
-    (void)orig;
+    if (orig) {
+        struct pico_ipv4_hdr *hdr = (struct pico_ipv4_hdr *)f->net_hdr;
+        memcpy(orig, &hdr->src, sizeof(struct pico_ip4));
+    }
     *remote_port = 0;
     pico_frame_discard(f);
     return len;
 }
+
+int pico_socket_icmp4_sendto(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port)
+{
+    struct pico_socket_icmp4 *i4 = (struct pico_socket_icmp4 *)s;
+    struct pico_icmp4_hdr *hdr;
+    struct pico_frame *echo;
+    (void)remote_port;
+
+    if (len < 8) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+
+    /* Check header sent */
+    hdr = (struct pico_icmp4_hdr *) buf;
+    if (hdr->type != PICO_ICMP_ECHO) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+    if(hdr->code != 0) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+
+    /* Allocate packet and send */
+    echo = pico_proto_ipv4.alloc(&pico_proto_ipv4, (uint16_t)(len));
+    if (!echo) {
+        return -1;
+    }
+    hdr = (struct pico_icmp4_hdr *) echo->transport_hdr;
+    echo->transport_len = (uint16_t)(len);
+    echo->payload = echo->transport_hdr + PICO_ICMPHDR_UN_SIZE;
+    echo->payload_len = len - PICO_ICMPHDR_UN_SIZE;
+    pico_icmp4_checksum(echo);
+    pico_ipv4_frame_push(echo, dst, PICO_PROTO_ICMP4);
+    return len;
+}
+
 
 int pico_socket_icmp4_close(struct pico_socket *arg)
 {
@@ -117,20 +171,8 @@ static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *
     static uint16_t last_id = 0;
     static uint16_t last_seq = 0;
     struct pico_socket_icmp4 *s = NULL;
-    struct pico_tree_node *node;
+    struct pico_socket_icmp4 test;
     IGNORE_PARAMETER(self);
-
-    pico_tree_foreach(node, &I4Sockets) {
-        struct pico_frame *cp;
-        s = (struct pico_socket_icmp4 *) node->keyValue;
-        cp = pico_frame_copy(f);
-        if (cp) {
-            pico_enqueue(&s->sock.q_in, cp);
-            if (s->sock.wakeup) {
-                s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
-            }
-        }
-    }
 
     if (hdr->type == PICO_ICMP_ECHO) {
         hdr->type = PICO_ICMP_ECHOREPLY;
@@ -156,6 +198,17 @@ static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *
 #ifdef PICO_SUPPORT_PING
         ping_recv_reply(f);
 #endif
+        s = pico_tree_findKey(&I4Sockets, &test);
+        if (s) {
+            struct pico_frame *cp;
+            cp = pico_frame_copy(f);
+            if (cp) {
+                pico_enqueue(&s->sock.q_in, cp);
+                if (s->sock.wakeup) {
+                    s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
+                }
+            }
+        }
         pico_frame_discard(f);
     } else {
         pico_frame_discard(f);

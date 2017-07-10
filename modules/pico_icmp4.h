@@ -149,6 +149,7 @@ int pico_icmp4_ping_abort(int id);
 struct pico_socket *pico_icmp4_socket_open(void);
 void pico_icmp4_socket_close(struct pico_socket *s);
 int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port);
+int pico_socket_icmp4_bind(struct pico_socket *s, void *addr, uint16_t port);
 
 #ifdef PICO_SUPPORT_ICMP4
 int pico_icmp4_packet_filtered(struct pico_frame *f);
