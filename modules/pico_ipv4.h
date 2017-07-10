@@ -115,8 +115,9 @@ int pico_ipv4_cleanup_links(struct pico_device *dev);
 
 /* Raw socket support */
 struct pico_socket_ipv4;
-struct pico_socket *pico_socket_ipv4_open(void);
+struct pico_socket *pico_socket_ipv4_open(uint8_t proto);
 int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port);
+int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port);
 
 
 
