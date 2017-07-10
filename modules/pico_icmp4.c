@@ -78,6 +78,7 @@ struct pico_socket *pico_socket_icmp4_open(void)
         pico_err = PICO_ERR_ENOMEM;
         return NULL;
     }
+    s->sock.proto = &pico_proto_icmp4;
     s->id = I4Socket_id++;
     pico_tree_insert(&I4Sockets, s);
     return (struct pico_socket *)s;
@@ -115,11 +116,11 @@ int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *
     return len;
 }
 
-int pico_socket_icmp4_sendto(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port)
+int pico_socket_icmp4_sendto_check(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port)
 {
-    struct pico_socket_icmp4 *i4 = (struct pico_socket_icmp4 *)s;
     struct pico_icmp4_hdr *hdr;
     struct pico_frame *echo;
+    struct pico_socket_icmp4 *i4 = (struct pico_socket_icmp4 *)s;
     (void)remote_port;
 
     if (len < 8) {
@@ -137,18 +138,7 @@ int pico_socket_icmp4_sendto(struct pico_socket *s, void *buf, int len, void *ds
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
-
-    /* Allocate packet and send */
-    echo = pico_proto_ipv4.alloc(&pico_proto_ipv4, (uint16_t)(len));
-    if (!echo) {
-        return -1;
-    }
-    hdr = (struct pico_icmp4_hdr *) echo->transport_hdr;
-    echo->transport_len = (uint16_t)(len);
-    echo->payload = echo->transport_hdr + PICO_ICMPHDR_UN_SIZE;
-    echo->payload_len = len - PICO_ICMPHDR_UN_SIZE;
-    pico_icmp4_checksum(echo);
-    pico_ipv4_frame_push(echo, dst, PICO_PROTO_ICMP4);
+    hdr->hun.ih_idseq.idseq_id = i4->id;
     return len;
 }
 
@@ -198,6 +188,7 @@ static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *
 #ifdef PICO_SUPPORT_PING
         ping_recv_reply(f);
 #endif
+        test.id = hdr->hun.ih_idseq.idseq_id;
         s = pico_tree_findKey(&I4Sockets, &test);
         if (s) {
             struct pico_frame *cp;
@@ -220,9 +211,17 @@ static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *
 static int pico_icmp4_process_out(struct pico_protocol *self, struct pico_frame *f)
 {
     IGNORE_PARAMETER(self);
-    IGNORE_PARAMETER(f);
-    dbg("Called %s\n", __FUNCTION__);
-    return 0;
+    pico_icmp4_checksum(f);
+    return (int)pico_network_send(f);
+}
+
+static int pico_icmp4_push(struct pico_protocol *self, struct pico_frame *f)
+{
+    if (pico_enqueue(self->q_out, f) > 0) {
+        return f->payload_len;
+    } else {
+        return 0;
+    }
 }
 
 /* Interface: protocol definition */
@@ -230,6 +229,7 @@ struct pico_protocol pico_proto_icmp4 = {
     .name = "icmp4",
     .proto_number = PICO_PROTO_ICMP4,
     .layer = PICO_LAYER_TRANSPORT,
+    .push = pico_icmp4_push,
     .process_in = pico_icmp4_process_in,
     .process_out = pico_icmp4_process_out,
     .q_in = &icmp_in,
