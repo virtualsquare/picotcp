@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2015-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -8,6 +8,11 @@
  *********************************************************************/
 #ifndef PICO_AODV_H_
 #define PICO_AODV_H_
+
+#include <stdint.h>
+#include "pico_addressing.h"
+#include "pico_config.h"
+#include "pico_device.h"
 
 /* RFC3561 */
 #define PICO_AODV_PORT (654)

@@ -27,8 +27,7 @@ struct pico_socket *pico_socket_udp_open(void)
 }
 
 
-#ifdef PICO_SUPPORT_IPV4
-
+#if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
 static int pico_enqueue_and_wakeup_if_needed(struct pico_queue *q_in, struct pico_socket* s, struct pico_frame* cpy)
 {
         if (pico_enqueue(q_in, cpy) > 0) {
@@ -42,7 +41,9 @@ static int pico_enqueue_and_wakeup_if_needed(struct pico_queue *q_in, struct pic
         }
         return 0;
 }
+#endif
 
+#ifdef PICO_SUPPORT_IPV4
 #ifdef PICO_SUPPORT_MCAST
 static inline int pico_socket_udp_deliver_ipv4_mcast_initial_checks(struct pico_socket *s, struct pico_frame *f)
 {

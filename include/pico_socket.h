@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #ifndef INCLUDE_PICO_SOCKET
@@ -208,7 +208,9 @@ int pico_socket_getoption(struct pico_socket *s, int option, void *value);
 int pico_socket_shutdown(struct pico_socket *s, int mode);
 int pico_socket_close(struct pico_socket *s);
 
-struct pico_frame *pico_socket_frame_alloc(struct pico_socket *s, uint16_t len);
+struct pico_frame *pico_socket_frame_alloc(struct pico_socket *s, struct pico_device *dev, uint16_t len);
+struct pico_device *get_sock_dev(struct pico_socket *s);
+
 
 #ifdef PICO_SUPPORT_IPV4
 # define is_sock_ipv4(x) (x->net == &pico_proto_ipv4)

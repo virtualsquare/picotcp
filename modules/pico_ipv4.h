@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -10,7 +10,6 @@
 #include "pico_addressing.h"
 #include "pico_protocol.h"
 #include "pico_tree.h"
-#include "pico_device.h"
 
 #define PICO_IPV4_INADDR_ANY 0x00000000U
 

@@ -1,6 +1,6 @@
  /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -53,6 +53,9 @@ static struct pico_queue ethernet_out = {
     0
 };
 
+int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f);
+static int32_t pico_ethernet_receive(struct pico_frame *f);
+
 static int pico_ethernet_process_out(struct pico_protocol *self, struct pico_frame *f)
 {
     IGNORE_PARAMETER(self);
@@ -65,10 +68,32 @@ static int pico_ethernet_process_in(struct pico_protocol *self, struct pico_fram
     return (pico_ethernet_receive(f) <= 0); /* 0 on success, which is ret > 0 */
 }
 
+static struct pico_frame *pico_ethernet_alloc(struct pico_protocol *self, struct pico_device *dev, uint16_t size)
+{
+    struct pico_frame *f = NULL;
+    uint32_t overhead = 0;
+    IGNORE_PARAMETER(self);
+
+    if (dev)
+        overhead = dev->overhead;
+
+    f = pico_frame_alloc((uint32_t)(overhead + size + PICO_SIZE_ETHHDR));
+    if (!f)
+        return NULL;
+
+    f->dev = dev;
+    f->datalink_hdr = f->buffer + overhead;
+    f->net_hdr = f->datalink_hdr + PICO_SIZE_ETHHDR;
+    /* Stay of the rest, higher levels will take care */
+
+    return f;
+}
+
 /* Interface: protocol definition */
 struct pico_protocol pico_proto_ethernet = {
     .name = "ethernet",
     .layer = PICO_LAYER_DATALINK,
+    .alloc = pico_ethernet_alloc,
     .process_in = pico_ethernet_process_in,
     .process_out = pico_ethernet_process_out,
     .q_in = &ethernet_in,
@@ -120,7 +145,10 @@ static int destination_is_mcast(struct pico_frame *f)
 static int32_t pico_ipv4_ethernet_receive(struct pico_frame *f)
 {
     if (IS_IPV4(f)) {
-        pico_enqueue(pico_proto_ipv4.q_in, f);
+        if (pico_enqueue(pico_proto_ipv4.q_in, f) < 0) {
+            pico_frame_discard(f);
+            return -1;
+        }
     } else {
         (void)pico_icmp4_param_problem(f, 0);
         pico_frame_discard(f);
@@ -135,7 +163,10 @@ static int32_t pico_ipv4_ethernet_receive(struct pico_frame *f)
 static int32_t pico_ipv6_ethernet_receive(struct pico_frame *f)
 {
     if (IS_IPV6(f)) {
-        pico_enqueue(pico_proto_ipv6.q_in, f);
+        if (pico_enqueue(pico_proto_ipv6.q_in, f) < 0) {
+            pico_frame_discard(f);
+            return -1;
+        }
     } else {
         /* Wrong version for link layer type */
         pico_frame_discard(f);
@@ -178,7 +209,7 @@ static void pico_eth_check_bcast(struct pico_frame *f)
         f->flags |= PICO_FRAME_FLAG_BCAST;
 }
 
-int32_t pico_ethernet_receive(struct pico_frame *f)
+static int32_t pico_ethernet_receive(struct pico_frame *f)
 {
     struct pico_eth_hdr *hdr;
     if (!f || !f->dev || !f->datalink_hdr)
@@ -263,20 +294,23 @@ static int pico_ethernet_ipv6_dst(struct pico_frame *f, struct pico_eth *const d
 
 
 /* Ethernet send, first attempt: try our own address.
- * Returns 0 if the packet is not for us.
- * Returns 1 if the packet is cloned to our own receive queue, so the caller can discard the original frame.
+ * Returns 0 if the packet is not for us or an error occured.
+ * Returns 1 if the packet is cloned to our own receive queue, the original supplied frame will be discarded
  * */
 static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr)
 {
-    if (!hdr)
+    if (!hdr || !f)
         return 0;
 
     /* Check own mac */
     if(!memcmp(hdr->daddr, hdr->saddr, PICO_SIZE_ETH)) {
         struct pico_frame *clone = pico_frame_copy(f);
         dbg("sending out packet destined for our own mac\n");
-        if (pico_ethernet_receive(clone) <= 0)
-            pico_frame_discard(clone);
+        if (pico_ethernet_receive(clone) < 0) {
+            dbg("pico_ethernet_receive() failed\n");
+            return 0;
+        }
+        pico_frame_discard(f);
         return 1;
     }
 
@@ -285,7 +319,7 @@ static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr
 
 /* Ethernet send, second attempt: try bcast.
  * Returns 0 if the packet is not bcast, so it will be handled somewhere else.
- * Returns 1 if the packet is handled by the pico_device_broadcast() function, so it can be discarded.
+ * Returns 1 if the packet is handled by the pico_device_broadcast() function and is discarded
  * */
 static int32_t pico_ethsend_bcast(struct pico_frame *f)
 {
@@ -306,10 +340,21 @@ static int32_t pico_ethsend_dispatch(struct pico_frame *f)
     return (pico_sendto_dev(f) > 0); // Return 1 on success, ret > 0
 }
 
+/* Checks whether or not there's enough headroom allocated in the frame to
+ * prepend the Ethernet header. Reallocates if this is not the case. */
+static int eth_check_headroom(struct pico_frame *f)
+{
+    uint32_t headroom = (uint32_t)(f->net_hdr - f->buffer);
+    uint32_t grow = (uint32_t)(PICO_SIZE_ETHHDR - headroom);
+    if (headroom < (uint32_t)PICO_SIZE_ETHHDR) {
+        return pico_frame_grow_head(f, (uint32_t)(f->buffer_len + grow));
+    }
+    return 0;
+}
+
 /* This function looks for the destination mac address
  * in order to send the frame being processed.
  */
-
 int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
 {
     struct pico_eth dstmac;
@@ -326,6 +371,7 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
             /* Enqueue copy of frame in IPv6 ND-module to retry later. Discard
              * frame, otherwise we have a duplicate in IPv6-ND */
             pico_ipv6_nd_postpone(f);
+            pico_frame_discard(f);
             return (int32_t)f->len;
         }
 
@@ -371,23 +417,25 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
     /* This sets destination and source address, then pushes the packet to the device. */
     if (dstmac_valid) {
         struct pico_eth_hdr *hdr;
-        hdr = (struct pico_eth_hdr *) f->datalink_hdr;
-        if ((f->start > f->buffer) && ((f->start - f->buffer) >= PICO_SIZE_ETHHDR))
-        {
-            f->start -= PICO_SIZE_ETHHDR;
-            f->len += PICO_SIZE_ETHHDR;
-            f->datalink_hdr = f->start;
+        if (!eth_check_headroom(f)) {
             hdr = (struct pico_eth_hdr *) f->datalink_hdr;
-            memcpy(hdr->saddr, f->dev->eth->mac.addr, PICO_SIZE_ETH);
-            memcpy(hdr->daddr, &dstmac, PICO_SIZE_ETH);
-            hdr->proto = proto;
-        }
+            if ((f->start > f->buffer) && ((f->start - f->buffer) >= PICO_SIZE_ETHHDR))
+            {
+                f->start -= PICO_SIZE_ETHHDR;
+                f->len += PICO_SIZE_ETHHDR;
+                f->datalink_hdr = f->start;
+                hdr = (struct pico_eth_hdr *) f->datalink_hdr;
+                memcpy(hdr->saddr, f->dev->eth->mac.addr, PICO_SIZE_ETH);
+                memcpy(hdr->daddr, &dstmac, PICO_SIZE_ETH);
+                hdr->proto = proto;
+            }
 
-        if (pico_ethsend_local(f, hdr) || pico_ethsend_bcast(f) || pico_ethsend_dispatch(f)) {
-            /* one of the above functions has delivered the frame accordingly.
-             * (returned != 0). It is safe to directly return successfully.
-             * Lower level queue has frame, so don't discard */
-            return (int32_t)f->len;
+            if (pico_ethsend_local(f, hdr) || pico_ethsend_bcast(f) || pico_ethsend_dispatch(f)) {
+                /* one of the above functions has delivered the frame accordingly.
+                 * (returned != 0). It is safe to directly return successfully.
+                 * Lower level queue has frame, so don't discard */
+                return (int32_t)f->len;
+            }
         }
     }
 

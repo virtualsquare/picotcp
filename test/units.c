@@ -14,6 +14,9 @@
 #include "pico_frame.c"
 #include "pico_stack.c"
 #include "pico_protocol.c"
+#include "pico_802154.c"
+#include "pico_6lowpan.c"
+#include "pico_6lowpan_ll.c"
 #include "pico_ipv4.c"
 #include "pico_socket.c"
 #include "pico_socket_multicast.c"
@@ -42,6 +45,7 @@
 #ifdef PICO_SUPPORT_IPV6
 #include "pico_ipv6.c"
 #include "pico_ipv6_nd.c"
+#include "pico_ipv6_pmtu.c"
 #include "pico_icmp6.c"
 #ifdef PICO_SUPPORT_MCAST
 #include "pico_mld.c"
@@ -67,6 +71,9 @@
 #include "unit_timer.c"
 #include "unit_arp.c"
 #include "unit_ipv6.c"
+#include "unit_pico_device.c"
+
+Suite *pico_suite(void);
 
 START_TEST (test_frame)
 {
@@ -128,6 +135,8 @@ Suite *pico_suite(void)
     TCase *slaacv4 = tcase_create("SLAACV4");
     TCase *tick = tcase_create("pico_tick");
     TCase *arp = tcase_create("ARP");
+    TCase *pico_device_test = tcase_create("pico device");
+
     tcase_add_test(ipv4, test_ipv4);
     tcase_set_timeout(ipv4, 20);
     suite_add_tcase(s, ipv4);
@@ -193,6 +202,9 @@ Suite *pico_suite(void)
 
     tcase_add_test(tick, test_tick);
     suite_add_tcase(s, tick);
+
+    tcase_add_test(pico_device_test, test_pico_device);
+    suite_add_tcase(s, pico_device_test);
 
 #ifdef PICO_SUPPORT_IPV6
     tcase_add_test(ipv6, test_ipv6);

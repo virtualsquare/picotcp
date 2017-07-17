@@ -1,7 +1,7 @@
 
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #ifndef _INCLUDE_PICO_PIC32
@@ -16,7 +16,11 @@
  * typically incremented every millisecond in a systick interrupt */
 extern volatile unsigned int pico_ms_tick;
 
-#define dbg(...)
+#ifdef PIC32_NO_PRINTF
+#define dbg(...) do {} while(0)
+#else
+#define dbg printf
+#endif
 
 /* Use plain C-lib malloc and free */
 #define pico_free(x) free(x)

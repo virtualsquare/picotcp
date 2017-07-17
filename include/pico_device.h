@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #ifndef INCLUDE_PICO_DEVICE
@@ -24,6 +24,7 @@ struct pico_device {
     uint32_t overhead;
     uint32_t mtu;
     struct pico_ethdev *eth; /* Null if non-ethernet */
+    enum pico_ll_mode mode;
     struct pico_queue *q_in;
     struct pico_queue *q_out;
     int (*link_state)(struct pico_device *self);

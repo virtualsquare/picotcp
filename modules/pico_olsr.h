@@ -1,12 +1,15 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Authors: Daniele Lacamera
  *********************************************************************/
 #ifndef PICO_OLSR_H
 #define PICO_OLSR_H
 
+#include <stdint.h>
+#include "pico_addressing.h"
+#include "pico_device.h"
 
 /* Objects */
 struct olsr_route_entry

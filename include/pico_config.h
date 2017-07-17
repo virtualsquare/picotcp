@@ -1,12 +1,13 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #include "pico_defines.h"
 #ifndef INCLUDE_PICO_CONFIG
 #define INCLUDE_PICO_CONFIG
 #ifndef __KERNEL__
+#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,7 @@
 #   define PACKED_STRUCT_DEF __packed struct
 #   define PEDANTIC_STRUCT_DEF __packed struct
 #   define PACKED_UNION_DEF  __packed union
+#   define PACKED __packed
 #   define WEAK
 #elif defined __WATCOMC__
 #   define PACKED_STRUCT_DEF   _Packed struct
@@ -28,6 +30,7 @@
 #   define PACKED_STRUCT_DEF struct __attribute__((packed))
 #   define PEDANTIC_STRUCT_DEF struct
 #   define PACKED_UNION_DEF  union   /* Sane compilers do not require packed unions */
+#   define PACKED __attribute__((packed))
 #   define WEAK __attribute__((weak))
 #   ifdef __GNUC__
 #       define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
@@ -50,6 +53,7 @@
 #define short_be(x) (x)
 #define long_be(x) (x)
 #define long_long_be(x) (x)
+#define be_to_host_long(x) (x)
 
 static inline uint16_t short_from(void *_p)
 {
@@ -161,8 +165,11 @@ static inline uint64_t long_long_be(uint64_t le)
 }
 
 #   endif /* BYTESWAP_GCC */
+static inline uint32_t be_to_host_long(uint32_t be)
+{
+    return long_be(be);
+}
 #endif
-
 
 /* Mockables */
 #if defined UNIT_TEST
@@ -184,7 +191,6 @@ static inline uint64_t long_long_be(uint64_t le)
 #define PICO_MAX_SLAB_SIZE 1600
 #define PICO_MEM_MINIMUM_OBJECT_SIZE 4
 
-
 /*** *** *** *** *** *** ***
  *** PLATFORM SPECIFIC   ***
  *** *** *** *** *** *** ***/
@@ -195,6 +201,8 @@ static inline uint64_t long_long_be(uint64_t le)
 #elif defined CORTEX_M4_SOFTFLOAT
 # include "arch/pico_cortex_m.h"
 #elif defined CORTEX_M3
+# include "arch/pico_cortex_m.h"
+#elif defined CORTEX_M0
 # include "arch/pico_cortex_m.h"
 #elif defined DOS_WATCOM
 # include "arch/pico_dos.h"

@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Author: Andrei Carp <andrei.carp@tass.be>
  *********************************************************************/
@@ -165,6 +165,7 @@ void *pico_tree_insert_implementation(struct pico_tree *tree, void *key, uint8_t
 
     /* if node already in, bail out */
     if(LocalKey) {
+        pico_err = PICO_ERR_EEXIST;
         return LocalKey;
     }
 

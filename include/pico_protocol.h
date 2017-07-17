@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #ifndef INCLUDE_PICO_PROTOCOL
@@ -60,6 +60,7 @@ enum pico_err_e {
     PICO_ERR_ECONNREFUSED = 111,
     PICO_ERR_EHOSTDOWN = 112,
     PICO_ERR_EHOSTUNREACH = 113,
+    PICO_ERR_EMSGSIZE = 114,
 };
 
 typedef enum pico_err_e pico_err_t;
@@ -77,7 +78,7 @@ struct pico_protocol {
     uint16_t proto_number;
     struct pico_queue *q_in;
     struct pico_queue *q_out;
-    struct pico_frame *(*alloc)(struct pico_protocol *self, uint16_t size); /* Frame allocation. */
+    struct pico_frame *(*alloc)(struct pico_protocol *self, struct pico_device *dev, uint16_t size); /* Frame allocation. */
     int (*push)(struct pico_protocol *self, struct pico_frame *p);    /* Push function, for active outgoing pkts from above */
     int (*process_out)(struct pico_protocol *self, struct pico_frame *p);  /* Send loop. */
     int (*process_in)(struct pico_protocol *self, struct pico_frame *p);  /* Recv loop. */

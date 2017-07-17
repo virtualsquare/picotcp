@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -10,6 +10,7 @@
 #ifndef INCLUDE_PICO_NAT
 #define INCLUDE_PICO_NAT
 #include "pico_frame.h"
+#include "pico_ipv4.h"
 
 #define PICO_NAT_PORT_FORWARD_DEL 0
 #define PICO_NAT_PORT_FORWARD_ADD 1
