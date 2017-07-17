@@ -423,6 +423,8 @@ int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, int len, void *o
 {
     struct pico_frame *f;
     f = pico_dequeue(&s->q_in);
+    if (!f)
+        return 0;
     if (f->transport_len < len) {
         len = f->transport_len;
     }
