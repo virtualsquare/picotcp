@@ -461,7 +461,7 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, int len, void *dst
         return -1;
     }
     f->transport_len = (uint16_t)(len);
-    pico_ipv4_frame_push(f, dst, s->proto);
+    pico_ipv4_frame_push(f, dst, s->proto->proto_number);
     return len;
 }
 
