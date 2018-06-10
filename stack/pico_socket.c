@@ -625,6 +625,11 @@ static struct pico_socket *pico_socket_transport_open(uint16_t proto, uint16_t f
 
 #endif
 
+#ifdef PICO_SUPPORT_ICMP4
+    if (proto == PICO_PROTO_ICMP4)
+        s = pico_socket_icmp4_open();
+#endif
+
     return s;
 
 }
@@ -883,6 +888,10 @@ static void *pico_socket_sendto_get_ip6_src(struct pico_socket *s, struct pico_i
 static int pico_socket_sendto_dest_check(struct pico_socket *s, void *dst, uint16_t port)
 {
 
+    /* Don't execute port/connection state for RAW sockets */
+    if ((PROTO(s) != PICO_PROTO_TCP) && (PROTO(s) != PICO_PROTO_UDP))
+        return 0;
+
     /* For the sendto call to be valid,
      * dst and remote_port should be always populated.
      */
@@ -979,8 +988,7 @@ static struct pico_remote_endpoint *pico_socket_sendto_destination(struct pico_s
     struct pico_remote_endpoint *ep = NULL;
     (void)pico_socket_sendto_destination_ipv6;
     /* socket remote info could change in a consecutive call, make persistent */
-#   ifdef PICO_SUPPORT_UDP
-    if (PROTO(s) == PICO_PROTO_UDP) {
+    if (PROTO(s) != PICO_PROTO_TCP) {
 #       ifdef PICO_SUPPORT_IPV6
         if (is_sock_ipv6(s))
             ep = pico_socket_sendto_destination_ipv6(s, (struct pico_ip6 *)dst, port);
@@ -992,8 +1000,6 @@ static struct pico_remote_endpoint *pico_socket_sendto_destination(struct pico_s
 
 #       endif
     }
-
-#  endif
     return ep;
 }
 
@@ -1015,7 +1021,7 @@ static int32_t pico_socket_sendto_set_localport(struct pico_socket *s)
 
 static int pico_socket_sendto_transport_offset(struct pico_socket *s)
 {
-    int header_offset = -1;
+    int header_offset = 0;
     #ifdef PICO_SUPPORT_TCP
     if (PROTO(s) == PICO_PROTO_TCP)
         header_offset = pico_tcp_overhead(s);
@@ -1321,12 +1327,6 @@ static int pico_socket_xmit_avail_space(struct pico_socket *s)
     } else
 #endif
     transport_len = (uint16_t)pico_socket_get_mss(s);
-    header_offset = pico_socket_sendto_transport_offset(s);
-    if (header_offset < 0) {
-        pico_err = PICO_ERR_EPROTONOSUPPORT;
-        return -1;
-    }
-
     transport_len -= pico_socket_sendto_transport_offset(s);
     return transport_len;
 }
@@ -1344,7 +1344,8 @@ static int pico_socket_xmit(struct pico_socket *s, const void *buf, const int le
         return -1;
     }
 
-    if ((PROTO(s) == PICO_PROTO_UDP) && (len > space)) {
+
+    if ((PROTO(s) != PICO_PROTO_TCP) && (len > space)) {
         total_payload_written = pico_socket_xmit_fragments(s, buf, len, src, ep, msginfo);
         /* Implies ep discarding */
         return total_payload_written;
@@ -1361,7 +1362,7 @@ static int pico_socket_xmit(struct pico_socket *s, const void *buf, const int le
         }
 
         total_payload_written += w;
-        if (PROTO(s) == PICO_PROTO_UDP) {
+        if (PROTO(s) != PICO_PROTO_TCP) {
             /* Break after the first datagram sent with at most MTU bytes. */
             break;
         }
@@ -1406,12 +1407,21 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
     }
 
     remote_endpoint = pico_socket_sendto_destination(s, dst, remote_port);
-    if (pico_socket_sendto_set_localport(s) < 0) {
-        pico_endpoint_free(remote_endpoint);
-        return -1;
+
+    if (PROTO(s) == PICO_PROTO_ICMP4) {
+        if (pico_socket_icmp4_sendto_check(s, buf, len, dst, remote_port) < 0)
+            return -1;
     }
 
-    pico_socket_sendto_set_dport(s, remote_port);
+
+    if ((PROTO(s) == PICO_PROTO_UDP) || (PROTO(s) == PICO_PROTO_TCP)) {
+        if (pico_socket_sendto_set_localport(s) < 0) {
+            pico_endpoint_free(remote_endpoint);
+            return -1;
+        }
+
+        pico_socket_sendto_set_dport(s, remote_port);
+    }
     return pico_socket_xmit(s, buf, len, src, remote_endpoint, msginfo); /* Implies discarding the endpoint */
 }
 
@@ -1450,17 +1460,30 @@ int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, voi
         return -1;
     } else {
         /* check if exists in tree */
-        if (pico_check_socket(s) != 0) {
+        if ((PROTO(s) != PICO_PROTO_ICMP4) && pico_check_socket(s) != 0) {
             pico_err = PICO_ERR_EINVAL;
             /* See task #178 */
             return -1;
         }
     }
 
+    /* forward request to icmp layer */
+#ifdef PICO_SUPPORT_ICMP4
+    if (PROTO(s) == PICO_PROTO_ICMP4) {
+        if(len > 0xFFFF) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
+        return pico_socket_icmp4_recvfrom(s, buf, (uint16_t)len, orig, remote_port);
+    }
+#endif
+
     if ((s->state & PICO_SOCKET_STATE_BOUND) == 0) {
         pico_err = PICO_ERR_EADDRNOTAVAIL;
         return -1;
     }
+   
+    
 
 #ifdef PICO_SUPPORT_UDP
     if (PROTO(s) == PICO_PROTO_UDP) {
@@ -1600,6 +1623,12 @@ int MOCKABLE pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t 
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
+
+    #ifdef PICO_SUPPORT_ICMP4
+    if (PROTO(s) == PICO_PROTO_ICMP4) {
+        return pico_socket_icmp4_bind(s, local_addr, *port);
+    }
+    #endif
 
     /* When given port = 0, get a random high port to bind to. */
     if (*port == 0) {
@@ -1915,6 +1944,15 @@ int MOCKABLE pico_socket_close(struct pico_socket *s)
 {
     if (!s)
         return -1;
+
+#ifdef PICO_SUPPORT_ICMP4
+    if (PROTO(s) == PICO_PROTO_ICMP4) {
+        pico_socket_icmp4_close(s);
+        socket_clean_queues(s);
+        PICO_FREE(s);
+        return 0;
+    }
+#endif
 
 #ifdef PICO_SUPPORT_TCP
     if (PROTO(s) == PICO_PROTO_TCP) {

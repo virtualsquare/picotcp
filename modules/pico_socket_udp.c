@@ -63,7 +63,6 @@ static inline int pico_socket_udp_deliver_ipv4_mcast_initial_checks(struct pico_
     return 0;
 }
 
-
 static int pico_socket_udp_deliver_ipv4_mcast(struct pico_socket *s, struct pico_frame *f)
 {
     struct pico_ip4 s_local;
