@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Authors: Kristof Roelants, Frederik Van Slycken, Maxime Vincent
  *********************************************************************/
@@ -654,7 +654,8 @@ static int recv_ack(struct pico_dhcp_client_cookie *dhcpc, uint8_t *buf)
     dhcpc->renew_time = dhcpc->t2_time - dhcpc->t1_time;
     dhcpc->rebind_time = dhcpc->lease_time - dhcpc->t2_time;
     if (pico_dhcp_client_start_reacquisition_timers(dhcpc) < 0) {
-        pico_dhcp_client_callback(dhcpc, PICO_DHCP_ERROR);
+        if (dhcpc->cb)
+            dhcpc->cb(dhcpc, PICO_DHCP_ERROR);
         return -1;
     }
 
@@ -696,7 +697,8 @@ static int renew(struct pico_dhcp_client_cookie *dhcpc, uint8_t *buf)
     if (pico_dhcp_client_start_renewing_timer(dhcpc) < 0) {
         pico_socket_close(dhcpc->s);
         dhcpc->s = NULL;
-        pico_dhcp_client_callback(dhcpc, PICO_DHCP_ERROR);
+        if (dhcpc->cb)
+            dhcpc->cb(dhcpc, PICO_DHCP_ERROR);
 
         return -1;
     }

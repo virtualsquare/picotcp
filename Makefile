@@ -1,6 +1,7 @@
 -include ../../config.mk
 -include ../../tools/kconfig/.config
 
+OS:=$(shell uname)
 CC:=$(CROSS_COMPILE)gcc
 LD:=$(CROSS_COMPILE)ld
 AR:=$(CROSS_COMPILE)ar
@@ -8,7 +9,10 @@ RANLIB:=$(CROSS_COMPILE)ranlib
 SIZE:=$(CROSS_COMPILE)size
 STRIP_BIN:=$(CROSS_COMPILE)strip
 TEST_LDFLAGS=-pthread  $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug
-UNIT_LDFLAGS=-lcheck -lm -pthread -lrt -lsubunit
+UNIT_LDFLAGS=-lcheck -lm -pthread -lrt
+ifneq ("$(wildcard /etc/debian-release)","")
+     UNIT_LDFLAGS+=-lsubunit
+endif
 UNIT_CFLAGS= $(CFLAGS) -Wno-missing-braces
 
 LIBNAME:="libpicotcp.a"
@@ -99,6 +103,18 @@ CFLAGS+= -Wno-missing-field-initializers
 
 ifeq ($(CC),clang)
 CFLAGS+= -Wunreachable-code-break -Wpointer-bool-conversion -Wmissing-variable-declarations
+endif
+
+ifeq ($(OS),Darwin)
+  LIBSIZE=stat -f%z
+  ifeq ($(SIZE),size)
+    SUMSIZE=$(SIZE)
+  else
+    SUMSIZE=$(SIZE) -t
+  endif
+else
+  LIBSIZE=du -b
+  SUMSIZE=$(SIZE) -t
 endif
 
 ifeq ($(DEBUG),1)
@@ -232,8 +248,7 @@ POSIX_OBJ+= modules/pico_dev_vde.o \
             modules/pico_dev_tun.o \
             modules/pico_dev_ipc.o \
             modules/pico_dev_tap.o \
-            modules/pico_dev_mock.o \
-			modules/pico_dev_radio_mgr.o
+            modules/pico_dev_mock.o
 
 include rules/debug.mk
 
@@ -392,8 +407,8 @@ lib: mod core
 	@test $(STRIP) -eq 1 && (echo -e "\t[STRIP] $(PREFIX)/lib/$(LIBNAME)" \
      && $(STRIP_BIN) $(PREFIX)/lib/$(LIBNAME)) \
      || echo -e "\t[KEEP SYMBOLS] $(PREFIX)/lib/$(LIBNAME)"
-	@echo -e "\t[LIBSIZE] `du -b $(PREFIX)/lib/$(LIBNAME)`"
-	@echo -e "`size -t $(PREFIX)/lib/$(LIBNAME)`"
+	@echo -e "\t[LIBSIZE] `$(LIBSIZE) $(PREFIX)/lib/$(LIBNAME)`"
+	@echo -e "`$(SUMSIZE) $(PREFIX)/lib/$(LIBNAME)`"
 
 loop: mod core
 	mkdir -p $(PREFIX)/test
@@ -423,6 +438,7 @@ units: mod core lib $(UNITS_OBJ) $(MOD_OBJ)
 	@$(CC) -o $(PREFIX)/test/modunit_dns_sd.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_dns_sd.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
 	@$(CC) -o $(PREFIX)/test/modunit_dev_loop.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_dev_loop.c $(UNIT_LDFLAGS) $(UNITS_OBJ)
 	@$(CC) -o $(PREFIX)/test/modunit_ipv6_nd.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_ipv6_nd.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
+	@$(CC) -o $(PREFIX)/test/modunit_ipv6_pmtu.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_ipv6_pmtu.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
 	@$(CC) -o $(PREFIX)/test/modunit_ethernet.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_ethernet.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
 	@$(CC) -o $(PREFIX)/test/modunit_pico_stack.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_stack.c $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a
 	@$(CC) -o $(PREFIX)/test/modunit_tftp.elf $(UNIT_CFLAGS) -I. test/unit/modunit_pico_tftp.c  $(UNIT_LDFLAGS) $(UNITS_OBJ) $(PREFIX)/lib/libpicotcp.a

@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -11,6 +11,7 @@
 #include "pico_frame.h"
 #include "pico_protocol.h"
 #include "pico_stack.h"
+#include "pico_socket.h"
 
 #ifdef PICO_SUPPORT_DEBUG_MEMORY
 static int n_frames_allocated;
@@ -63,19 +64,19 @@ struct pico_frame *pico_frame_copy(struct pico_frame *f)
     return new;
 }
 
-
 static struct pico_frame *pico_frame_do_alloc(uint32_t size, int zerocopy, int ext_buffer)
 {
-    struct pico_frame *p = PICO_ZALLOC(sizeof(struct pico_frame));
+    struct pico_frame *p = NULL;
     uint32_t frame_buffer_size = size;
-    if (!p)
-        return NULL;
 
     if (ext_buffer && !zerocopy) {
         /* external buffer implies zerocopy flag! */
-        PICO_FREE(p);
         return NULL;
     }
+
+    p = PICO_ZALLOC(sizeof(struct pico_frame));
+    if (!p)
+        return NULL;
 
     if (!zerocopy) {
         unsigned int align = size % sizeof(uint32_t);
@@ -258,6 +259,15 @@ struct pico_frame *pico_frame_deepcopy(struct pico_frame *f)
     new->app_hdr += addr_diff;
     new->start += addr_diff;
     new->payload += addr_diff;
+
+    if (f->info) {
+        new->info = PICO_ZALLOC(sizeof(struct pico_remote_endpoint));
+        if (!new->info) {
+            pico_frame_discard(new);
+            return NULL;
+        }
+        memcpy(new->info, f->info, sizeof(struct pico_remote_endpoint));
+    }
 
 #ifdef PICO_SUPPORT_DEBUG_MEMORY
     dbg("Deep-Copied frame @%p, into %p, usage count now: %d\n", f, new, *new->usage_count);

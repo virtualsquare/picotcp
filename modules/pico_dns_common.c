@@ -1,6 +1,6 @@
 /* ****************************************************************************
  *  PicoTCP. Copyright (c) 2012 TASS Belgium NV. Some rights reserved.
- *  See LICENSE and COPYING for usage.
+ *  See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
  *  .
  *  Authors: Toon Stegen, Jelle De Vleeschouwer
  * ****************************************************************************/
@@ -20,9 +20,16 @@
 #endif
 
 /* MARK: v NAME & IP FUNCTIONS */
+/* ****************************************************************************
+ *  Iterates over labels, stops when:
+ *      - Label is compressed
+ *      - length greater than 63
+ *      - arriving to null terminator
+ *      - exceeding maxlen
+ * ****************************************************************************/
 #define dns_name_foreach_label_safe(label, name, next, maxlen) \
     for ((label) = (name), (next) = (char *)((name) + *(unsigned char*)(name) + 1); \
-         (*(label) != '\0') && ((uint16_t)((label) - (name)) < (maxlen)); \
+         (*(label) != '\0') && ((uint16_t)((label) - (name)) < (maxlen)) && (((*label) & 0xC0) != 0xC0) && (*label <= 63); \
          (label) = (next), (next) = (char *)((next) + *(unsigned char*)(next) + 1))
 
 /* ****************************************************************************
@@ -34,7 +41,7 @@
 int
 pico_dns_check_namelen( uint16_t namelen )
 {
-    return ((namelen > 2u) && (namelen < 256u)) ? (0) : (-1);
+    return ((namelen > 2u) && (namelen < PICO_DNS_NAMEBUF_SIZE)) ? (0) : (-1);
 }
 
 /* ****************************************************************************
@@ -59,7 +66,7 @@ pico_dns_namelen_comp( char *name )
     }
 
     /* Just count until the zero-byte or a pointer */
-    dns_name_foreach_label_safe(label, name, next, 255) {
+    dns_name_foreach_label_safe(label, name, next, PICO_DNS_NAMEBUF_SIZE) {
         if ((0xC0 & *label))
             break;
     }
@@ -71,6 +78,7 @@ pico_dns_namelen_comp( char *name )
 
     return len;
 }
+
 
 /* ****************************************************************************
  *  Returns the uncompressed name in DNS name format when DNS name compression
@@ -87,31 +95,48 @@ pico_dns_decompress_name( char *name, pico_dns_packet *packet )
         0
     };
     char *return_name = NULL;
-    uint8_t *dest_iterator = NULL;
-    uint8_t *iterator = NULL;
     uint16_t ptr = 0, nslen = 0;
+    uint16_t decompressed_index = 0;
+    char *label = NULL, *next = NULL;
 
-    /* Initialise iterators */
-    iterator = (uint8_t *) name;
-    dest_iterator = (uint8_t *) decompressed_name;
-    while (*iterator != '\0') {
-        if ((*iterator) & 0xC0) {
-            /* We have a pointer */
-            ptr = (uint16_t)((((uint16_t) *iterator) & 0x003F) << 8);
-            ptr = (uint16_t)(ptr | (uint16_t) *(iterator + 1));
-            iterator = (uint8_t *)((uint8_t *)packet + ptr);
-        } else {
-            /* We want to keep the label lengths */
-            *dest_iterator = (uint8_t) *iterator;
-            /* Copy the label */
-            memcpy(dest_iterator + 1, iterator + 1, *iterator);
-            /* Move to next length label */
-            dest_iterator += (*iterator) + 1;
-            iterator += (*iterator) + 1;
+    /* Reading labels until reaching to pointer or NULL terminator.
+     * Only one pointer is allowed in DNS compression, the pointer is always the last according to the RFC */
+    dns_name_foreach_label_safe(label, name, next, PICO_DNS_NAMEBUF_SIZE) {
+
+        uint8_t label_size = (uint8_t)(*label+1);
+        if (decompressed_index + label_size >= PICO_DNS_NAMEBUF_SIZE) {
+            return NULL;
+        }
+        memcpy(&decompressed_name[decompressed_index], label, label_size);
+        decompressed_index = (uint16_t)(decompressed_index+label_size);
+    }
+
+    if (decompressed_index >= PICO_DNS_NAMEBUF_SIZE) {
+        return NULL;
+    }
+
+    if (*label & 0xC0) {
+        /* Found compression bits */
+        ptr = (uint16_t)((((uint16_t) *label) & 0x003F) << 8);
+        ptr = (uint16_t)(ptr | (uint16_t) *(label + 1));
+        label = (char *)((uint8_t *)packet + ptr);
+
+        dns_name_foreach_label_safe(label, label, next, PICO_DNS_NAMEBUF_SIZE-decompressed_index) {
+            uint8_t label_size = (uint8_t)(*label + 1);
+            if (decompressed_index + label_size >= PICO_DNS_NAMEBUF_SIZE) {
+                return NULL;
+            }
+            memcpy(&decompressed_name[decompressed_index], label, label_size);
+            decompressed_index = (uint16_t) (decompressed_index + label_size);
         }
     }
+
+    if (decompressed_index >= PICO_DNS_NAMEBUF_SIZE) {
+        return NULL;
+    }
+
     /* Append final zero-byte */
-    *dest_iterator = (uint8_t) '\0';
+    decompressed_name[decompressed_index] = (uint8_t) '\0';
 
     /* Provide storage for the name to return */
     nslen = (uint16_t)(pico_dns_strlen(decompressed_name) + 1);
@@ -227,7 +252,7 @@ char *
 pico_dns_qname_to_url( const char *qname )
 {
     char *url = NULL;
-    char temp[256] = {
+    char temp[PICO_DNS_NAMEBUF_SIZE] = {
         0
     };
     uint16_t namelen = pico_dns_strlen(qname);
@@ -651,9 +676,7 @@ pico_dns_question_decompress( struct pico_dns_question *question,
     char *qname_original = question->qname;
 
     /* Try to decompress the question name */
-    if (!(question->qname = pico_dns_decompress_name(question->qname, packet))) {
-        question->qname = qname_original;
-    }
+    question->qname = pico_dns_decompress_name(question->qname, packet);
 
     return qname_original;
 }
@@ -970,9 +993,7 @@ pico_dns_record_decompress( struct pico_dns_record *record,
     char *rname_original = record->rname;
 
     /* Try to decompress the record name */
-    if (!(record->rname = pico_dns_decompress_name(record->rname, packet))) {
-        record->rname = rname_original;
-    }
+    record->rname = pico_dns_decompress_name(record->rname, packet);
 
     return rname_original;
 }
@@ -1519,7 +1540,7 @@ pico_dns_packet_compress_name( uint8_t *name,
 
     /* Try to compress name */
     lbl_iterator = name;
-    while (lbl_iterator != '\0') {
+    while (*lbl_iterator != '\0') {
         /* Try to find a compression pointer with current name */
         compression_ptr = pico_dns_packet_compress_find_ptr(lbl_iterator,
                                                             packet + 12, *len);

@@ -1,5 +1,5 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
    See LICENSE and COPYING for usage.
 
    Authors: Jelle De Vleeschouwer
@@ -25,9 +25,12 @@
 
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include <sys/poll.h>
 #include <string.h>
 #include <stdio.h>
+#include <signal.h>
+#include <errno.h>
 
 #ifdef DEBUG_RADIOTEST
 #define RADIO_DBG       dbg
@@ -101,7 +104,7 @@ pico_radio_mgr_socket_all(int *n)
                     fds[0].events = POLLIN;
                 } else {
                     fds[j].fd = key->s;
-                    fds[j].events = POLLIN;
+                    fds[j].events = POLLIN | POLLHUP;
                     j++;
                 }
             }
@@ -147,25 +150,38 @@ pico_radio_mgr_welcome(int socket)
     int ret_len = sizeof(uint8_t);
     uint8_t id = 0, area0, area1;
 
-    ret_len = (int)recv(socket, &id, (size_t)ret_len, 0);
-    if (ret_len != 1) return -1;
-    ret_len = (int)recv(socket, &area0, (size_t)ret_len, 0);
-    if (ret_len != 1) return -1;
-    ret_len = (int)recv(socket, &area1, (size_t)ret_len, 0);
-    if (ret_len != 1) return -1;
+    errno = 0;
+    while ((ret_len = recv(socket, &id, (size_t)ret_len, 0)) != 1) {
+        if (errno && EINTR != errno)
+            goto hup;
+    }
+    while ((ret_len = recv(socket, &area0, (size_t)ret_len, 0)) != 1) {
+        if (errno && EINTR != errno)
+            goto hup;
+    }
+    while ((ret_len = recv(socket, &area1, (size_t)ret_len, 0)) != 1) {
+        if (errno && EINTR != errno)
+            goto hup;
+    }
 
-    if (!id) { // Node's can't have ID '0'.
+    if (id <= 0) { // Node's can't have ID '0'.
+        RADIO_DBG("Invalid socket\n");
         close(socket);
         return -1;
     }
 
-    dbg("Connected to node %u in area %u and %u on socket %d.\n", id, area0, area1, socket);
+    RADIO_DBG("Connected to node %u in area %u and %u on socket %d.\n", id, area0, area1, socket);
     if (pico_radio_mgr_socket_insert(socket, id, area0, area1, 0)) {
+        RADIO_DBG("Failed inserting new socket\n");
         close(socket);
         return -1;
     }
 
     return 0;
+hup:
+    RADIO_DBG("recv() failed with error: %s\n", strerror(errno));
+    close(socket);
+    return -1;
 }
 
 /* Accepts a new TCP connection request */
@@ -179,6 +195,7 @@ pico_radio_mgr_accept(int socket)
         RADIO_DBG("Failed accepting connection\n");
         return s;
     } else if (!s) {
+        RADIO_DBG("accept() returned file descriptor '%d'\n", s);
         return s;
     }
     return pico_radio_mgr_welcome(s);
@@ -190,12 +207,14 @@ pico_radio_mgr_listen(void)
 {
     struct sockaddr_in addr;
     int s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    int ret = 0;
+    int ret = 0, yes = 1;
 
     memset(&addr, 0, sizeof(struct sockaddr_in));
     addr.sin_family = AF_INET;
     addr.sin_port = htons(LISTENING_PORT);
     addr.sin_addr.s_addr = INADDR_ANY;
+
+    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
     ret = bind(s, (struct sockaddr *)&addr, sizeof(struct sockaddr_in));
     if (ret < 0) {
@@ -228,6 +247,7 @@ pico_radio_mgr_distribute(uint8_t *buf, int len, uint8_t id)
     struct pico_tree_node *i = NULL;
     struct socket *key = NULL;
     if (node) {
+        RADIO_DBG("Received frame from node '%d' of '%d' bytes\n", id, len);
         area0 = node->area0;
         area1 = node->area1;
     } else {
@@ -261,22 +281,50 @@ pico_radio_mgr_process(struct pollfd *fds, int n)
 
     for (i = 0; i < n; i++) {
         event = fds[i].revents;
-        if (event & POLLIN) {
+        if (event && (event & POLLIN)) { // POLLIN
             if (!i) {
+                /* Accept a new connection */
                 pico_radio_mgr_accept(fds[i].fd);
                 continue;
             }
+
+            /* Read from node  */
             ret_len = (int)recv(fds[i].fd, &phy, (size_t)1, 0);
-            if (ret_len != 1) return;
+            if (ret_len <= 0)
+                goto hup;
             ret_len = (int)recv(fds[i].fd, buf, (size_t)phy, 0);
-            if (ret_len > 0) {
-                node = buf[ret_len - 2];
-                pico_radio_mgr_distribute(buf, ret_len, node);
-            } else {
-                pico_radio_mgr_socket_hup(fds[i].fd);
-            }
+            if (ret_len <= 0 || ret_len != phy)
+                goto hup;
+            node = buf[ret_len - 2];
+            pico_radio_mgr_distribute(buf, ret_len, node);
+        } else if (event && (event & POLLHUP)) {
+            goto hup;
         }
     }
+
+    return;
+hup:
+    pico_radio_mgr_socket_hup(fds[i].fd);
+}
+
+static void
+pico_radio_mgr_quit(int signum)
+{
+    struct pico_tree_node *i = NULL, *tmp = NULL;
+    struct socket *key = NULL;
+    IGNORE_PARAMETER(signum);
+
+    dbg("Closing all sockets...");
+    pico_tree_foreach_safe(i, &Sockets, tmp) {
+        key = i->keyValue;
+        if (key) {
+            pico_tree_delete(&Sockets, key);
+            shutdown(key->s, SHUT_RDWR);
+            PICO_FREE(key);
+        }
+    }
+    dbg("done.\n");
+    exit(0);
 }
 
 /* Create and start a radio-manager instance */
@@ -290,16 +338,20 @@ pico_radio_mgr_start(void)
     if (server < 0)
         return -1;
 
+    signal(SIGQUIT, pico_radio_mgr_quit);
+
     for EVER {
-        fds = pico_radio_mgr_socket_all((int *)&n);
-        ret = poll(fds, n, 1);
-        if (ret < 0) {
-            RADIO_DBG("Socket error: %s\n", strerror(ret));
-            exit(255);
-        } else if (!ret)
-            continue;
-        pico_radio_mgr_process(fds, (int)n);
         if (fds)
             PICO_FREE(fds);
+        fds = pico_radio_mgr_socket_all((int *)&n);
+        errno = 0;
+        ret = poll(fds, n, 1);
+        if (errno != EINTR && ret < 0) {
+            RADIO_DBG("Socket error: %s\n", strerror(ret));
+            return ret;
+        } else if (!ret) {
+            continue;
+        }
+        pico_radio_mgr_process(fds, (int)n);
     }
 }

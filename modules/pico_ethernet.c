@@ -1,6 +1,6 @@
  /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -142,7 +142,7 @@ static int destination_is_mcast(struct pico_frame *f)
 }
 
 #ifdef PICO_SUPPORT_IPV4
-int32_t pico_ipv4_ethernet_receive(struct pico_frame *f)
+static int32_t pico_ipv4_ethernet_receive(struct pico_frame *f)
 {
     if (IS_IPV4(f)) {
         if (pico_enqueue(pico_proto_ipv4.q_in, f) < 0) {
@@ -294,12 +294,12 @@ static int pico_ethernet_ipv6_dst(struct pico_frame *f, struct pico_eth *const d
 
 
 /* Ethernet send, first attempt: try our own address.
- * Returns 0 if the packet is not for us.
- * Returns 1 if the packet is cloned to our own receive queue, so the caller can discard the original frame.
+ * Returns 0 if the packet is not for us or an error occured.
+ * Returns 1 if the packet is cloned to our own receive queue, the original supplied frame will be discarded
  * */
 static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr)
 {
-    if (!hdr)
+    if (!hdr || !f)
         return 0;
 
     /* Check own mac */
@@ -308,7 +308,9 @@ static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr
         dbg("sending out packet destined for our own mac\n");
         if (pico_ethernet_receive(clone) < 0) {
             dbg("pico_ethernet_receive() failed\n");
+            return 0;
         }
+        pico_frame_discard(f);
         return 1;
     }
 
@@ -317,7 +319,7 @@ static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr
 
 /* Ethernet send, second attempt: try bcast.
  * Returns 0 if the packet is not bcast, so it will be handled somewhere else.
- * Returns 1 if the packet is handled by the pico_device_broadcast() function, so it can be discarded.
+ * Returns 1 if the packet is handled by the pico_device_broadcast() function and is discarded
  * */
 static int32_t pico_ethsend_bcast(struct pico_frame *f)
 {
@@ -358,6 +360,7 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
     struct pico_eth dstmac;
     uint8_t dstmac_valid = 0;
     uint16_t proto = PICO_IDETH_IPV4;
+    uint32_t len = f->len;
 
 #ifdef PICO_SUPPORT_IPV6
     /* Step 1: If the frame has an IPv6 packet,
@@ -369,7 +372,8 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
             /* Enqueue copy of frame in IPv6 ND-module to retry later. Discard
              * frame, otherwise we have a duplicate in IPv6-ND */
             pico_ipv6_nd_postpone(f);
-            return (int32_t)f->len;
+            pico_frame_discard(f);
+            return (int32_t)len;
         }
 
         dstmac_valid = 1;
@@ -426,12 +430,11 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
                 memcpy(hdr->daddr, &dstmac, PICO_SIZE_ETH);
                 hdr->proto = proto;
             }
-
+            len = f->len;
             if (pico_ethsend_local(f, hdr) || pico_ethsend_bcast(f) || pico_ethsend_dispatch(f)) {
                 /* one of the above functions has delivered the frame accordingly.
-                 * (returned != 0). It is safe to directly return successfully.
-                 * Lower level queue has frame, so don't discard */
-                return (int32_t)f->len;
+                 * (returned != 0). It is safe to directly return successfully. */
+                return (int32_t)len;
             }
         }
     }

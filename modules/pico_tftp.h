@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
  *********************************************************************/
@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "pico_addressing.h"
 
 #define PICO_TFTP_PORT          (69)
 #define PICO_TFTP_PAYLOAD_SIZE  (512)

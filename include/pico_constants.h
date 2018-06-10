@@ -1,11 +1,13 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
 #ifndef INCLUDE_PICO_CONST
 #define INCLUDE_PICO_CONST
 /* Included from pico_config.h */
+
+#include <stdint.h>
 
 /** Non-endian dependant constants */
 #define PICO_SIZE_IP4    4

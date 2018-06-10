@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -9,6 +9,8 @@
 
 #ifndef INCLUDE_PICO_IGMP
 #define INCLUDE_PICO_IGMP
+
+#include "pico_ipv4.h"
 
 #define PICO_IGMPV1               1
 #define PICO_IGMPV2               2

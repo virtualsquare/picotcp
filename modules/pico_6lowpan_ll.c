@@ -1,5 +1,5 @@
 /*********************************************************************
- PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
+ PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
  See LICENSE and COPYING for usage.
 
  Authors: Jelle De Vleeschouwer
@@ -95,7 +95,7 @@ PICO_TREE_DECLARE(CTXtree, compare_ctx);
  * prefix of the IPv6 address */
 struct iphc_ctx * ctx_lookup(struct pico_ip6 addr)
 {
-    struct iphc_ctx test = { addr, 0, 0, 0, 0, NULL };
+    struct iphc_ctx test = { NULL, addr, 0, 0, 0, 0 };
     return pico_tree_findKey(&CTXtree, &test);
 }
 
@@ -289,17 +289,20 @@ pico_6lowpan_ll_process_out(struct pico_protocol *self, struct pico_frame *f)
     /* Call each of the outgoing processing functions */
     for (i = 0; i < NUM_LL_EXTENSIONS; i++) {
         ret = exts[i].out(f);
-        if (ret < 0) { /* Processing failed, no way to recover, discard frame */
-            pico_frame_discard(f);
-            return -1;
-        }
+        if (ret < 0)  /* Processing failed, no way to recover, discard frame */
+            goto fin;
         datalink_len = (uint32_t)(datalink_len + (uint32_t)ret);
+        if ((f->net_hdr - datalink_len) < f->buffer) /* Before buffer bound check */
+            goto fin;
     }
 
     /* Frame is ready for sending to the device driver */
     f->start = f->datalink_hdr;
     f->len = (uint32_t)(f->len + datalink_len);
     return (int32_t)(pico_sendto_dev(f) <= 0);
+fin:
+    pico_frame_discard(f);
+    return -1;
 }
 
 static int32_t
@@ -342,7 +345,7 @@ pico_6lowpan_ll_process_in(struct pico_protocol *self, struct pico_frame *f)
 int32_t pico_6lowpan_stack_recv(struct pico_device *dev, uint8_t *buffer, uint32_t len, union pico_ll_addr *src, union pico_ll_addr *dst)
 {
     int32_t ret = 0;
-    ll_dbg("Stack recv called!\n");
+    ll_dbg("6LoWPAN - Stack recv called!\n");
     if (PICO_DEV_IS_NOMAC(dev)) {
         struct pico_frame *f = pico_stack_recv_new_frame(dev, buffer, len);
         if (f) {
@@ -366,6 +369,30 @@ int32_t pico_6lowpan_ll_sendto_dev(struct pico_device *dev, struct pico_frame *f
     /* FINAL OUTGOING POINT OF 6LOWPAN STACK */
     return ((struct pico_dev_6lowpan *)dev)->send(dev, f->start, (int32_t)f->len, f->src, f->dst);
 }
+
+/* Initialisation routine for 6LoWPAN specific devices */
+int pico_dev_6lowpan_init(struct pico_dev_6lowpan *dev, const char *name, uint8_t *mac, enum pico_ll_mode ll_mode, uint16_t mtu, uint8_t nomac,
+                          int (* send)(struct pico_device *dev, void *_buf, int len, union pico_ll_addr src, union pico_ll_addr dst),
+                          int (* poll)(struct pico_device *dev, int loop_score))
+{
+    struct pico_device *picodev = (struct pico_device *)dev;
+    if (!dev || !send || !poll) {
+        return -1;
+    }
+
+    picodev->mode = ll_mode;
+    picodev->hostvars.lowpan_flags = PICO_6LP_FLAG_LOWPAN;
+    if (nomac) {
+        picodev->hostvars.lowpan_flags |= PICO_6LP_FLAG_NOMAC;
+    }
+    picodev->mtu = mtu;
+    picodev->poll = poll;
+    picodev->send = NULL;
+    dev->send = send;
+
+    return pico_device_init(picodev, name, mac);
+}
+
 
 /* Push function for 6LoWPAN to call when it wants to try to send te frame to the device-driver */
 int32_t

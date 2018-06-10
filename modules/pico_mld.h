@@ -1,6 +1,6 @@
 /*********************************************************************
    PicoTCP. Copyright (c) 2012 TASS Belgium NV. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -9,6 +9,9 @@
 
 #ifndef INCLUDE_PICO_MLD
 #define INCLUDE_PICO_MLD
+
+#include <stdint.h>
+#include "pico_ipv6.h"
 
 #define PICO_MLDV1               1
 #define PICO_MLDV2               2

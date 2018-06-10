@@ -1,5 +1,5 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
    See LICENSE and COPYING for usage.
 
    Authors: Daniele Lacamera, Jelle De Vleeschouwer
@@ -26,6 +26,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <sys/poll.h>
+#include <signal.h>
+#include <errno.h>
 
 #define LISTENING_PORT  7777
 #define MESSAGE_MTU     150
@@ -113,9 +115,9 @@ static void radiotest_pcap_open(struct radiotest_radio *dev, char *dump)
     /* Open dump */
     dev->pcapd = pcap_dump_open(dev->pcap, path);
     if (dev->pcapd)
-        RADIO_DBG("PCAP Enabled\n");
+        dbg("PCAP Enabled\n");
     else
-        RADIO_DBG("PCAP Disabled\n");
+        dbg("PCAP Disabled\n");
 }
 
 static void radiotest_pcap_write(struct radiotest_radio *dev, uint8_t *buf, int len)
@@ -287,12 +289,13 @@ static int radiotest_poll(struct pico_device *dev, int loop_score)
     p.events = POLLIN | POLLHUP;
 
     /* Poll for data from radio management */
+    errno = 0;
     pollret = poll(&p, (nfds_t)1, 1);
-    if (pollret == 0)
+    if (errno == EINTR || pollret == 0)
         return loop_score;
 
-    if (pollret == -1) {
-        fprintf(stderr, "Socket error!\n");
+    if (pollret < 0) {
+        fprintf(stderr, "Socket error %s!\n", strerror(errno));
         exit(5);
     }
 
@@ -425,25 +428,27 @@ static int radiotest_connect(uint8_t id, uint8_t area0, uint8_t area1)
     return radiotest_hello(s, id, area0, area1);
 }
 
+static void
+pico_radiotest_quit(int signum)
+{
+    IGNORE_PARAMETER(signum);
+    dbg("Quitting radiotest\n");
+    exit(0);
+}
+
 /* Creates a radiotest-device */
 struct pico_device *pico_radiotest_create(uint8_t addr, uint8_t area0, uint8_t area1, int loop, char *dump)
 {
     struct radiotest_radio *radio = PICO_ZALLOC(sizeof(struct radiotest_radio));
     struct pico_dev_6lowpan *lp = (struct pico_dev_6lowpan *)radio;
-    struct pico_device *dev = (struct pico_device *)radio;
-    if (!dev)
+    if (!radio)
         return NULL;
     if (!addr || (addr && !area0)) {
         RADIO_DBG("Usage (node): -6 [1-255],[1-255],[0-255] ...\n");
     }
 
-    dev->mode = LL_MODE_IEEE802154;
-    dev->hostvars.lowpan_flags = PICO_6LP_FLAG_LOWPAN;
-#ifdef PICO_6LOWPAN_NOMAC
-    dev->hostvars.lowpan_flags |= PICO_6LP_FLAG_NOMAC;
-#endif
+    signal(SIGQUIT, pico_radiotest_quit);
 
-    dev->mtu = (uint32_t)75;
     radio->addr.pan_id.addr = short_be(RFDEV_PANID);
     radio->addr.addr_short.addr = short_be((uint16_t)addr);
     radiotest_gen_ex(radio->addr.addr_short, radio->addr.addr_ext.addr);
@@ -458,23 +463,24 @@ struct pico_device *pico_radiotest_create(uint8_t addr, uint8_t area0, uint8_t a
         if ((connection = radiotest_connect(addr, area0, area1)) <= 0) {
             return NULL;
         }
-        lp->send = radiotest_send;
-        dev->poll = radiotest_poll;
+        if (pico_dev_6lowpan_init(lp, "radio", (uint8_t *)&radio->addr, LL_MODE_IEEE802154, MTU_802154_MAC, 0, radiotest_send, radiotest_poll)) {
+            RADIO_DBG("pico_device_init failed.\n");
+            pico_device_destroy((struct pico_device *)lp);
+            return NULL;
+        }
     } else {
-        lp->send = pico_loop_send;
-        dev->poll = pico_loop_poll;
+        if (pico_dev_6lowpan_init(lp, "radio", (uint8_t *)&radio->addr, LL_MODE_IEEE802154, MTU_802154_MAC, 0, pico_loop_send, pico_loop_poll)) {
+            RADIO_DBG("pico_device_init failed.\n");
+            pico_device_destroy((struct pico_device *)lp);
+            return NULL;
+        }
     }
 
     if (dump) {
+        dbg("Dump: %s\n", dump);
         radiotest_pcap_open(radio, dump);
     }
 
-    if (pico_device_init(dev, "radio", (uint8_t *)&radio->addr)) {
-        RADIO_DBG("pico_device_init failed.\n");
-        pico_device_destroy(dev);
-        return NULL;
-    }
-
-    return dev;
+    return (struct pico_device *)lp;
 }
 
