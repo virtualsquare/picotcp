@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    .
 
@@ -168,7 +168,6 @@ struct pico_ipv6_link *pico_ipv6_prefix_configured(struct pico_ip6 *prefix);
 struct pico_ipv6_route *pico_ipv6_gateway_by_dev(struct pico_device *dev);
 struct pico_ipv6_route *pico_ipv6_gateway_by_dev_next(struct pico_device *dev, struct pico_ipv6_route *last);
 int pico_ipv6_lifetime_set(struct pico_ipv6_link *l, pico_time expire);
-
 int pico_ipv6_dev_routing_enable(struct pico_device *dev);
 int pico_ipv6_dev_routing_disable(struct pico_device *dev);
 void pico_ipv6_router_down(struct pico_ip6 *address);

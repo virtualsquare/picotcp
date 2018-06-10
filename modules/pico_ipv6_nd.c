@@ -77,9 +77,7 @@ static int pico_ipv6_neighbor_compare(void *ka, void *kb)
     struct pico_ipv6_neighbor *a = ka, *b = kb;
     return pico_ipv6_compare(&a->address, &b->address);
 }
-
-
-static PICO_TREE_DECLARE(NCache, pico_ipv6_neighbor_compare);
+PICO_TREE_DECLARE(NCache, pico_ipv6_neighbor_compare);
 
 static struct pico_ipv6_neighbor *pico_nd_find_neighbor(struct pico_ip6 *dst)
 {

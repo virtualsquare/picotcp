@@ -1,6 +1,6 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2015 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
+   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
+   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
    Authors: Daniele Lacamera, Kristof Roelants
  *********************************************************************/
@@ -397,15 +397,14 @@ int pico_ipv6_is_unspecified(const uint8_t addr[PICO_SIZE_IP6])
 
 static struct pico_ipv6_route *pico_ipv6_route_find(const struct pico_ip6 *addr)
 {
-    struct pico_ipv6_route *r = NULL;
     struct pico_tree_node *index = NULL;
+    struct pico_ipv6_route *r = NULL;
     int i = 0;
     if (!pico_ipv6_is_localhost(addr->addr) && (pico_ipv6_is_linklocal(addr->addr)  || pico_ipv6_is_sitelocal(addr->addr)))    {
         return NULL;
     }
 
-    pico_tree_foreach_reverse(index, &IPV6Routes)
-    {
+    pico_tree_foreach_reverse(index, &IPV6Routes) {
         r = index->keyValue;
         for (i = 0; i < PICO_SIZE_IP6; ++i) {
             if ((addr->addr[i] & (r->netmask.addr[i])) != ((r->dest.addr[i]) & (r->netmask.addr[i]))) {
@@ -895,21 +894,17 @@ static struct pico_frame *pico_ipv6_alloc(struct pico_protocol *self, struct pic
 
     IGNORE_PARAMETER(self);
 
-    switch (dev->mode) {
-#ifdef LL_MODE_IEEE802154
-        case LL_MODE_IEEE802154:
-            f = pico_proto_6lowpan_ll.alloc(&pico_proto_6lowpan_ll, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
-            break;
-#elif defined (LL_MODE_IEEE802154_NO_MAC)
-        case LL_MODE_IEEE802154_NO_MAC:
-            f = pico_proto_6lowpan_ll.alloc(&pico_proto_6lowpan_ll, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
-            break;
+    if (0) {}
+#ifdef PICO_SUPPORT_6LOWPAN
+    else if (PICO_DEV_IS_6LOWPAN(dev)) {
+        f = pico_proto_6lowpan_ll.alloc(&pico_proto_6lowpan_ll, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
+    }
 #endif
-        default:
+    else {
 #ifdef PICO_SUPPORT_ETH
-            f = pico_proto_ethernet.alloc(&pico_proto_ethernet, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
+        f = pico_proto_ethernet.alloc(&pico_proto_ethernet, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
 #else
-            f = pico_frame_alloc(size + PICO_SIZE_IP6HDR + PICO_SIZE_ETHHDR);
+        f = pico_frame_alloc(size + PICO_SIZE_IP6HDR + PICO_SIZE_ETHHDR);
 #endif
     }
 
@@ -1485,7 +1480,8 @@ static inline struct pico_ipv6_route *ipv6_route_add_link(struct pico_ip6 gatewa
 {
     struct pico_ip6 zerogateway = {{0}};
     struct pico_ipv6_route *r = pico_ipv6_route_find(&gateway);
-    if (!r ) { /* Specified Gateway is unreachable */
+
+    if (!r) { /* Specified Gateway is unreachable */
         pico_err = PICO_ERR_EHOSTUNREACH;
         return NULL;
     }
@@ -1494,7 +1490,6 @@ static inline struct pico_ipv6_route *ipv6_route_add_link(struct pico_ip6 gatewa
         pico_err = PICO_ERR_ENETUNREACH;
         return NULL;
     }
-
 
     return r;
 }
@@ -1512,7 +1507,7 @@ struct pico_ipv6_route *pico_ipv6_gateway_by_dev(struct pico_device *dev)
         if (!pico_ipv6_is_unspecified(route->gateway.addr) && pico_ipv6_is_unspecified(route->netmask.addr)) {
             /* Iterate over device's links */
             while (link) {
-                /* If link is equal to route's link, routing list is not empty */
+                /* If link is equal to route's link, router list is not empty */
                 if (0 == ipv6_link_compare(link, route->link))
                     return route;
                 link = pico_ipv6_link_by_dev_next(dev, link);
@@ -1563,6 +1558,7 @@ int pico_ipv6_route_add(struct pico_ip6 address, struct pico_ip6 netmask, struct
     test.netmask = netmask;
     test.metric = (uint32_t)metric;
     if (pico_tree_findKey(&IPV6Routes, &test)) {
+        /* Route already exists */
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
@@ -2062,7 +2058,7 @@ struct pico_ipv6_link *pico_ipv6_global_get(struct pico_device *dev)
 {
     struct pico_ipv6_link *link = pico_ipv6_link_by_dev(dev);
     while (link && !pico_ipv6_is_global(link->address.addr)) {
-        printf("[0x%02X] - is global: %d - %d\n", link->address.addr[0], pico_ipv6_is_global(link->address.addr), link->address.addr[0] >> 0x05);
+        dbg("[0x%02X] - is global: %d - %d\n", link->address.addr[0], pico_ipv6_is_global(link->address.addr), link->address.addr[0] >> 0x05);
         link = pico_ipv6_link_by_dev_next(dev, link);
     }
     return link;
