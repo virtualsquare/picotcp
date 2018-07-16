@@ -2,18 +2,20 @@
 
 ---------------
 
-PicoTCP free repository. GPLv2/v3 only.
+PicoTCP-NG. License: GPLv2/v3 only.
 
-For non-GPL uses, contact [Altran.be PicoTCP](http://picotcp.altran.be).
+This is a Free fork of PicoTCP, originally distributed by
+[Altran.be](http://picotcp.altran.be).
 
 ---------------
 
 picoTCP is a small-footprint, modular TCP/IP stack designed for embedded systems and the Internet of Things.
 
 This code is released under the terms of GNU GPL v2 and GNU GPL v3. Some rights reserved.
-Other licenses may apply at the sole discretion of the copyright holders.
 
-Learn how to use picoTCP in your project by going through the **Getting Started guide** on our [GitHub wiki](https://gitlab.com/picotcp/picotcp/wikis).
+Learn how to use picoTCP in your project by going through the **Getting Started guide** on our [GitLab wiki](https://gitlab.com/picotcp/picotcp/wikis).
+
+Contributions are welcome.
 
 ---------------
 
