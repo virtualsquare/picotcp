@@ -61,6 +61,7 @@ enum pico_err_e {
     PICO_ERR_EHOSTDOWN = 112,
     PICO_ERR_EHOSTUNREACH = 113,
     PICO_ERR_EMSGSIZE = 114,
+    PICO_ERR_EINPROGRESS = 115,
 };
 
 typedef enum pico_err_e pico_err_t;
