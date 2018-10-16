@@ -3182,7 +3182,7 @@ int pico_tcp_push(struct pico_protocol *self, struct pico_frame *f)
 
 }
 
-inline static void tcp_discard_all_segments(struct pico_tcp_queue *tq)
+static void tcp_discard_all_segments(struct pico_tcp_queue *tq)
 {
     struct pico_tree_node *index = NULL, *index_safe = NULL;
     PICOTCP_MUTEX_LOCK(Mutex);
