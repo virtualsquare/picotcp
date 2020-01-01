@@ -7,7 +7,6 @@
 #define INCLUDE_PICO_QUEUE
 #include "pico_config.h"
 #include "pico_frame.h"
-#include "pico_jobs.h"
 
 #define Q_LIMIT 0
 
@@ -60,7 +59,7 @@ static inline void pico_queue_register_listener(struct pico_queue *q, void (*fn)
 {
     q->listener = fn;
     q->listener_arg = arg;
-} 
+}
 
 static inline void pico_queue_wakeup(struct pico_queue *q)
 {

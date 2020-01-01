@@ -1520,7 +1520,7 @@ static int router_sol_validity_checks(struct pico_frame *f)
     int sllao_present = 0;
 
     /* Step 2 validation */
-    if (f->transport_len < PICO_ICMP6HDR_ROUTER_SOL_SIZE_6LP)
+    if (f->transport_len < PICO_ICMP6HDR_ROUTER_SOL_SIZE)
         return -1;
 
     /* RFC4861, 6.1.1:

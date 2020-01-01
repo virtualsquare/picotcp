@@ -1,5 +1,5 @@
 #include "pico_jobs.h"
-struct pico_job 
+struct pico_job
 {
     void (*exe)(void *);
     void *arg;
@@ -22,7 +22,7 @@ void pico_schedule_job(void (*exe)(void*), void *arg)
     job->arg = arg;
     if (!pico_jobs_backlog) {
        pico_jobs_backlog = job;
-       pico_jobs_backlog_tail = job;  
+       pico_jobs_backlog_tail = job;
     } else {
         pico_jobs_backlog_tail->next = job;
         pico_jobs_backlog_tail = job;

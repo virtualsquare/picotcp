@@ -3,11 +3,80 @@
    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
-#ifndef INCLUDE_PICO_STACK
-#define INCLUDE_PICO_STACK
 #include "pico_config.h"
 #include "pico_frame.h"
 #include "pico_constants.h"
+#include "pico_queue.h"
+#include "pico_protocol.h"
+#ifndef INCLUDE_PICO_STACK
+#define INCLUDE_PICO_STACK
+
+#define PROTO_DEF_NR      11
+#define PROTO_DEF_AVG_NR  4
+#define PROTO_DEF_SCORE   32
+#define PROTO_MIN_SCORE   32
+#define PROTO_MAX_SCORE   128
+#define PROTO_LAT_IND     3   /* latency indication 0-3 (lower is better latency performance), x1, x2, x4, x8 */
+#define PROTO_MAX_LOOP    (PROTO_MAX_SCORE << PROTO_LAT_IND) /* max global loop score, so per tick */
+
+
+#define DECLARE_QUEUES(proto) \
+    struct s_q_ ## proto { \
+        struct pico_queue in, out; \
+    }  q_ ## proto
+
+#define ATTACH_QUEUES(St, pname, P) \
+    do { \
+       P.q_in =  &((St)->q_ ## pname.in); \
+       P.q_out = &((St)->q_ ## pname.out); \
+    } while(0)
+
+struct pico_stack {
+    struct pico_scheduler *sched;
+    int score[PROTO_DEF_NR];
+    int index[PROTO_DEF_NR];
+    int avg[PROTO_DEF_NR][PROTO_DEF_AVG_NR];
+    int ret[PROTO_DEF_NR];
+
+#ifdef PICO_SUPPORT_ETH
+    DECLARE_QUEUES(ethernet);
+#endif
+
+#ifdef PICO_SUPPORT_6LOWPAN
+    DECLARE_QUEUES(sixlowpan);
+    DECLARE_QUEUES(sixlowpan_ll);
+#endif
+
+#ifdef PICO_SUPPORT_IPV4
+    DECLARE_QUEUES(ipv4);
+#endif
+
+#ifdef PICO_SUPPORT_IPV6
+    DECLARE_QUEUES(ipv6);
+#endif
+
+#ifdef PICO_SUPPORT_ICMP4
+    DECLARE_QUEUES(icmp4);
+#endif
+
+#ifdef PICO_SUPPORT_ICMP6
+    DECLARE_QUEUES(icmp6);
+#endif
+
+#if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
+    DECLARE_QUEUES(igmp);
+#endif
+
+#ifdef PICO_SUPPORT_UDP
+    DECLARE_QUEUES(udp);
+#endif
+
+#ifdef PICO_SUPPORT_TCP
+    DECLARE_QUEUES(tcp);
+#endif
+
+};
+
 
 #define PICO_MAX_TIMERS 20
 
@@ -82,6 +151,7 @@ int32_t pico_ethernet_receive(struct pico_frame *f);
 
 /* ----- Initialization ----- */
 int pico_stack_init(void);
+int pico_stack_init_ex(struct pico_stack **S);
 
 /* ----- Loop Function. ----- */
 void pico_stack_tick(void);

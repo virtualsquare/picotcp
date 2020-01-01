@@ -7,9 +7,11 @@
 #define INCLUDE_PICO_PROTOCOL
 #include "pico_config.h"
 #include "pico_queue.h"
+#include "pico_tree.h"
 
 #define PICO_LOOP_DIR_IN   1
 #define PICO_LOOP_DIR_OUT  2
+struct pico_stack;
 
 enum pico_layer {
     PICO_LAYER_DATALINK = 2, /* Ethernet only. */
@@ -72,6 +74,23 @@ extern volatile pico_err_t pico_err;
 
 #define MAX_PROTOCOL_NAME 16
 
+struct pico_proto_rr
+{
+    struct pico_tree *t;
+    struct pico_tree_node *node_in, *node_out;
+};
+
+struct pico_scheduler {
+    struct pico_tree Datalink_proto_tree,
+                     Network_proto_tree,
+                     Transport_proto_tree,
+                     Socket_proto_tree;
+    struct pico_proto_rr rr_datalink,
+                         rr_network,
+                         rr_transport,
+                         rr_socket;
+};
+
 struct pico_protocol {
     char name[MAX_PROTOCOL_NAME];
     uint32_t hash;
@@ -87,11 +106,12 @@ struct pico_protocol {
 };
 
 int pico_protocols_loop(int loop_score);
-void pico_protocol_init(struct pico_protocol *p);
+int pico_protocol_scheduler_init(struct pico_stack *S);
+void pico_protocol_init(struct pico_stack *S, struct pico_protocol *p);
 
-int pico_protocol_datalink_loop(int loop_score, int direction);
-int pico_protocol_network_loop(int loop_score, int direction);
-int pico_protocol_transport_loop(int loop_score, int direction);
-int pico_protocol_socket_loop(int loop_score, int direction);
+int pico_protocol_datalink_loop(struct pico_stack *S, int loop_score, int direction);
+int pico_protocol_network_loop(struct pico_stack *S, int loop_score, int direction);
+int pico_protocol_transport_loop(struct pico_stack *S, int loop_score, int direction);
+int pico_protocol_socket_loop(struct pico_stack *S, int loop_score, int direction);
 
 #endif

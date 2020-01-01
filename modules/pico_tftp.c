@@ -7,11 +7,12 @@
    Author: Daniele Lacamera
  *********************************************************************/
 
-#include <pico_defines.h>
-#include <pico_stack.h>
-#include <pico_socket.h>
-#include <pico_tftp.h>
-#include <pico_strings.h>
+#include "pico_defines.h"
+#include "pico_protocol.h"
+#include "pico_socket.h"
+#include "pico_tftp.h"
+#include "pico_strings.h"
+#include "pico_stack.h"
 
 #ifdef DEBUG_TFTP
 #define tftp_dbg dbg

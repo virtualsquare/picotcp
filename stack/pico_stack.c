@@ -44,9 +44,9 @@
 #endif
 
 
+/* Globals across multiple instances */
 volatile pico_time pico_tick;
 volatile pico_err_t pico_err;
-
 static uint32_t _rand_seed;
 
 void WEAK pico_rand_feed(uint32_t feed)
@@ -618,7 +618,7 @@ static void pico_check_timers(void)
 #ifdef PICO_SUPPORT_TICKLESS
 long long int pico_stack_go(void)
 {
-    struct pico_timer_ref *tref; 
+    struct pico_timer_ref *tref;
     pico_execute_pending_jobs();
     pico_check_timers();
     tref = heap_first(Timers);
@@ -626,7 +626,7 @@ long long int pico_stack_go(void)
         return -1;
     /* Execute jobs again, in case they were scheduled in timer execution */
     pico_execute_pending_jobs();
-    return(long long int)((tref->expire - pico_tick) + 1); 
+    return(long long int)((tref->expire - pico_tick) + 1);
 }
 #endif
 
@@ -671,15 +671,8 @@ void pico_timer_cancel_hashed(uint32_t hash)
     }
 }
 
-#define PROTO_DEF_NR      11
-#define PROTO_DEF_AVG_NR  4
-#define PROTO_DEF_SCORE   32
-#define PROTO_MIN_SCORE   32
-#define PROTO_MAX_SCORE   128
-#define PROTO_LAT_IND     3   /* latency indication 0-3 (lower is better latency performance), x1, x2, x4, x8 */
-#define PROTO_MAX_LOOP    (PROTO_MAX_SCORE << PROTO_LAT_IND) /* max global loop score, so per tick */
 
-static int calc_score(int *score, int *index, int avg[][PROTO_DEF_AVG_NR], int *ret)
+static int calc_score(struct pico_stack *S)
 {
     int temp, i, j, sum;
     int max_total = PROTO_MAX_LOOP, total = 0;
@@ -688,73 +681,73 @@ static int calc_score(int *score, int *index, int avg[][PROTO_DEF_AVG_NR], int *
 
     for (i = 0; i < PROTO_DEF_NR; i++) {
 
-        /* if used looped score */
-        if (ret[i] < score[i]) {
-            temp = score[i] - ret[i]; /* remaining loop score */
+        /* if used looped S->score */
+        if (S->ret[i] < S->score[i]) {
+            temp = S->score[i] - S->ret[i]; /* remaining loop S->score */
 
             /* dbg("%3d - ",temp); */
 
-            if (index[i] >= PROTO_DEF_AVG_NR)
-                index[i] = 0;   /* reset index */
+            if (S->index[i] >= PROTO_DEF_AVG_NR)
+                S->index[i] = 0;   /* reset S->index */
 
-            j = index[i];
-            avg[i][j] = temp;
+            j = S->index[i];
+            S->avg[i][j] = temp;
 
-            index[i]++;
+            S->index[i]++;
 
-            if (ret[i] == 0 && ((score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (score[i] * 2)) < max_total)) { /* used all loop score -> increase next score directly */
-                score[i] *= 2;
-                total += score[i];
+            if (S->ret[i] == 0 && ((S->score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (S->score[i] * 2)) < max_total)) { /* used all loop S->score -> increase next S->score directly */
+                S->score[i] *= 2;
+                total += S->score[i];
                 continue;
             }
 
             sum = 0;
             for (j = 0; j < PROTO_DEF_AVG_NR; j++)
-                sum += avg[i][j]; /* calculate sum */
+                sum += S->avg[i][j]; /* calculate sum */
 
-            sum /= 4;           /* divide by 4 to get average used score */
+            sum /= 4;           /* divide by 4 to get average used S->score */
 
-            /* criterion to increase next loop score */
-            if (sum > (score[i] - (score[i] / 4))  && ((score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (score[i] / 2)) < max_total)) { /* > 3/4 */
-                score[i] *= 2; /* double loop score */
-                total += score[i];
+            /* criterion to increase next loop S->score */
+            if (sum > (S->score[i] - (S->score[i] / 4))  && ((S->score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (S->score[i] / 2)) < max_total)) { /* > 3/4 */
+                S->score[i] *= 2; /* double loop S->score */
+                total += S->score[i];
                 continue;
             }
 
-            /* criterion to decrease next loop score */
-            if ((sum < (score[i] / 4)) && ((score[i] / 2) >= PROTO_MIN_SCORE)) { /* < 1/4 */
-                score[i] /= 2; /* half loop score */
-                total += score[i];
+            /* criterion to decrease next loop S->score */
+            if ((sum < (S->score[i] / 4)) && ((S->score[i] / 2) >= PROTO_MIN_SCORE)) { /* < 1/4 */
+                S->score[i] /= 2; /* half loop S->score */
+                total += S->score[i];
                 continue;
             }
 
-            /* also add non-changed scores */
-            total += score[i];
+            /* also add non-changed S->scores */
+            total += S->score[i];
         }
-        else if (ret[i] == score[i]) {
-            /* no used loop score - gradually decrease */
+        else if (S->ret[i] == S->score[i]) {
+            /* no used loop S->score - gradually decrease */
 
             /*  dbg("%3d - ",0); */
 
-            if (index[i] >= PROTO_DEF_AVG_NR)
-                index[i] = 0;   /* reset index */
+            if (S->index[i] >= PROTO_DEF_AVG_NR)
+                S->index[i] = 0;   /* reset S->index */
 
-            j = index[i];
-            avg[i][j] = 0;
+            j = S->index[i];
+            S->avg[i][j] = 0;
 
-            index[i]++;
+            S->index[i]++;
 
             sum = 0;
             for (j = 0; j < PROTO_DEF_AVG_NR; j++)
-                sum += avg[i][j]; /* calculate sum */
+                sum += S->avg[i][j]; /* calculate sum */
 
-            sum /= 2;          /* divide by 4 to get average used score */
+            sum /= 2;          /* divide by 4 to get average used S->score */
 
-            if ((sum == 0) && ((score[i] / 2) >= PROTO_MIN_SCORE)) {
-                score[i] /= 2; /* half loop score */
-                total += score[i];
+            if ((sum == 0) && ((S->score[i] / 2) >= PROTO_MIN_SCORE)) {
+                S->score[i] /= 2; /* half loop S->score */
+                total += S->score[i];
                 for (j = 0; j < PROTO_DEF_AVG_NR; j++)
-                    avg[i][j] = score[i];
+                    S->avg[i][j] = S->score[i];
             }
 
         }
@@ -764,67 +757,50 @@ static int calc_score(int *score, int *index, int avg[][PROTO_DEF_AVG_NR], int *
     return 0;
 }
 
-static void legacy_pico_stack_tick(void)
+static void legacy_pico_stack_tick(struct pico_stack *S)
 {
-    static int score[PROTO_DEF_NR] = {
-        PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE
-    };
-    static int index[PROTO_DEF_NR] = {
-        0, 0, 0, 0, 0, 0
-    };
-    static int avg[PROTO_DEF_NR][PROTO_DEF_AVG_NR];
-    static int ret[PROTO_DEF_NR] = {
-        0
-    };
-
     pico_check_timers();
+    S->ret[0] = pico_devices_loop(S, S->score[0], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[0]);
 
-    /* dbg("LOOP_SCORES> %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d\n",score[0],score[1],score[2],score[3],score[4],score[5],score[6],score[7],score[8],score[9],score[10]); */
+    S->ret[1] = pico_protocol_datalink_loop(S, S->score[1], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[1]);
 
-    /* score = pico_protocols_loop(100); */
+    S->ret[2] = pico_protocol_network_loop(S, S->score[2], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[2]);
 
-    ret[0] = pico_devices_loop(score[0], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[0]);
-
-    ret[1] = pico_protocol_datalink_loop(score[1], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[1]);
-
-    ret[2] = pico_protocol_network_loop(score[2], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[2]);
-
-    ret[3] = pico_protocol_transport_loop(score[3], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[3]);
+    S->ret[3] = pico_protocol_transport_loop(S, S->score[3], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[3]);
 
 
-    ret[5] = score[5];
+    S->ret[5] = S->score[5];
 #if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
 #if defined (PICO_SUPPORT_TCP) || defined (PICO_SUPPORT_UDP)
-    ret[5] = pico_sockets_loop(score[5]); /* swapped */
-    pico_rand_feed((uint32_t)ret[5]);
+    S->ret[5] = pico_sockets_loop(S, S->score[5]); /* swapped */
+    pico_rand_feed((uint32_t)S->ret[5]);
 #endif
 #endif
 
-    ret[4] = pico_protocol_socket_loop(score[4], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[4]);
+    S->ret[4] = pico_protocol_socket_loop(S, S->score[4], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[4]);
 
+    S->ret[6] = pico_protocol_socket_loop(S, S->score[6], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[6]);
 
-    ret[6] = pico_protocol_socket_loop(score[6], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[6]);
+    S->ret[7] = pico_protocol_transport_loop(S, S->score[7], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[7]);
 
-    ret[7] = pico_protocol_transport_loop(score[7], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[7]);
+    S->ret[8] = pico_protocol_network_loop(S, S->score[8], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[8]);
 
-    ret[8] = pico_protocol_network_loop(score[8], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[8]);
+    S->ret[9] = pico_protocol_datalink_loop(S, S->score[9], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[9]);
 
-    ret[9] = pico_protocol_datalink_loop(score[9], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[9]);
+    S->ret[10] = pico_devices_loop(S, S->score[10], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[10]);
 
-    ret[10] = pico_devices_loop(score[10], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[10]);
-
-    /* calculate new loop scores for next iteration */
-    calc_score(score, index, (int (*)[])avg, ret);
+    /* calculate new loop S->scores for next iteration */
+    calc_score(S);
 }
 
 
@@ -905,43 +881,61 @@ uint32_t pico_timer_add_hashed(pico_time expire, void (*timer)(pico_time, void *
     return pico_timer_ref_add(expire, t, tmr_id++, hash);
 } /* Static path count: 4 */
 
-int MOCKABLE pico_stack_init(void)
+
+static struct pico_stack *Mono_S = NULL;
+
+int MOCKABLE pico_stack_init_ex(struct pico_stack **S)
 {
+    int i;
+    if (!S) {
+        S = &Mono_S;
+        if (!Mono_S) {
+            Mono_S = PICO_ZALLOC(sizeof(struct pico_stack));
+            if (!Mono_S)
+                return PICO_ERR_ENOMEM;
+        }
+    } else {
+        *S = PICO_ZALLOC(sizeof(struct pico_stack));
+        if (!*S)
+            return PICO_ERR_ENOMEM;
+    }
+    pico_protocol_scheduler_init(*S);
 #ifdef PICO_SUPPORT_ETH
-    pico_protocol_init(&pico_proto_ethernet);
+    pico_protocol_init(*S, &pico_proto_ethernet);
+    ATTACH_QUEUES(*S, ethernet, pico_proto_ethernet);
 #endif
 
 #ifdef PICO_SUPPORT_6LOWPAN
-    pico_protocol_init(&pico_proto_6lowpan);
-    pico_protocol_init(&pico_proto_6lowpan_ll);
+    pico_protocol_init(*S, &pico_proto_6lowpan);
+    pico_protocol_init(*S, &pico_proto_6lowpan_ll);
 #endif
 
 #ifdef PICO_SUPPORT_IPV4
-    pico_protocol_init(&pico_proto_ipv4);
+    pico_protocol_init(*S, &pico_proto_ipv4);
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
-    pico_protocol_init(&pico_proto_ipv6);
+    pico_protocol_init(*S, &pico_proto_ipv6);
 #endif
 
 #ifdef PICO_SUPPORT_ICMP4
-    pico_protocol_init(&pico_proto_icmp4);
+    pico_protocol_init(*S, &pico_proto_icmp4);
 #endif
 
 #ifdef PICO_SUPPORT_ICMP6
-    pico_protocol_init(&pico_proto_icmp6);
+    pico_protocol_init(*S, &pico_proto_icmp6);
 #endif
 
 #if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
-    pico_protocol_init(&pico_proto_igmp);
+    pico_protocol_init(*S, &pico_proto_igmp);
 #endif
 
 #ifdef PICO_SUPPORT_UDP
-    pico_protocol_init(&pico_proto_udp);
+    pico_protocol_init(*S, &pico_proto_udp);
 #endif
 
 #ifdef PICO_SUPPORT_TCP
-    pico_protocol_init(&pico_proto_tcp);
+    pico_protocol_init(*S, &pico_proto_tcp);
 #endif
 
 #ifdef PICO_SUPPORT_DNS_CLIENT
@@ -979,19 +973,34 @@ int MOCKABLE pico_stack_init(void)
     if (pico_6lowpan_init())
        return -1;
 #endif
+    for (i = 0; i < PROTO_DEF_NR; i++)
+        (*S)->score[i] = PROTO_DEF_SCORE;
     pico_stack_tick();
     pico_stack_tick();
     pico_stack_tick();
     return 0;
 }
 
-void pico_stack_tick(void)
+int pico_stack_init(void)
+{
+    return pico_stack_init_ex(NULL);
+}
+
+void pico_stack_tick_ex(struct pico_stack *S)
 {
 #ifdef PICO_SUPPORT_TICKLESS
-    int interval = 
-        pico_stack_go();
+    int interval;
+    if (!S)
+        S = Mono_S;
+    interval = pico_stack_go(S);
 #else
-    legacy_pico_stack_tick();
+    if (!S)
+        S = Mono_S;
+    legacy_pico_stack_tick(S);
 #endif
+}
 
+void pico_stack_tick(void)
+{
+    pico_stack_tick_ex(Mono_S);
 }

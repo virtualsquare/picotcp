@@ -244,7 +244,7 @@ int8_t pico_socket_add(struct pico_socket *s);
 int pico_transport_error(struct pico_frame *f, uint8_t proto, int code);
 
 /* Socket loop */
-int pico_sockets_loop(int loop_score);
+int pico_sockets_loop(struct pico_stack *S, int loop_score);
 struct pico_socket*pico_sockets_find(uint16_t local, uint16_t remote);
 /* Port check */
 int pico_is_port_free(uint16_t proto, uint16_t port, void *addr, void *net);

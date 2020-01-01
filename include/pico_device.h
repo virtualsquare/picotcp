@@ -11,6 +11,7 @@
 #include "pico_tree.h"
 extern struct pico_tree Device_tree;
 #include "pico_ipv6_nd.h"
+#include "pico_stack.h"
 #define MAX_DEVICE_NAME 16
 
 
@@ -46,7 +47,7 @@ struct pico_device {
 
 int pico_device_init(struct pico_device *dev, const char *name, const uint8_t *mac);
 void pico_device_destroy(struct pico_device *dev);
-int pico_devices_loop(int loop_score, int direction);
+int pico_devices_loop(struct pico_stack *S, int loop_score, int direction);
 struct pico_device*pico_get_device(const char*name);
 int32_t pico_device_broadcast(struct pico_frame *f);
 int pico_device_link_state(struct pico_device *dev);

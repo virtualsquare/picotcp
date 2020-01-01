@@ -457,7 +457,7 @@ static void pico_dev_roundrobin_end(int direction, struct pico_tree_node *last)
 
 #define DEV_LOOP_MIN  16
 
-int pico_devices_loop(int loop_score, int direction)
+int pico_devices_loop(struct pico_stack *S, int loop_score, int direction)
 {
     struct pico_device *start, *next;
     struct pico_tree_node *next_node  = pico_dev_roundrobin_start(direction);

@@ -2183,7 +2183,7 @@ static int pico_sockets_loop_tcp(int loop_score)
 
 }
 
-int pico_sockets_loop(int loop_score)
+int pico_sockets_loop(struct pico_stack *S, int loop_score)
 {
     loop_score = pico_sockets_loop_udp(loop_score);
     loop_score = pico_sockets_loop_tcp(loop_score);

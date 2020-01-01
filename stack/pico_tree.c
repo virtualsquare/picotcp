@@ -175,7 +175,7 @@ void *pico_tree_insert_implementation(struct pico_tree *tree, void *key, uint8_t
     {
         pico_err = PICO_ERR_ENOMEM;
         /* to let the user know that it couldn't insert */
-        return (void *)&LEAF;
+        return &LEAF;
     }
 
     pico_tree_insert_node(tree, insert);

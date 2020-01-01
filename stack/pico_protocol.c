@@ -10,13 +10,7 @@
 
 #include "pico_protocol.h"
 #include "pico_tree.h"
-
-struct pico_proto_rr
-{
-    struct pico_tree *t;
-    struct pico_tree_node *node_in, *node_out;
-};
-
+#include "pico_stack.h"
 
 static int pico_proto_cmp(void *ka, void *kb)
 {
@@ -30,24 +24,6 @@ static int pico_proto_cmp(void *ka, void *kb)
     return 0;
 }
 
-static PICO_TREE_DECLARE(Datalink_proto_tree, pico_proto_cmp);
-static PICO_TREE_DECLARE(Network_proto_tree, pico_proto_cmp);
-static PICO_TREE_DECLARE(Transport_proto_tree, pico_proto_cmp);
-static PICO_TREE_DECLARE(Socket_proto_tree, pico_proto_cmp);
-
-/* Static variables to keep track of the round robin loop */
-static struct pico_proto_rr proto_rr_datalink   = {
-    &Datalink_proto_tree,     NULL, NULL
-};
-static struct pico_proto_rr proto_rr_network    = {
-    &Network_proto_tree,      NULL, NULL
-};
-static struct pico_proto_rr proto_rr_transport  = {
-    &Transport_proto_tree,    NULL, NULL
-};
-static struct pico_proto_rr proto_rr_socket     = {
-    &Socket_proto_tree,       NULL, NULL
-};
 
 static int proto_loop_in(struct pico_protocol *proto, int loop_score)
 {
@@ -177,24 +153,24 @@ static int pico_protocol_generic_loop(struct pico_proto_rr *rr, int loop_score, 
     return loop_score;
 }
 
-int pico_protocol_datalink_loop(int loop_score, int direction)
+int pico_protocol_datalink_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&proto_rr_datalink, loop_score, direction);
+    return pico_protocol_generic_loop(&S->sched->rr_datalink, loop_score, direction);
 }
 
-int pico_protocol_network_loop(int loop_score, int direction)
+int pico_protocol_network_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&proto_rr_network, loop_score, direction);
+    return pico_protocol_generic_loop(&S->sched->rr_network, loop_score, direction);
 }
 
-int pico_protocol_transport_loop(int loop_score, int direction)
+int pico_protocol_transport_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&proto_rr_transport, loop_score, direction);
+    return pico_protocol_generic_loop(&S->sched->rr_transport, loop_score, direction);
 }
 
-int pico_protocol_socket_loop(int loop_score, int direction)
+int pico_protocol_socket_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&proto_rr_socket, loop_score, direction);
+    return pico_protocol_generic_loop(&S->sched->rr_socket, loop_score, direction);
 }
 
 static void proto_layer_rr_reset(struct pico_proto_rr *rr)
@@ -203,31 +179,59 @@ static void proto_layer_rr_reset(struct pico_proto_rr *rr)
     rr->node_out = NULL;
 }
 
-void pico_protocol_init(struct pico_protocol *p)
+int pico_protocol_scheduler_init(struct pico_stack *S)
+{
+    if (!S) {
+        return PICO_ERR_EINVAL;
+    }
+    if (S->sched)
+        return PICO_ERR_EEXIST;
+    S->sched = PICO_ZALLOC(sizeof(struct pico_scheduler));
+    if (!S->sched)
+        return PICO_ERR_ENOMEM;
+
+    /* Initialize empty trees */
+    S->sched->Datalink_proto_tree.root = &LEAF;
+    S->sched->Datalink_proto_tree.compare = pico_proto_cmp;
+    S->sched->Network_proto_tree.root = &LEAF;
+    S->sched->Network_proto_tree.compare = pico_proto_cmp;
+    S->sched->Transport_proto_tree.root = &LEAF;
+    S->sched->Transport_proto_tree.compare = pico_proto_cmp;
+    S->sched->Socket_proto_tree.root = &LEAF;
+    S->sched->Socket_proto_tree.compare = pico_proto_cmp;
+
+    /* Link to round-robin structures */
+    S->sched->rr_datalink.t = &S->sched->Datalink_proto_tree;
+    S->sched->rr_network.t = &S->sched->Network_proto_tree;
+    S->sched->rr_transport.t = &S->sched->Transport_proto_tree;
+    S->sched->rr_socket.t = &S->sched->Socket_proto_tree;
+    return PICO_ERR_NOERR;
+}
+
+void pico_protocol_init(struct pico_stack *S, struct pico_protocol *p)
 {
     struct pico_tree *tree = NULL;
     struct pico_proto_rr *proto = NULL;
-
     if (!p)
         return;
 
     p->hash = pico_hash(p->name, (uint32_t)strlen(p->name));
     switch (p->layer) {
         case PICO_LAYER_DATALINK:
-            tree = &Datalink_proto_tree;
-            proto = &proto_rr_datalink;
+            tree = &S->sched->Datalink_proto_tree;
+            proto = &S->sched->rr_datalink;
             break;
         case PICO_LAYER_NETWORK:
-            tree = &Network_proto_tree;
-            proto = &proto_rr_network;
+            tree = &S->sched->Network_proto_tree;
+            proto = &S->sched->rr_network;
             break;
         case PICO_LAYER_TRANSPORT:
-            tree = &Transport_proto_tree;
-            proto = &proto_rr_transport;
+            tree = &S->sched->Transport_proto_tree;
+            proto = &S->sched->rr_transport;
             break;
         case PICO_LAYER_SOCKET:
-            tree = &Socket_proto_tree;
-            proto = &proto_rr_socket;
+            tree = &S->sched->Socket_proto_tree;
+            proto = &S->sched->rr_socket;
             break;
         default:
             dbg("Unknown protocol: %s (layer: %d)\n", p->name, p->layer);
