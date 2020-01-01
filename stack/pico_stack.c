@@ -908,34 +908,43 @@ int MOCKABLE pico_stack_init_ex(struct pico_stack **S)
 #ifdef PICO_SUPPORT_6LOWPAN
     pico_protocol_init(*S, &pico_proto_6lowpan);
     pico_protocol_init(*S, &pico_proto_6lowpan_ll);
+    ATTACH_QUEUES(*S, sixlowpan, pico_proto_6lowpan);
+    ATTACH_QUEUES(*S, sixlowpan_ll, pico_proto_6lowpan_ll);
 #endif
 
 #ifdef PICO_SUPPORT_IPV4
     pico_protocol_init(*S, &pico_proto_ipv4);
+    ATTACH_QUEUES(*S, ipv4, pico_proto_ipv4);
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
     pico_protocol_init(*S, &pico_proto_ipv6);
+    ATTACH_QUEUES(*S, ipv6, pico_proto_ipv6);
 #endif
 
 #ifdef PICO_SUPPORT_ICMP4
     pico_protocol_init(*S, &pico_proto_icmp4);
+    ATTACH_QUEUES(*S, icmp4, pico_proto_icmp4);
 #endif
 
 #ifdef PICO_SUPPORT_ICMP6
     pico_protocol_init(*S, &pico_proto_icmp6);
+    ATTACH_QUEUES(*S, icmp6, pico_proto_icmp6);
 #endif
 
 #if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
     pico_protocol_init(*S, &pico_proto_igmp);
+    ATTACH_QUEUES(*S, igmp, pico_proto_igmp);
 #endif
 
 #ifdef PICO_SUPPORT_UDP
     pico_protocol_init(*S, &pico_proto_udp);
+    ATTACH_QUEUES(*S, udp, pico_proto_udp);
 #endif
 
 #ifdef PICO_SUPPORT_TCP
     pico_protocol_init(*S, &pico_proto_tcp);
+    ATTACH_QUEUES(*S, tcp, pico_proto_tcp);
 #endif
 
 #ifdef PICO_SUPPORT_DNS_CLIENT

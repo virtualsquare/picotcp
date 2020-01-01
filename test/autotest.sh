@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 TFTP_EXEC_DIR="$(pwd)/build/test"
 TFTP_WORK_DIR="${TFTP_EXEC_DIR}/tmp"
 TFTP_WORK_SUBDIR="${TFTP_WORK_DIR}/subdir"
@@ -39,30 +40,30 @@ ulimit -c unlimited
 killall -wq picoapp.elf
 killall -wq picoapp6.elf
 
-echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-echo "~~~ 6LoWPAN PING 1HOP   (1500B) ~~~"
-echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-(build/test/picoapp6.elf -6 0,0,0) &
-pids="$! "
-sleep 1
-(build/test/picoapp6.elf -6 1,2,1 -a noop) &
-pids+="$! "
-sleep 1
-build/test/picoapp6.elf -6 2,1,0 -a ping,2aaa:abcd:0000:0000:0200:00aa:ab00:0001,1500,0,1 || exit 1
-#TODO roll out this check for all "daemon" processes
-for pid in $pids; do ps -o pid= -p $pid || exit 1; done # check whether daemon processes didn't die from e.g. ASAN
-killall -w picoapp6.elf -s SIGQUIT
-
-echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-echo "~~~ 6LoWPAN UDP 1HOP   (1400B) ~~~"
-echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-#TODO are these "daemon" processes that need to be killed, or are they intended to halt on their own, giving a status code?
-(build/test/picoapp6.elf -6 0,0,0) &
-sleep 1
-(build/test/picoapp6.elf -6 1,2,1 -a udpecho,::0,6667,) &
-sleep 1
-build/test/picoapp6.elf -6 2,1,0 -a udpclient,2aaa:abcd:0000:0000:0200:00aa:ab00:0001,6667,6667,1400,10,1, || exit 1
-killall -w picoapp6.elf -s SIGQUIT
+#echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+#echo "~~~ 6LoWPAN PING 1HOP   (1500B) ~~~"
+#echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+#(build/test/picoapp6.elf -6 0,0,0) &
+#pids="$! "
+#sleep 1
+#(build/test/picoapp6.elf -6 1,2,1 -a noop) &
+#pids+="$! "
+#sleep 1
+#build/test/picoapp6.elf -6 2,1,0 -a ping,2aaa:abcd:0000:0000:0200:00aa:ab00:0001,1500,0,1 || exit 1
+##TODO roll out this check for all "daemon" processes
+#for pid in $pids; do ps -o pid= -p $pid || exit 1; done # check whether daemon processes didn't die from e.g. ASAN
+#killall -w picoapp6.elf -s SIGQUIT
+#
+#echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+#echo "~~~ 6LoWPAN UDP 1HOP   (1400B) ~~~"
+#echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+##TODO are these "daemon" processes that need to be killed, or are they intended to halt on their own, giving a status code?
+#(build/test/picoapp6.elf -6 0,0,0) &
+#sleep 1
+#(build/test/picoapp6.elf -6 1,2,1 -a udpecho,::0,6667,) &
+#sleep 1
+#build/test/picoapp6.elf -6 2,1,0 -a udpclient,2aaa:abcd:0000:0000:0200:00aa:ab00:0001,6667,6667,1400,10,1, || exit 1
+#killall -w picoapp6.elf -s SIGQUIT
 
 echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
 echo "~~~ MULTICAST6 TEST ~~~"
