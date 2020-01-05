@@ -121,6 +121,7 @@ struct pico_stack {
     struct pico_tree SixLowPanCTXTree;
     struct pico_tree LPFragTree;
     struct pico_tree LPReassemblyTree;
+    uint16_t lowpan_dgram_tag;
 #endif
 
 #ifdef PICO_SUPPORT_IPV4
@@ -276,6 +277,7 @@ struct pico_stack {
     uint16_t pico_olsr_ansn;
     struct olsr_route_entry  *OLSRLocal_interfaces;
     struct olsr_dev_entry    *OLSRLocal_devices;
+    uint16_t pico_olsr_msg_counter;
 
 #endif
 

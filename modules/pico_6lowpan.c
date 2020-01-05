@@ -125,10 +125,6 @@ struct frag_ctx {
     pico_time timestamp;
 };
 
-/*******************************************************************************
- *  Global Variables
- ******************************************************************************/
-static uint16_t dgram_tag = 0;
 
 /*******************************************************************************
  *  Private functions
@@ -1351,7 +1347,7 @@ frag_1st(struct pico_frame *f, uint16_t dgram_size, uint8_t dgram_off, uint16_t 
 
     n = pico_proto_6lowpan_ll.alloc(f->dev->stack, &pico_proto_6lowpan_ll, f->dev, alloc);
     if (n) {
-        frag_fill(n->net_hdr, FRAG1_DISPATCH, dgram_size, dgram_tag, 0, 4, copy, 0,f->net_hdr);
+        frag_fill(n->net_hdr, FRAG1_DISPATCH, dgram_size, f->dev->stack->lowpan_dgram_tag, 0, 4, copy, 0,f->net_hdr);
         n->net_len = alloc;
         n->len = (uint32_t)n->net_len;
         n->src = f->src;
@@ -1360,7 +1356,7 @@ frag_1st(struct pico_frame *f, uint16_t dgram_size, uint8_t dgram_off, uint16_t 
         /* Try to push fragment to link layer */
         ret = pico_6lowpan_ll_push(n);
         if (ret) {
-            dgram_tag--;
+            f->dev->stack->lowpan_dgram_tag--;
             return -1;
         }
 
@@ -1370,7 +1366,7 @@ frag_1st(struct pico_frame *f, uint16_t dgram_size, uint8_t dgram_off, uint16_t 
             return -1;
 
         /* Everything was a success store a cookie for subsequent fragments */
-        return frag_store(f, dgram_size, dgram_tag++, dgram_off, copy, &f->dev->stack->LPFragTree);
+        return frag_store(f, dgram_size, f->dev->stack->lowpan_dgram_tag++, dgram_off, copy, &f->dev->stack->LPFragTree);
     } else {
         pico_err = PICO_ERR_ENOMEM;
         return -1;

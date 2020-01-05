@@ -1440,14 +1440,11 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
         if (pico_socket_icmp4_sendto_check(s, buf, len, dst, remote_port) < 0)
             return -1;
     }
-
-
     if ((PROTO(s) == PICO_PROTO_UDP) || (PROTO(s) == PICO_PROTO_TCP)) {
         if (pico_socket_sendto_set_localport(s) < 0) {
             pico_endpoint_free(remote_endpoint);
             return -1;
         }
-
         pico_socket_sendto_set_dport(s, remote_port);
     }
     return pico_socket_xmit(s, buf, len, src, remote_endpoint, msginfo); /* Implies discarding the endpoint */

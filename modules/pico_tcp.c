@@ -328,7 +328,6 @@ struct pico_socket_tcp {
     uint8_t mss_ok;
     uint8_t scale_ok;
     struct tcp_sack_block *sacks;
-    uint8_t jumbo;
     uint32_t linger_timeout;
 
     /* Transmission */
@@ -1240,7 +1239,7 @@ int pico_tcp_initconn(struct pico_socket *s)
     ts->ssthresh = (uint16_t)((uint16_t)(PICO_DEFAULT_SOCKETQ / ts->mss) -  (((uint16_t)(PICO_DEFAULT_SOCKETQ / ts->mss)) >> 3u));
     syn->sock = s;
     hdr->seq = long_be(ts->snd_nxt);
-    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2 | ts->jumbo);
+    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2);
     hdr->flags = PICO_TCP_SYN;
     tcp_set_space(ts);
     hdr->rwnd = short_be(ts->wnd);
@@ -1277,7 +1276,7 @@ static int tcp_send_synack(struct pico_socket *s)
     hdr = (struct pico_tcp_hdr *) synack->transport_hdr;
 
     synack->sock = s;
-    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2 | ts->jumbo);
+    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2);
     hdr->flags = PICO_TCP_SYN | PICO_TCP_ACK;
     hdr->rwnd = short_be(ts->wnd);
     hdr->seq = long_be(ts->snd_nxt);
@@ -1304,7 +1303,7 @@ static void tcp_send_empty(struct pico_socket_tcp *t, uint16_t flags, int is_kee
 
     f->sock = &t->sock;
     hdr = (struct pico_tcp_hdr *) f->transport_hdr;
-    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2 | t->jumbo);
+    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2);
     hdr->flags = (uint8_t)flags;
     hdr->rwnd = short_be(t->wnd);
     tcp_set_space(t);
@@ -1356,7 +1355,7 @@ static int tcp_do_send_rst(struct pico_socket *s, uint32_t seq)
     tcp_dbg("TCP SEND_RST >>>>>>>>>>>>>>> START\n");
 
     hdr = (struct pico_tcp_hdr *) f->transport_hdr;
-    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2 | t->jumbo);
+    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2);
     hdr->flags = PICO_TCP_RST;
     hdr->rwnd = short_be(t->wnd);
     tcp_set_space(t);
@@ -1520,7 +1519,7 @@ static int tcp_nosync_rst(struct pico_socket *s, struct pico_frame *fr)
 
     f->sock = &t->sock;
     hdr = (struct pico_tcp_hdr *) f->transport_hdr;
-    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2 | t->jumbo);
+    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2);
     hdr->flags = PICO_TCP_RST | PICO_TCP_ACK;
     hdr->rwnd = short_be(t->wnd);
     tcp_set_space(t);
@@ -1577,7 +1576,7 @@ static void tcp_send_fin(struct pico_socket_tcp *t)
 
     f->sock = &t->sock;
     hdr = (struct pico_tcp_hdr *) f->transport_hdr;
-    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2 | t->jumbo);
+    hdr->len = (uint8_t)((PICO_SIZE_TCPHDR + opt_len) << 2);
     hdr->flags = PICO_TCP_FIN | PICO_TCP_ACK;
     hdr->ack = long_be(t->rcv_nxt);
     t->rcv_ackd = t->rcv_nxt;
@@ -2438,7 +2437,6 @@ static int tcp_syn(struct pico_socket *s, struct pico_frame *f)
     new->cwnd = PICO_TCP_IW;
     new->ssthresh = (uint16_t)((uint16_t)(PICO_DEFAULT_SOCKETQ / new->mss) -  (((uint16_t)(PICO_DEFAULT_SOCKETQ / new->mss)) >> 3u));
     new->recv_wnd = short_be(hdr->rwnd);
-    new->jumbo = hdr->len & 0x07;
     new->linger_timeout = PICO_SOCKET_LINGER_TIMEOUT;
     s->number_of_pending_conn++;
     new->sock.parent = s;
@@ -3090,7 +3088,7 @@ static struct pico_frame *pico_hold_segment_make(struct pico_socket_tcp *t)
         pico_discard_segment(&t->tcpq_hold, f_temp);
         f_temp = first_segment(&t->tcpq_hold);
     }
-    hdr->len = (uint8_t)((f_new->payload - f_new->transport_hdr) << 2u | (int8_t)t->jumbo);
+    hdr->len = (uint8_t)((f_new->payload - f_new->transport_hdr) << 2u);
 
     tcp_dbg_nagle("NAGLE make - joined %d segments, len %d bytes\n", test, total_payload_len);
     tcp_add_options_frame(t, f_new);
@@ -3177,7 +3175,7 @@ int pico_tcp_push(struct pico_stack *S, struct pico_protocol *self, struct pico_
     hdr->trans.sport = t->sock.local_port;
     hdr->trans.dport = t->sock.remote_port;
     hdr->seq = long_be(t->snd_last + 1);
-    hdr->len = (uint8_t)((f->payload - f->transport_hdr) << 2u | (int8_t)t->jumbo);
+    hdr->len = (uint8_t)((f->payload - f->transport_hdr) << 2u);
 
     if ((uint32_t)f->payload_len > (uint32_t)(t->tcpq_out.max_size - t->tcpq_out.size))
         t->sock.ev_pending &= (uint16_t)(~PICO_SOCK_EV_WR);

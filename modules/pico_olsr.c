@@ -63,8 +63,6 @@ static const struct pico_ip4 HOST_NETMASK = {
 #define fresher(a, b) ((a > b) || ((b - a) > 32768))
 
 
-static uint16_t msg_counter; /* Global message sequence number */
-
 /* Objects */
 struct olsr_dev_entry
 {
@@ -551,7 +549,7 @@ static void olsr_compose_tc_dgram(struct pico_device *pdev, struct pico_ipv4_lin
             msg_mid->orig.addr = ep->address.addr;
             msg_mid->ttl = 0xFF;
             msg_mid->hop = 0;
-            msg_mid->seq = short_be(msg_counter++);
+            msg_mid->seq = short_be(pdev->stack->pico_olsr_msg_counter++);
             r = olsr_build_mid(pdev->stack, dgram + size, TC_DGRAM_MAX_SIZE - size, pdev);
             if (r == 0) {
                 size -= (uint32_t)sizeof(struct olsrmsg);
@@ -574,7 +572,7 @@ static void olsr_compose_tc_dgram(struct pico_device *pdev, struct pico_ipv4_lin
         msg_tc->orig.addr = ep->address.addr;
         msg_tc->ttl = 0xFF;
         msg_tc->hop = 0;
-        msg_tc->seq = short_be(msg_counter++);
+        msg_tc->seq = short_be(pdev->stack->pico_olsr_msg_counter++);
         tc = (struct olsr_hmsg_tc *)(dgram + size);
         size += (uint32_t)sizeof(struct olsr_hmsg_tc);
         if (size > TC_DGRAM_MAX_SIZE)
@@ -611,7 +609,7 @@ static void olsr_compose_hello_dgram(struct pico_device *pdev, struct pico_ipv4_
         msg_hello->orig.addr = ep->address.addr;
         msg_hello->ttl = 1;
         msg_hello->hop = 0;
-        msg_hello->seq = short_be(msg_counter++);
+        msg_hello->seq = short_be(pdev->stack->pico_olsr_msg_counter++);
         hello = (struct olsr_hmsg_hello *)(dgram + size);
         size += (uint32_t)sizeof(struct olsr_hmsg_hello);
         hello->reserved = 0;
