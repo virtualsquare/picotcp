@@ -226,6 +226,7 @@ struct pico_stack {
     struct pico_socket *aodv_socket;
     struct pico_tree aodv_nodes;
     struct pico_tree aodv_devices;
+    uint32_t pico_aodv_local_id;
 #endif
 
 #ifdef PICO_SUPPORT_DNS_CLIENT

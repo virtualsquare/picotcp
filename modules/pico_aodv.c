@@ -52,7 +52,7 @@ static const struct pico_ip4 ANY_HOST = {
     0x0
 };
 
-static uint32_t pico_aodv_local_id = 0;
+
 int aodv_node_compare(void *ka, void *kb)
 {
     struct pico_aodv_node *a = ka, *b = kb;
@@ -241,7 +241,7 @@ static void aodv_send_reply(struct pico_stack *S, struct pico_aodv_node *node, s
 
     if (node_is_local) {
         reply.lifetime = long_be(AODV_MY_ROUTE_TIMEOUT);
-        reply.dseq = long_be(++pico_aodv_local_id);
+        reply.dseq = long_be(++S->pico_aodv_local_id);
         pico_socket_sendto(S->aodv_socket, &reply, sizeof(reply), &dest, short_be(PICO_AODV_PORT));
     } else if (((short_be(req->req_flags) & AODV_RREQ_FLAG_D) == 0) && (node->flags & PICO_AODV_NODE_SYNC)) {
         reply.lifetime = long_be(aodv_lifetime(node));
@@ -472,9 +472,9 @@ static void aodv_make_rreq(struct pico_aodv_node *node, struct pico_aodv_rreq *r
     }
 
     /* Hop count = 0; */
-    req->rreq_id = long_be(++pico_aodv_local_id);
+    req->rreq_id = long_be(++node->stack->pico_aodv_local_id);
     req->dest = node->dest.ip4.addr;
-    req->oseq = long_be(pico_aodv_local_id);
+    req->oseq = long_be(node->stack->pico_aodv_local_id);
 }
 
 static void aodv_retrans_rreq(pico_time now, void *arg)
@@ -638,7 +638,7 @@ MOCKABLE int pico_aodv_init(struct pico_stack *S)
         return -1;
     }
 
-    pico_aodv_local_id = pico_rand();
+    S->pico_aodv_local_id = pico_rand();
     if (!pico_timer_add(S, AODV_HELLO_INTERVAL, pico_aodv_collector, S)) {
         pico_aodv_dbg("AODV: Failed to start collector timer\n");
         pico_socket_close(S->aodv_socket);
