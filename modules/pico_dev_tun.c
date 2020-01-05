@@ -1,11 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <net/if.h>
@@ -80,14 +99,14 @@ static int tun_open(char *name)
 
 
 
-struct pico_device *pico_tun_create(char *name)
+struct pico_device *pico_tun_create(struct pico_stack *S, char *name)
 {
     struct pico_device_tun *tun = PICO_ZALLOC(sizeof(struct pico_device_tun));
 
     if (!tun)
         return NULL;
 
-    if( 0 != pico_device_init((struct pico_device *)tun, name, NULL)) {
+    if( 0 != pico_device_init(S, (struct pico_device *)tun, name, NULL)) {
         dbg("Tun init failed.\n");
         pico_tun_destroy((struct pico_device *)tun);
         return NULL;

@@ -1,7 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_SOCKET
 #define INCLUDE_PICO_SOCKET
@@ -39,10 +60,12 @@ struct pico_sockport
     struct pico_tree socks; /* how you make the connection ? */
     uint16_t number;
     uint16_t proto;
+    struct pico_stack *stack; /* Stack containing this sockport */
 };
 
 
 struct pico_socket {
+    struct pico_stack *stack;
     struct pico_protocol *proto;
     struct pico_protocol *net;
 
@@ -88,7 +111,6 @@ struct pico_remote_endpoint {
     union pico_address remote_addr;
     uint16_t remote_port;
 };
-
 
 struct pico_ip_mreq {
     union pico_address mcast_group_addr;
@@ -177,7 +199,10 @@ struct pico_msginfo {
     uint8_t tos;
 };
 
+int pico_socket_table_compare(void *ka, void *kb);
+
 struct pico_socket *pico_socket_open(uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s));
+struct pico_socket *pico_socket_open_ex(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s));
 
 int pico_socket_read(struct pico_socket *s, void *buf, int len);
 int pico_socket_write(struct pico_socket *s, const void *buf, int len);
@@ -238,23 +263,23 @@ int pico_socket_sanity_check(struct pico_socket *s);
 #endif
 
 /* Interface towards transport protocol */
-int pico_transport_process_in(struct pico_protocol *self, struct pico_frame *f);
+int pico_transport_process_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f);
 struct pico_socket *pico_socket_clone(struct pico_socket *facsimile);
 int8_t pico_socket_add(struct pico_socket *s);
-int pico_transport_error(struct pico_frame *f, uint8_t proto, int code);
+int pico_transport_error(struct pico_stack *S, struct pico_frame *f, uint8_t proto, int code);
 
 /* Socket loop */
 int pico_sockets_loop(struct pico_stack *S, int loop_score);
-struct pico_socket*pico_sockets_find(uint16_t local, uint16_t remote);
+struct pico_socket*pico_sockets_find(struct pico_stack *S, uint16_t local, uint16_t remote);
 /* Port check */
-int pico_is_port_free(uint16_t proto, uint16_t port, void *addr, void *net);
+int pico_is_port_free(struct pico_stack *S, uint16_t proto, uint16_t port, void *addr, void *net);
 
-struct pico_sockport *pico_get_sockport(uint16_t proto, uint16_t port);
+struct pico_sockport *pico_get_sockport(struct pico_stack *S, uint16_t proto, uint16_t port);
 
 uint32_t pico_socket_get_mss(struct pico_socket *s);
 int pico_socket_set_family(struct pico_socket *s, uint16_t family);
 
-int pico_count_sockets(uint8_t proto);
+int pico_count_sockets(struct pico_stack *S, uint8_t proto);
 
 #define PICO_SOCKET_SETOPT_EN(socket, index)  (socket->opt_flags |=  (1 << index))
 #define PICO_SOCKET_SETOPT_DIS(socket, index) (socket->opt_flags &= (uint16_t) ~(1 << index))

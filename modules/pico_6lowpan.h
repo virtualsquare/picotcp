@@ -1,10 +1,29 @@
 /*********************************************************************
- PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights
- reserved.  See LICENSE and COPYING for usage.
-
- Authors: Jelle De Vleeschouwer
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #ifndef INCLUDE_PICO_6LOWPAN
 #define INCLUDE_PICO_6LOWPAN
 
@@ -34,7 +53,11 @@ extern struct pico_protocol pico_proto_6lowpan;
  * Public functions
  ******************************************************************************/
 
+/* Compares two fragmentation cookies according to RFC4944 5.3 */
+int32_t lp_frag_ctx_cmp(void *a, void *b); 
+int32_t lp_frag_cmp(void *a, void *b);
+
 int32_t pico_6lowpan_pull(struct pico_frame *f);
-int pico_6lowpan_init(void);
+int pico_6lowpan_init(struct pico_stack *S);
 
 #endif /* INCLUDE_PICO_6LOWPAN */

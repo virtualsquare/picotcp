@@ -1,9 +1,30 @@
-/* ****************************************************************************
- *  PicoTCP. Copyright (c) 2012 TASS Belgium NV. Some rights reserved.
- *  See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
- *  .
- *  Authors: Toon Stegen, Jelle De Vleeschouwer
- * ****************************************************************************/
+/*********************************************************************
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Toon Stegen, Jelle De Vleeschouwer
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
+ *********************************************************************/
 #include "pico_config.h"
 #include "pico_protocol.h"
 #include "pico_stack.h"
@@ -932,7 +953,8 @@ pico_dns_record_fill_rdata( uint8_t **rdata,
  *  @return Returns pointer to the created DNS Resource Record
  * ****************************************************************************/
 struct pico_dns_record *
-pico_dns_record_create( const char *url,
+pico_dns_record_create( struct pico_stack *S,
+                        const char *url,
                         void *_rdata,
                         uint16_t datalen,
                         uint16_t *len,
@@ -943,6 +965,7 @@ pico_dns_record_create( const char *url,
     struct pico_dns_record *record = NULL;
     uint16_t slen = (uint16_t)(pico_dns_strlen(url) + 2u);
     int ret = 0;
+    (void)S;
 
     /* Check params */
     if (pico_dns_check_namelen(slen) || !_rdata || !len) {

@@ -1,9 +1,29 @@
 /* ****************************************************************************
- *  PicoTCP. Copyright (c) 2014 TASS Belgium NV. Some rights reserved.
- *  See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
- *  .
- *  Author: Toon Stegen, Jelle De Vleeschouwer
- * ****************************************************************************/
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
+ *********************************************************************/
 #ifndef INCLUDE_PICO_MDNS
 #define INCLUDE_PICO_MDNS
 
@@ -12,6 +32,7 @@
 #include "pico_ipv4.h"
 
 /* ********************************* CONFIG ***********************************/
+#define PICO_MDNS_PORT          5353u   /* Port to bind MDNS daemon           */
 #define PICO_MDNS_PROBE_UNICAST 1       /* Probe queries as QU-questions      */
 #define PICO_MDNS_CONTINUOUS_REFRESH 0  /* Continuously update cache          */
 #define PICO_MDNS_ALLOW_CACHING 1       /* Enable caching on this host		  */
@@ -59,6 +80,7 @@ struct pico_mdns_record
     uint32_t current_ttl;           /* Current TTL */
     uint8_t flags;                  /* Resource Record flags */
     uint8_t claim_id;               /* Claim ID number */
+    struct pico_stack *stack;       /* Reference to picoTCP stack context */
 };
 
 /* ****************************************************************************
@@ -101,7 +123,8 @@ pico_mdns_record_delete( void **record );
  *  @return Pointer to newly created mDNS resource record.
  * ****************************************************************************/
 struct pico_mdns_record *
-pico_mdns_record_create( const char *url,
+pico_mdns_record_create(struct pico_stack *S,
+                        const char *url,
                          void *_rdata,
                          uint16_t datalen,
                          uint16_t rtype,
@@ -132,7 +155,7 @@ typedef struct pico_tree pico_mdns_rtree;
  *  @return 0 when query is correctly parsed, something else on failure.
  * ****************************************************************************/
 int
-pico_mdns_getrecord( const char *url, uint16_t type,
+pico_mdns_getrecord(struct pico_stack *S,  const char *url, uint16_t type,
                      void (*callback)(pico_mdns_rtree *,
                                       char *,
                                       void *),
@@ -147,7 +170,7 @@ pico_mdns_getrecord( const char *url, uint16_t type,
  *  @return 0 When claiming didn't horribly fail.
  * ****************************************************************************/
 int
-pico_mdns_claim( pico_mdns_rtree record_tree,
+pico_mdns_claim(struct pico_stack *S,  pico_mdns_rtree record_tree,
                  void (*callback)(pico_mdns_rtree *,
                                   char *,
                                   void *),
@@ -167,7 +190,7 @@ pico_mdns_claim( pico_mdns_rtree record_tree,
  *          Returns something else when it didn't succeeded.
  * ****************************************************************************/
 int
-pico_mdns_tryclaim_hostname( const char *url, void *arg );
+pico_mdns_tryclaim_hostname(struct pico_stack *S,  const char *url, void *arg );
 
 /* ****************************************************************************
  *  Get the current hostname for this machine.
@@ -176,7 +199,7 @@ pico_mdns_tryclaim_hostname( const char *url, void *arg );
  *			Returns NULL when the module is not initialised.
  * ****************************************************************************/
 const char *
-pico_mdns_get_hostname( void );
+pico_mdns_get_hostname(struct pico_stack *S);
 
 /* ****************************************************************************
  *  Initialises the entire mDNS-module and sets the hostname for this machine.
@@ -184,6 +207,7 @@ pico_mdns_get_hostname( void );
  *	Only when the module is properly initialised records can be registered on
  *  the module.
  *
+ *  @param S        reference to the TCP/IP stack
  *  @param hostname URL to set the hostname to.
  *  @param address  IPv4-address of this host to bind to.
  *  @param callback Callback to call when the hostname is registered and
@@ -196,11 +220,19 @@ pico_mdns_get_hostname( void );
  *			initialising the module or registering the hostname.
  * ****************************************************************************/
 int
-pico_mdns_init( const char *hostname,
+pico_mdns_init(struct pico_stack *S,
+                const char *hostname,
                 struct pico_ip4 address,
                 void (*callback)(pico_mdns_rtree *,
                                  char *,
                                  void *),
                 void *arg );
+
+
+/* Tree sorting functions */
+int pico_mdns_cookie_cmp( void *ka, void *kb );
+int pico_mdns_record_cmp_name_type( void *a, void *b );
+
+
 
 #endif /* _INCLUDE_PICO_MDNS */

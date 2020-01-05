@@ -1,11 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include "pico_device.h"
 #include "pico_dev_null.h"
 #include "pico_stack.h"
@@ -39,14 +58,14 @@ static int pico_null_poll(struct pico_device *dev, int loop_score)
 /* Public interface: create/destroy. */
 
 
-struct pico_device *pico_null_create(const char *name)
+struct pico_device *pico_null_create(struct pico_stack *S, const char *name)
 {
     struct pico_device_null *null = PICO_ZALLOC(sizeof(struct pico_device_null));
 
     if (!null)
         return NULL;
 
-    if( 0 != pico_device_init((struct pico_device *)null, name, NULL)) {
+    if( 0 != pico_device_init(S, (struct pico_device *)null, name, NULL)) {
         return NULL;
     }
 

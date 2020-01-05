@@ -1,11 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Frederik Van Slycken
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Frederik Van Slycken
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include "pico_device.h"
 #include "pico_dev_mock.h"
 #include "pico_stack.h"
@@ -13,10 +32,16 @@
 
 #define MOCK_MTU 1500
 
-
-
-/* Tree for finding mock_device based on pico_device* */
-
+/* This was used by picoTCP to declare static trees,
+ * removed in picoTCP-NG to make all trees stack-specific.
+ *
+ */
+#define MOCK_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
 
 static int mock_dev_cmp(void *ka, void *kb)
 {
@@ -30,7 +55,8 @@ static int mock_dev_cmp(void *ka, void *kb)
     return 0;
 }
 
-static PICO_TREE_DECLARE(mock_device_tree, mock_dev_cmp);
+
+static MOCK_TREE_DECLARE(mock_device_tree, mock_dev_cmp);
 
 static int pico_mock_send(struct pico_device *dev, void *buf, int len)
 {
@@ -191,7 +217,7 @@ void pico_mock_destroy(struct pico_device *dev)
     pico_tree_delete(&mock_device_tree, mock);
 }
 
-struct mock_device *pico_mock_create(uint8_t*mac)
+struct mock_device *pico_mock_create(struct pico_stack *S, uint8_t*mac)
 {
 
     struct mock_device*mock = PICO_ZALLOC(sizeof(struct mock_device));
@@ -215,7 +241,7 @@ struct mock_device *pico_mock_create(uint8_t*mac)
         memcpy(mock->mac, mac, 6);
     }
 
-    if( 0 != pico_device_init((struct pico_device *)mock->dev, "mock", mac)) {
+    if( 0 != pico_device_init(S, (struct pico_device *)mock->dev, "mock", mac)) {
         dbg ("Loop init failed.\n");
         pico_device_destroy(mock->dev);
         if(mock->mac != NULL)

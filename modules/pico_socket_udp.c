@@ -1,3 +1,29 @@
+/*********************************************************************
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
+ *********************************************************************/
 #include "pico_config.h"
 #include "pico_socket.h"
 #include "pico_udp.h"
@@ -9,7 +35,7 @@
 #define UDP_FRAME_OVERHEAD (sizeof(struct pico_frame))
 
 
-struct pico_socket *pico_socket_udp_open(void)
+struct pico_socket *pico_socket_udp_open(struct pico_stack *S)
 {
     struct pico_socket *s = NULL;
 #ifdef PICO_SUPPORT_UDP
@@ -18,7 +44,7 @@ struct pico_socket *pico_socket_udp_open(void)
         pico_err = PICO_ERR_ENOMEM;
         return NULL;
     }
-
+    s->stack = S;
     s->proto = &pico_proto_udp;
     s->q_in.overhead = UDP_FRAME_OVERHEAD;
     s->q_out.overhead = UDP_FRAME_OVERHEAD;
@@ -55,7 +81,7 @@ static inline int pico_socket_udp_deliver_ipv4_mcast_initial_checks(struct pico_
         return -1;
 
 
-    if ((pico_ipv4_link_get(&ip4hdr->src)) && (PICO_SOCKET_GETOPT(s, PICO_SOCKET_OPT_MULTICAST_LOOP) == 0u)) {
+    if ((pico_ipv4_link_get(s->stack, &ip4hdr->src)) && (PICO_SOCKET_GETOPT(s, PICO_SOCKET_OPT_MULTICAST_LOOP) == 0u)) {
         /* Datagram from ourselves, Loop disabled, discarding. */
         return -1;
     }
@@ -67,7 +93,7 @@ static int pico_socket_udp_deliver_ipv4_mcast(struct pico_socket *s, struct pico
 {
     struct pico_ip4 s_local;
     struct pico_frame *cpy;
-    struct pico_device *dev = pico_ipv4_link_find(&s->local_addr.ip4);
+    struct pico_device *dev = pico_ipv4_link_find(s->stack, &s->local_addr.ip4);
 
     s_local.addr = s->local_addr.ip4.addr;
 
@@ -108,7 +134,7 @@ static int pico_socket_udp_deliver_ipv4(struct pico_socket *s, struct pico_frame
     ip4hdr = (struct pico_ipv4_hdr*)(f->net_hdr);
     s_local.addr = s->local_addr.ip4.addr;
     p_dst.addr = ip4hdr->dst.addr;
-    if ((pico_ipv4_is_broadcast(p_dst.addr)) || pico_ipv4_is_multicast(p_dst.addr)) {
+    if ((pico_ipv4_is_broadcast(s->stack, p_dst.addr)) || pico_ipv4_is_multicast(p_dst.addr)) {
         ret = pico_socket_udp_deliver_ipv4_mcast(s, f);
     } else if ((s_local.addr == PICO_IPV4_INADDR_ANY) || (s_local.addr == p_dst.addr)) {
         ret = pico_socket_udp_deliver_ipv4_unicast(s, f);
@@ -125,11 +151,11 @@ static inline int pico_socket_udp_deliver_ipv6_mcast(struct pico_socket *s, stru
 {
     struct pico_ipv6_hdr *ip6hdr;
     struct pico_frame *cpy;
-    struct pico_device *dev = pico_ipv6_link_find(&s->local_addr.ip6);
+    struct pico_device *dev = pico_ipv6_link_find(s->stack, &s->local_addr.ip6);
 
     ip6hdr = (struct pico_ipv6_hdr*)(f->net_hdr);
 
-    if ((pico_ipv6_link_get(&ip6hdr->src)) && (PICO_SOCKET_GETOPT(s, PICO_SOCKET_OPT_MULTICAST_LOOP) == 0u)) {
+    if ((pico_ipv6_link_get(s->stack, &ip6hdr->src)) && (PICO_SOCKET_GETOPT(s, PICO_SOCKET_OPT_MULTICAST_LOOP) == 0u)) {
         /* Datagram from ourselves, Loop disabled, discarding. */
         return 0;
     }

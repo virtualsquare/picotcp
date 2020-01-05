@@ -1,7 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_ARP
 #define INCLUDE_PICO_ARP
@@ -12,7 +33,7 @@
 int pico_arp_receive(struct pico_frame *);
 
 
-struct pico_eth *pico_arp_get(struct pico_frame *f);
+struct pico_eth *pico_arp_get(struct pico_stack *S, struct pico_frame *f);
 int32_t pico_arp_request(struct pico_device *dev, struct pico_ip4 *dst, uint8_t type);
 
 #define PICO_ARP_STATUS_REACHABLE 0x00
@@ -26,11 +47,11 @@ int32_t pico_arp_request(struct pico_device *dev, struct pico_ip4 *dst, uint8_t 
 #define PICO_ARP_CONFLICT_REASON_CONFLICT 0
 #define PICO_ARP_CONFLICT_REASON_PROBE 1
 
-struct pico_eth *pico_arp_lookup(struct pico_ip4 *dst);
-struct pico_ip4 *pico_arp_reverse_lookup(struct pico_eth *dst);
+struct pico_eth *pico_arp_lookup(struct pico_stack *S, struct pico_ip4 *dst);
+struct pico_ip4 *pico_arp_reverse_lookup(struct pico_stack *S, struct pico_eth *dst);
 int pico_arp_create_entry(uint8_t*hwaddr, struct pico_ip4 ipv4, struct pico_device*dev);
-int pico_arp_get_neighbors(struct pico_device *dev, struct pico_ip4 *neighbors, int maxlen);
-void pico_arp_register_ipconflict(struct pico_ip4 *ip, struct pico_eth *mac, void (*cb)(int reason));
+void pico_arp_register_ipconflict(struct pico_stack *S, struct pico_ip4 *ip, struct pico_eth *mac, void (*cb)(struct pico_stack *S, int reason));
 void pico_arp_postpone(struct pico_frame *f);
-void pico_arp_init(void);
+void pico_arp_init(struct pico_stack *S);
+int arp_compare(void *ka, void *kb);
 #endif

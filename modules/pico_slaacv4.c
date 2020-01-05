@@ -1,8 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Bogdan Lupu
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Bogdan Lupu
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #include "pico_slaacv4.h"
 #include "pico_arp.h"
@@ -90,7 +110,7 @@ static void pico_slaacv4_init_cookie(struct pico_ip4 *ip, struct pico_device *de
 
 static void pico_slaacv4_cancel_timers(struct slaacv4_cookie *tmp)
 {
-    pico_timer_cancel(tmp->timer);
+    pico_timer_cancel(tmp->device->stack, tmp->timer);
     tmp->timer = 0;
 }
 
@@ -108,7 +128,7 @@ static void pico_slaacv4_send_announce_timer(pico_time now, void *arg)
     {
         pico_arp_request(tmp->device, &tmp->ip, PICO_ARP_ANNOUNCE);
         tmp->announce_nb++;
-        tmp->timer = pico_timer_add(ANNOUNCE_INTERVAL * 1000, pico_slaacv4_send_announce_timer, arg);
+        tmp->timer = pico_timer_add(tmp->device->stack, ANNOUNCE_INTERVAL * 1000, pico_slaacv4_send_announce_timer, arg);
         if (!tmp->timer) {
             slaacv4_dbg("SLAACV4: Failed to start announce timer\n");
             tmp->state = SLAACV4_ERROR;
@@ -119,7 +139,7 @@ static void pico_slaacv4_send_announce_timer(pico_time now, void *arg)
     else
     {
         tmp->state = SLAACV4_CLAIMED;
-        pico_ipv4_link_add(tmp->device, tmp->ip, netmask);
+        pico_ipv4_link_add(tmp->device->stack, tmp->device, tmp->ip, netmask);
         if (tmp->cb != NULL)
             tmp->cb(&tmp->ip, PICO_SLAACV4_SUCCESS);
     }
@@ -134,7 +154,7 @@ static void pico_slaacv4_send_probe_timer(pico_time now, void *arg)
     {
         pico_arp_request(tmp->device, &tmp->ip, PICO_ARP_PROBE);
         tmp->probe_try_nb++;
-        tmp->timer = pico_timer_add(PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, tmp);
+        tmp->timer = pico_timer_add(tmp->device->stack, PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, tmp);
         if (!tmp->timer) {
             slaacv4_dbg("SLAACV4: Failed to start probe timer\n");
             tmp->state = SLAACV4_ERROR;
@@ -145,7 +165,7 @@ static void pico_slaacv4_send_probe_timer(pico_time now, void *arg)
     else
     {
         tmp->state = SLAACV4_ANNOUNCING;
-        tmp->timer = pico_timer_add(ANNOUNCE_WAIT * 1000, pico_slaacv4_send_announce_timer, arg);
+        tmp->timer = pico_timer_add(tmp->device->stack, ANNOUNCE_WAIT * 1000, pico_slaacv4_send_announce_timer, arg);
         if (!tmp->timer) {
             slaacv4_dbg("SLAACV4: Failed to start announce timer\n");
             tmp->state = SLAACV4_ERROR;
@@ -155,7 +175,7 @@ static void pico_slaacv4_send_probe_timer(pico_time now, void *arg)
     }
 }
 
-static void pico_slaacv4_receive_ipconflict(int reason)
+static void pico_slaacv4_receive_ipconflict(struct pico_stack *S, int reason)
 {
     struct slaacv4_cookie *tmp = &slaacv4_local;
 
@@ -166,7 +186,7 @@ static void pico_slaacv4_receive_ipconflict(int reason)
     {
         if(reason == PICO_ARP_CONFLICT_REASON_CONFLICT)
         {
-            pico_ipv4_link_del(tmp->device, tmp->ip);
+            pico_ipv4_link_del(tmp->device->stack, tmp->device, tmp->ip);
         }
     }
 
@@ -176,10 +196,10 @@ static void pico_slaacv4_receive_ipconflict(int reason)
         tmp->probe_try_nb = 0;
         tmp->announce_nb = 0;
         tmp->ip.addr = pico_slaacv4_getip(tmp->device, (uint8_t)1);
-        pico_arp_register_ipconflict(&tmp->ip, &tmp->device->eth->mac, pico_slaacv4_receive_ipconflict);
+        pico_arp_register_ipconflict(S, &tmp->ip, &tmp->device->eth->mac, pico_slaacv4_receive_ipconflict);
         pico_arp_request(tmp->device, &tmp->ip, PICO_ARP_PROBE);
         tmp->probe_try_nb++;
-        tmp->timer = pico_timer_add(PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, tmp);
+        tmp->timer = pico_timer_add(S, PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, tmp);
         if (!tmp->timer) {
             slaacv4_dbg("SLAACV4: Failed to start probe timer\n");
             tmp->state = SLAACV4_ERROR;
@@ -193,8 +213,8 @@ static void pico_slaacv4_receive_ipconflict(int reason)
         tmp->probe_try_nb = 0;
         tmp->announce_nb = 0;
         tmp->ip.addr = pico_slaacv4_getip(tmp->device, (uint8_t)1);
-        pico_arp_register_ipconflict(&tmp->ip, &tmp->device->eth->mac, pico_slaacv4_receive_ipconflict);
-        tmp->timer = pico_timer_add(RATE_LIMIT_INTERVAL * 1000, pico_slaacv4_send_probe_timer, tmp);
+        pico_arp_register_ipconflict(S, &tmp->ip, &tmp->device->eth->mac, pico_slaacv4_receive_ipconflict);
+        tmp->timer = pico_timer_add(S,RATE_LIMIT_INTERVAL * 1000, pico_slaacv4_send_probe_timer, tmp);
         if (!tmp->timer) {
             slaacv4_dbg("SLAACV4: Failed to start probe timer\n");
             tmp->state = SLAACV4_ERROR;
@@ -215,7 +235,7 @@ static void pico_slaacv4_receive_ipconflict(int reason)
 
 }
 
-static void pico_slaacv4_hotplug_cb(__attribute__((unused)) struct pico_device *dev, int event)
+static void pico_slaacv4_hotplug_cb(struct pico_device *dev, int event)
 {
     struct slaacv4_cookie *tmp = &slaacv4_local;
 
@@ -225,10 +245,10 @@ static void pico_slaacv4_hotplug_cb(__attribute__((unused)) struct pico_device *
         tmp->probe_try_nb = 0;
         tmp->announce_nb = 0;
 
-        pico_arp_register_ipconflict(&tmp->ip, &tmp->device->eth->mac, pico_slaacv4_receive_ipconflict);
+        pico_arp_register_ipconflict(dev->stack, &tmp->ip, &tmp->device->eth->mac, pico_slaacv4_receive_ipconflict);
         pico_arp_request(tmp->device, &tmp->ip, PICO_ARP_PROBE);
         tmp->probe_try_nb++;
-        tmp->timer = pico_timer_add(PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, tmp);
+        tmp->timer = pico_timer_add(dev->stack, PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, tmp);
         if (!tmp->timer) {
             slaacv4_dbg("SLAACV4: Failed to start probe timer\n");
             tmp->state = SLAACV4_ERROR;
@@ -239,7 +259,7 @@ static void pico_slaacv4_hotplug_cb(__attribute__((unused)) struct pico_device *
     else
     {
         if (tmp->state == SLAACV4_CLAIMED )
-            pico_ipv4_link_del(tmp->device, tmp->ip);
+            pico_ipv4_link_del(dev->stack, tmp->device, tmp->ip);
 
         pico_slaacv4_cancel_timers(tmp);
     }
@@ -271,11 +291,11 @@ int pico_slaacv4_claimip(struct pico_device *dev, void (*cb)(struct pico_ip4 *ip
         ip.addr = pico_slaacv4_getip(dev, 0);
 
         pico_slaacv4_init_cookie(&ip, dev, &slaacv4_local, cb);
-        pico_arp_register_ipconflict(&ip, &dev->eth->mac, pico_slaacv4_receive_ipconflict);
+        pico_arp_register_ipconflict(dev->stack, &ip, &dev->eth->mac, pico_slaacv4_receive_ipconflict);
         pico_arp_request(dev, &ip, PICO_ARP_PROBE);
         slaacv4_local.state = SLAACV4_CLAIMING;
         slaacv4_local.probe_try_nb++;
-        slaacv4_local.timer = pico_timer_add(PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, &slaacv4_local);
+        slaacv4_local.timer = pico_timer_add(dev->stack, PROBE_WAIT * 1000, pico_slaacv4_send_probe_timer, &slaacv4_local);
         if (!slaacv4_local.timer) {
             slaacv4_dbg("SLAACV4: Failed to start probe timer\n");
             slaacv4_local.state = SLAACV4_ERROR;
@@ -295,12 +315,12 @@ void pico_slaacv4_unregisterip(void)
 
     if (tmp->state == SLAACV4_CLAIMED)
     {
-        pico_ipv4_link_del(tmp->device, tmp->ip);
+        pico_ipv4_link_del(tmp->device->stack, tmp->device, tmp->ip);
     }
 
     pico_slaacv4_cancel_timers(tmp);
     pico_slaacv4_init_cookie(&empty, NULL, tmp, NULL);
-    pico_arp_register_ipconflict(&tmp->ip, NULL, NULL);
+    pico_arp_register_ipconflict(tmp->device->stack, &tmp->ip, NULL, NULL);
     pico_hotplug_deregister(tmp->device, &pico_slaacv4_hotplug_cb);
 }
 

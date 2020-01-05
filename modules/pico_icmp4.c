@@ -1,12 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 
 #include "pico_icmp4.h"
 #include "pico_config.h"
@@ -16,14 +34,6 @@
 #include "pico_stack.h"
 #include "pico_tree.h"
 #include "pico_socket.h"
-
-/* Queues */
-static struct pico_queue icmp_in = {
-    0
-};
-static struct pico_queue icmp_out = {
-    0
-};
 
 
 /* Functions */
@@ -42,7 +52,7 @@ static int pico_icmp4_checksum(struct pico_frame *f)
 }
 
 #ifdef PICO_SUPPORT_PING
-static void ping_recv_reply(struct pico_frame *f);
+static void ping_recv_reply(struct pico_stack *S, struct pico_frame *f);
 #endif
 
 
@@ -57,7 +67,7 @@ struct pico_socket_icmp4
 };
 
 
-static int icmp4_socket_cmp(void *ka, void *kb)
+int icmp4_socket_cmp(void *ka, void *kb)
 {
     struct pico_socket_icmp4 *a = ka, *b = kb;
     if (a->id < b->id)
@@ -67,10 +77,7 @@ static int icmp4_socket_cmp(void *ka, void *kb)
     return (0);
 }
 
-
-static PICO_TREE_DECLARE(I4Sockets, icmp4_socket_cmp);
-
-struct pico_socket *pico_socket_icmp4_open(void)
+struct pico_socket *pico_socket_icmp4_open(struct pico_stack *S)
 {
     struct pico_socket_icmp4 *s;
     s = PICO_ZALLOC(sizeof(struct pico_socket_icmp4));
@@ -78,23 +85,25 @@ struct pico_socket *pico_socket_icmp4_open(void)
         pico_err = PICO_ERR_ENOMEM;
         return NULL;
     }
+    s->sock.stack = S;
     s->sock.proto = &pico_proto_icmp4;
     s->id = I4Socket_id++;
-    pico_tree_insert(&I4Sockets, s);
+    pico_tree_insert(&S->ICMP4Sockets, s);
     return (struct pico_socket *)s;
 }
 
 int pico_socket_icmp4_bind(struct pico_socket *s, void *addr, uint16_t port)
 {
     struct pico_socket_icmp4 test;
+    (void)addr;
     test.id = port;
-    if (pico_tree_findKey(&I4Sockets, &test)) {
+    if (pico_tree_findKey(&s->stack->ICMP4Sockets, &test)) {
         pico_err = PICO_ERR_EADDRINUSE;
         return -1;
     }
-    pico_tree_delete(&I4Sockets, s);
+    pico_tree_delete(&s->stack->ICMP4Sockets, s);
     s->id = port;
-    pico_tree_insert(&I4Sockets, s);
+    pico_tree_insert(&s->stack->ICMP4Sockets, s);
     return 0;
 }
 
@@ -118,12 +127,12 @@ int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *
     return len;
 }
 
-int pico_socket_icmp4_sendto_check(struct pico_socket *s, const void *buf, int len, void *dst, uint16_t remote_port)
+int pico_socket_icmp4_sendto_check(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port)
 {
     struct pico_icmp4_hdr *hdr;
-    struct pico_frame *echo;
     struct pico_socket_icmp4 *i4 = (struct pico_socket_icmp4 *)s;
     (void)remote_port;
+    (void)dst;
 
     if (len < 8) {
         pico_err = PICO_ERR_EINVAL;
@@ -149,14 +158,14 @@ int pico_socket_icmp4_close(struct pico_socket *arg)
 {
     struct pico_socket_icmp4 *s = (struct pico_socket_icmp4 *)arg;
     if (s) {
-        pico_tree_delete(&I4Sockets, s);
+        pico_tree_delete(&s->sock.stack->ICMP4Sockets, s);
         return 0;
     }
     pico_err = PICO_ERR_ENOENT;
     return -1;
 }
 
-static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *f)
+static int pico_icmp4_process_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     struct pico_icmp4_hdr *hdr = (struct pico_icmp4_hdr *) f->transport_hdr;
     static int firstpkt = 1;
@@ -182,16 +191,16 @@ static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *
         last_id = hdr->hun.ih_idseq.idseq_id;
         last_seq = hdr->hun.ih_idseq.idseq_seq;
         pico_icmp4_checksum(f);
-        pico_ipv4_rebound(f);
+        pico_ipv4_rebound(S, f);
     } else if (hdr->type == PICO_ICMP_UNREACH) {
         f->net_hdr = f->transport_hdr + PICO_ICMPHDR_UN_SIZE;
-        pico_ipv4_unreachable(f, hdr->code);
+        pico_ipv4_unreachable(S, f, hdr->code);
     } else if (hdr->type == PICO_ICMP_ECHOREPLY) {
 #ifdef PICO_SUPPORT_PING
-        ping_recv_reply(f);
+        ping_recv_reply(S, f);
 #endif
         test.id = hdr->hun.ih_idseq.idseq_id;
-        s = pico_tree_findKey(&I4Sockets, &test);
+        s = pico_tree_findKey(&S->ICMP4Sockets, &test);
         if (s) {
             struct pico_frame *cp;
             cp = pico_frame_copy(f);
@@ -210,15 +219,17 @@ static int pico_icmp4_process_in(struct pico_protocol *self, struct pico_frame *
     return 0;
 }
 
-static int pico_icmp4_process_out(struct pico_protocol *self, struct pico_frame *f)
+static int pico_icmp4_process_out(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
+    (void)S;
     IGNORE_PARAMETER(self);
     pico_icmp4_checksum(f);
     return (int)pico_network_send(f);
 }
 
-static int pico_icmp4_push(struct pico_protocol *self, struct pico_frame *f)
+static int pico_icmp4_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
+    (void)S;
     if (pico_enqueue(self->q_out, f) > 0) {
         return f->payload_len;
     } else {
@@ -234,11 +245,9 @@ struct pico_protocol pico_proto_icmp4 = {
     .push = pico_icmp4_push,
     .process_in = pico_icmp4_process_in,
     .process_out = pico_icmp4_process_out,
-    .q_in = &icmp_in,
-    .q_out = &icmp_out,
 };
 
-static int pico_icmp4_notify(struct pico_frame *f, uint8_t type, uint8_t code)
+static int pico_icmp4_notify(struct pico_stack *S, struct pico_frame *f, uint8_t type, uint8_t code)
 {
     struct pico_frame *reply;
     struct pico_icmp4_hdr *hdr;
@@ -260,7 +269,7 @@ static int pico_icmp4_notify(struct pico_frame *f, uint8_t type, uint8_t code)
         f_tot_len = (sizeof(struct pico_ipv4_hdr) + 8u);
     }
 
-    reply = pico_proto_ipv4.alloc(&pico_proto_ipv4, f->dev, (uint16_t) (f_tot_len + PICO_ICMPHDR_UN_SIZE));
+    reply = pico_proto_ipv4.alloc(S, &pico_proto_ipv4, f->dev, (uint16_t) (f_tot_len + PICO_ICMPHDR_UN_SIZE));
     info = (struct pico_ipv4_hdr*)(f->net_hdr);
     hdr = (struct pico_icmp4_hdr *) reply->transport_hdr;
     hdr->type = type;
@@ -271,56 +280,56 @@ static int pico_icmp4_notify(struct pico_frame *f, uint8_t type, uint8_t code)
     reply->payload = reply->transport_hdr + PICO_ICMPHDR_UN_SIZE;
     memcpy(reply->payload, f->net_hdr, f_tot_len);
     pico_icmp4_checksum(reply);
-    pico_ipv4_frame_push(reply, &info->src, PICO_PROTO_ICMP4);
+    pico_ipv4_frame_push(S, reply, &info->src, PICO_PROTO_ICMP4);
     return 0;
 }
 
-int pico_icmp4_port_unreachable(struct pico_frame *f)
+int pico_icmp4_port_unreachable(struct pico_stack *S, struct pico_frame *f)
 {
     /*Parameter check executed in pico_icmp4_notify*/
-    return pico_icmp4_notify(f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_PORT);
+    return pico_icmp4_notify(S, f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_PORT);
 }
 
-int pico_icmp4_proto_unreachable(struct pico_frame *f)
+int pico_icmp4_proto_unreachable(struct pico_stack *S, struct pico_frame *f)
 {
     /*Parameter check executed in pico_icmp4_notify*/
-    return pico_icmp4_notify(f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_PROTOCOL);
+    return pico_icmp4_notify(S, f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_PROTOCOL);
 }
 
-int pico_icmp4_dest_unreachable(struct pico_frame *f)
+int pico_icmp4_dest_unreachable(struct pico_stack *S, struct pico_frame *f)
 {
     /*Parameter check executed in pico_icmp4_notify*/
-    return pico_icmp4_notify(f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_HOST);
+    return pico_icmp4_notify(S, f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_HOST);
 }
 
-int pico_icmp4_ttl_expired(struct pico_frame *f)
+int pico_icmp4_ttl_expired(struct pico_stack *S, struct pico_frame *f)
 {
     /*Parameter check executed in pico_icmp4_notify*/
-    return pico_icmp4_notify(f, PICO_ICMP_TIME_EXCEEDED, PICO_ICMP_TIMXCEED_INTRANS);
+    return pico_icmp4_notify(S, f, PICO_ICMP_TIME_EXCEEDED, PICO_ICMP_TIMXCEED_INTRANS);
 }
 
-MOCKABLE int pico_icmp4_frag_expired(struct pico_frame *f)
+MOCKABLE int pico_icmp4_frag_expired(struct pico_stack *S, struct pico_frame *f)
 {
     /*Parameter check executed in pico_icmp4_notify*/
-    return pico_icmp4_notify(f, PICO_ICMP_TIME_EXCEEDED, PICO_ICMP_TIMXCEED_REASS);
+    return pico_icmp4_notify(S, f, PICO_ICMP_TIME_EXCEEDED, PICO_ICMP_TIMXCEED_REASS);
 }
 
-int pico_icmp4_mtu_exceeded(struct pico_frame *f)
+int pico_icmp4_mtu_exceeded(struct pico_stack *S, struct pico_frame *f)
 {
     /*Parameter check executed in pico_icmp4_notify*/
-    return pico_icmp4_notify(f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_NEEDFRAG);
+    return pico_icmp4_notify(S, f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_NEEDFRAG);
 }
 
-int pico_icmp4_packet_filtered(struct pico_frame *f)
+int pico_icmp4_packet_filtered(struct pico_stack *S, struct pico_frame *f)
 {
     /*Parameter check executed in pico_icmp4_notify*/
     /*Packet Filtered: type 3, code 13 (Communication Administratively Prohibited)*/
-    return pico_icmp4_notify(f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_FILTER_PROHIB);
+    return pico_icmp4_notify(S, f, PICO_ICMP_UNREACH, PICO_ICMP_UNREACH_FILTER_PROHIB);
 }
 
-int pico_icmp4_param_problem(struct pico_frame *f, uint8_t code)
+int pico_icmp4_param_problem(struct pico_stack *S, struct pico_frame *f, uint8_t code)
 {
-    return pico_icmp4_notify(f, PICO_ICMP_PARAMPROB, code);
+    return pico_icmp4_notify(S, f, PICO_ICMP_PARAMPROB, code);
 }
 
 
@@ -348,9 +357,10 @@ struct pico_icmp4_ping_cookie
     int interval;
     int timeout;
     void (*cb)(struct pico_icmp4_stats*);
+    struct pico_stack *stack;
 };
 
-static int cookie_compare(void *ka, void *kb)
+int pico_icmp4_cookie_compare(void *ka, void *kb)
 {
     struct pico_icmp4_ping_cookie *a = ka, *b = kb;
     if (a->id < b->id)
@@ -362,17 +372,15 @@ static int cookie_compare(void *ka, void *kb)
     return (a->seq - b->seq);
 }
 
-static PICO_TREE_DECLARE(Pings, cookie_compare);
-
-static int8_t pico_icmp4_send_echo(struct pico_icmp4_ping_cookie *cookie)
+static int8_t pico_icmp4_send_echo(struct pico_stack *S, struct pico_icmp4_ping_cookie *cookie)
 {
     struct pico_frame *echo = NULL;
     struct pico_icmp4_hdr *hdr;
-    struct pico_device *dev = pico_ipv4_source_dev_find(&cookie->dst);
+    struct pico_device *dev = pico_ipv4_source_dev_find(S, &cookie->dst);
     if (!dev)
         return -1;
 
-    echo = pico_proto_ipv4.alloc(&pico_proto_ipv4, dev, (uint16_t)(PICO_ICMPHDR_UN_SIZE + cookie->size));
+    echo = pico_proto_ipv4.alloc(S, &pico_proto_ipv4, dev, (uint16_t)(PICO_ICMPHDR_UN_SIZE + cookie->size));
     if (!echo)
         return -1;
 
@@ -387,7 +395,7 @@ static int8_t pico_icmp4_send_echo(struct pico_icmp4_ping_cookie *cookie)
     echo->payload_len = cookie->size;
     /* XXX: Fill payload */
     pico_icmp4_checksum(echo);
-    pico_ipv4_frame_push(echo, &cookie->dst, PICO_PROTO_ICMP4);
+    pico_ipv4_frame_push(S, echo, &cookie->dst, PICO_PROTO_ICMP4);
     return 0;
 }
 
@@ -397,7 +405,7 @@ static void ping_timeout(pico_time now, void *arg)
     struct pico_icmp4_ping_cookie *cookie = (struct pico_icmp4_ping_cookie *)arg;
     IGNORE_PARAMETER(now);
 
-    if(pico_tree_findKey(&Pings, cookie)) {
+    if(pico_tree_findKey(&cookie->stack->Pings, cookie)) {
         if (cookie->err == PICO_PING_ERR_PENDING) {
             struct pico_icmp4_stats stats;
             stats.dst = cookie->dst;
@@ -409,25 +417,25 @@ static void ping_timeout(pico_time now, void *arg)
             cookie->cb(&stats);
         }
 
-        pico_tree_delete(&Pings, cookie);
+        pico_tree_delete(&cookie->stack->Pings, cookie);
         PICO_FREE(cookie);
     }
 }
 
 static void next_ping(pico_time now, void *arg);
-static int send_ping(struct pico_icmp4_ping_cookie *cookie)
+static int send_ping(struct pico_stack *S, struct pico_icmp4_ping_cookie *cookie)
 {
     uint32_t timeout_timer = 0;
     struct pico_icmp4_stats stats;
-    pico_icmp4_send_echo(cookie);
+    pico_icmp4_send_echo(S, cookie);
     cookie->timestamp = pico_tick;
-    timeout_timer = pico_timer_add((uint32_t)cookie->timeout, ping_timeout, cookie);
+    timeout_timer = pico_timer_add(S, (uint32_t)cookie->timeout, ping_timeout, cookie);
     if (!timeout_timer) {
         goto fail;
     }
     if (cookie->seq < (uint16_t)cookie->count) {
-        if (!pico_timer_add((uint32_t)cookie->interval, next_ping, cookie)) {
-            pico_timer_cancel(timeout_timer);
+        if (!pico_timer_add(S, (uint32_t)cookie->interval, next_ping, cookie)) {
+            pico_timer_cancel(S, timeout_timer);
             goto fail;
         }
     }
@@ -438,7 +446,7 @@ fail:
     cookie->err = PICO_PING_ERR_ABORTED;
     stats.err = cookie->err;
     cookie->cb(&stats);
-    pico_tree_delete(&Pings, cookie);
+    pico_tree_delete(&S->Pings, cookie);
 
     return -1;
 }
@@ -448,7 +456,7 @@ static void next_ping(pico_time now, void *arg)
     struct pico_icmp4_ping_cookie *newcookie, *cookie = (struct pico_icmp4_ping_cookie *)arg;
     IGNORE_PARAMETER(now);
 
-    if(pico_tree_findKey(&Pings, cookie)) {
+    if(pico_tree_findKey(&cookie->stack->Pings, cookie)) {
         if (cookie->err == PICO_PING_ERR_ABORTED)
             return;
 
@@ -460,13 +468,13 @@ static void next_ping(pico_time now, void *arg)
             memcpy(newcookie, cookie, sizeof(struct pico_icmp4_ping_cookie));
             newcookie->seq++;
 
-            if (pico_tree_insert(&Pings, newcookie)) {
+            if (pico_tree_insert(&cookie->stack->Pings, newcookie)) {
                 dbg("ICMP4: Failed to insert new cookie in tree \n");
                 PICO_FREE(newcookie);
 				return;
 			}
 
-            if (send_ping(newcookie)) {
+            if (send_ping(cookie->stack, newcookie)) {
                 dbg("ICMP4: Failed to send ping\n");
                 PICO_FREE(newcookie);
             }
@@ -475,14 +483,14 @@ static void next_ping(pico_time now, void *arg)
 }
 
 
-static void ping_recv_reply(struct pico_frame *f)
+static void ping_recv_reply(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_icmp4_ping_cookie test, *cookie;
     struct pico_icmp4_hdr *hdr = (struct pico_icmp4_hdr *) f->transport_hdr;
     test.id  = short_be(hdr->hun.ih_idseq.idseq_id );
     test.seq = short_be(hdr->hun.ih_idseq.idseq_seq);
 
-    cookie = pico_tree_findKey(&Pings, &test);
+    cookie = pico_tree_findKey(&S->Pings, &test);
     if (cookie) {
         struct pico_icmp4_stats stats;
         if (cookie->err == PICO_PING_ERR_ABORTED)
@@ -502,10 +510,11 @@ static void ping_recv_reply(struct pico_frame *f)
     }
 }
 
-int pico_icmp4_ping(char *dst, int count, int interval, int timeout, int size, void (*cb)(struct pico_icmp4_stats *))
+int pico_icmp4_ping(struct pico_stack *S, char *dst, int count, int interval, int timeout, int size, void (*cb)(struct pico_icmp4_stats *))
 {
     static uint16_t next_id = 0x91c0;
     struct pico_icmp4_ping_cookie *cookie;
+    uint32_t dst_a;
 
     if((dst == NULL) || (interval == 0) || (timeout == 0) || (count == 0)) {
         pico_err = PICO_ERR_EINVAL;
@@ -518,12 +527,13 @@ int pico_icmp4_ping(char *dst, int count, int interval, int timeout, int size, v
         return -1;
     }
 
-    if (pico_string_to_ipv4(dst, (uint32_t *)&cookie->dst.addr) < 0) {
+    if (pico_string_to_ipv4(dst, &dst_a) < 0) {
         pico_err = PICO_ERR_EINVAL;
         PICO_FREE(cookie);
         return -1;
     }
 
+    cookie->dst.addr = dst_a;
     cookie->seq = 1;
     cookie->id = next_id++;
     cookie->err = PICO_PING_ERR_PENDING;
@@ -532,14 +542,15 @@ int pico_icmp4_ping(char *dst, int count, int interval, int timeout, int size, v
     cookie->timeout = timeout;
     cookie->cb = cb;
     cookie->count = count;
+    cookie->stack = S;
 
-    if (pico_tree_insert(&Pings, cookie)) {
+    if (pico_tree_insert(&S->Pings, cookie)) {
         dbg("ICMP4: Failed to insert cookie in tree \n");
         PICO_FREE(cookie);
 		return -1;
 	}
 
-    if (send_ping(cookie)) {
+    if (send_ping(S, cookie)) {
         PICO_FREE(cookie);
         return -1;
     }
@@ -548,11 +559,11 @@ int pico_icmp4_ping(char *dst, int count, int interval, int timeout, int size, v
 
 }
 
-int pico_icmp4_ping_abort(int id)
+int pico_icmp4_ping_abort(struct pico_stack *S, int id)
 {
     struct pico_tree_node *node;
     int found = 0;
-    pico_tree_foreach(node, &Pings)
+    pico_tree_foreach(node, &S->Pings)
     {
         struct pico_icmp4_ping_cookie *ck =
             (struct pico_icmp4_ping_cookie *) node->keyValue;

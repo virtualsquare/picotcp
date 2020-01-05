@@ -1,9 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef _INCLUDE_PICO_ICMP6
 #define _INCLUDE_PICO_ICMP6
@@ -310,22 +329,23 @@ struct pico_icmp6_stats
     struct pico_ip6 dst;
 };
 
-int pico_icmp6_ping(char *dst, int count, int interval, int timeout, int size, void (*cb)(struct pico_icmp6_stats *), struct pico_device *dev);
-int pico_icmp6_ping_abort(int id);
+int icmp6_cookie_compare(void *ka, void *kb);
+int pico_icmp6_ping(struct pico_stack *S, char *dst, int count, int interval, int timeout, int size, void (*cb)(struct pico_icmp6_stats *), struct pico_device *dev);
+int pico_icmp6_ping_abort(struct pico_stack *S, int id);
 
 
 int pico_icmp6_neighbor_solicitation(struct pico_device *dev, struct pico_ip6 *tgt, uint8_t type, struct pico_ip6 *dst);
-int pico_icmp6_neighbor_advertisement(struct pico_frame *f, struct pico_ip6 *target);
+int pico_icmp6_neighbor_advertisement(struct pico_stack *S, struct pico_frame *f, struct pico_ip6 *target);
 int pico_icmp6_router_solicitation(struct pico_device *dev, struct pico_ip6 *src, struct pico_ip6 *dst);
 
-int pico_icmp6_port_unreachable(struct pico_frame *f);
-int pico_icmp6_proto_unreachable(struct pico_frame *f);
-int pico_icmp6_dest_unreachable(struct pico_frame *f);
-int pico_icmp6_ttl_expired(struct pico_frame *f);
-int pico_icmp6_packet_filtered(struct pico_frame *f);
-int pico_icmp6_parameter_problem(struct pico_frame *f, uint8_t problem, uint32_t ptr);
-int pico_icmp6_pkt_too_big(struct pico_frame *f);
-int pico_icmp6_frag_expired(struct pico_frame *f);
+int pico_icmp6_port_unreachable(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp6_proto_unreachable(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp6_dest_unreachable(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp6_ttl_expired(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp6_packet_filtered(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp6_parameter_problem(struct pico_stack *S, struct pico_frame *f, uint8_t problem, uint32_t ptr);
+int pico_icmp6_pkt_too_big(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp6_frag_expired(struct pico_stack *S, struct pico_frame *f);
 
 uint16_t pico_icmp6_checksum(struct pico_frame *f);
 int pico_icmp6_router_advertisement(struct pico_device *dev, struct pico_ip6 *dst);

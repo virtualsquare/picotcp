@@ -1,10 +1,30 @@
 /*********************************************************************
- PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
- See LICENSE and COPYING for usage.
-
- Authors: Jelle De Vleeschouwer
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Jelle De Vleeschouwer
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #include "pico_ipv6.h"
 #include "pico_stack.h"
 #include "pico_frame.h"
@@ -57,13 +77,6 @@ static const struct pico_6lowpan_ll_protocol pico_6lowpan_ll_none = {
 /* Declare a global lookup-table for distribution of link layer specific tasks */
 struct pico_6lowpan_ll_protocol pico_6lowpan_lls[PICO_6LOWPAN_LLS + 1];
 
-static struct pico_queue pico_6lowpan_ll_in = {
-    0
-};
-static struct pico_queue pico_6lowpan_ll_out = {
-    0
-};
-
 /*******************************************************************************
  *  CTX
  ******************************************************************************/
@@ -82,30 +95,29 @@ static int32_t compare_prefix(uint8_t *a, uint8_t *b, int32_t len)
 }
 
 /* Compares 2 IPHC context entries */
-static int32_t compare_ctx(void *a, void *b)
+int32_t compare_6lowpan_ctx(void *a, void *b)
 {
     struct iphc_ctx *ca = (struct iphc_ctx *)a;
     struct iphc_ctx *cb = (struct iphc_ctx *)b;
     return compare_prefix(ca->prefix.addr, cb->prefix.addr, ca->size);
 }
 
-PICO_TREE_DECLARE(CTXtree, compare_ctx);
 
 /* Searches in the context tree if there's a context entry available with the
  * prefix of the IPv6 address */
-struct iphc_ctx * ctx_lookup(struct pico_ip6 addr)
+struct iphc_ctx * ctx_lookup(struct pico_stack *S, struct pico_ip6 addr)
 {
     struct iphc_ctx test = { NULL, addr, 0, 0, 0, 0 };
-    return pico_tree_findKey(&CTXtree, &test);
+    return pico_tree_findKey(&S->SixLowPanCTXTree, &test);
 }
 
 /* Looks up the context by ID, for decompression */
-struct iphc_ctx * ctx_lookup_id(uint8_t id)
+struct iphc_ctx * ctx_lookup_id(struct pico_stack *S, uint8_t id)
 {
     struct iphc_ctx *key = NULL;
     struct pico_tree_node *i = NULL;
 
-    pico_tree_foreach(i, &CTXtree) {
+    pico_tree_foreach(i, &S->SixLowPanCTXTree) {
         key = i->keyValue;
         if (key && id ==key->id)
             return key;
@@ -116,7 +128,14 @@ struct iphc_ctx * ctx_lookup_id(uint8_t id)
 /* Tries to insert a new IPHC-context into the Context-tree */
 static int32_t ctx_insert(struct pico_ip6 addr, uint8_t id, uint8_t size, pico_time lifetime, uint8_t flags, struct pico_device *dev)
 {
-    struct iphc_ctx *new = PICO_ZALLOC(sizeof(struct iphc_ctx));
+    struct iphc_ctx *new;
+    struct pico_stack *S;
+    if (!dev) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+    S = dev->stack;
+    new = PICO_ZALLOC(sizeof(struct iphc_ctx));
     if (new) {
         new->lifetime = lifetime;
         new->prefix = addr;
@@ -124,7 +143,7 @@ static int32_t ctx_insert(struct pico_ip6 addr, uint8_t id, uint8_t size, pico_t
         new->size = size;
         new->dev = dev;
         new->id = id;
-        if (pico_tree_insert(&CTXtree, new)) {
+        if (pico_tree_insert(&S->SixLowPanCTXTree, new)) {
             PICO_FREE(new);
             return -1;
         }
@@ -137,10 +156,10 @@ static int32_t ctx_insert(struct pico_ip6 addr, uint8_t id, uint8_t size, pico_t
 /* Function to update context table from 6LoWPAN Neighbor Discovery */
 void ctx_update(struct pico_ip6 addr, uint8_t id, uint8_t size, pico_time lifetime, uint8_t flags, struct pico_device *dev)
 {
-    struct iphc_ctx *entry = ctx_lookup_id(id);
+    struct iphc_ctx *entry = ctx_lookup_id(dev->stack, id);
     if (entry && dev == entry->dev) {
         if (!lifetime) {
-            pico_tree_delete(&CTXtree, entry);
+            pico_tree_delete(&dev->stack->SixLowPanCTXTree, entry);
             PICO_FREE(entry);
             return;
         }
@@ -161,29 +180,30 @@ static void ctx_lifetime_check(pico_time now, void *arg)
     struct pico_tree_node *i = NULL, *next = NULL;
     struct pico_ipv6_route *gw = NULL;
     struct iphc_ctx *key = NULL;
+    struct pico_stack *S = (struct pico_stack *)arg;
     IGNORE_PARAMETER(now);
-    IGNORE_PARAMETER(arg);
 
-    pico_tree_foreach_safe(i, &CTXtree, next) {
+    pico_tree_foreach_safe(i, &S->SixLowPanCTXTree, next) {
         if (i && i->keyValue) {
             key = i->keyValue;
             key->lifetime--;
             if (!key->lifetime) {
-                pico_tree_delete(&CTXtree, key);
+                pico_tree_delete(&S->SixLowPanCTXTree, key);
                 PICO_FREE(key);
             } else if (key->lifetime == 5) {
                 /* RFC6775: The host SHOULD unicast one or more RSs to the router well before the
                  * shortest of the, Router Lifetime, PIO lifetimes and the lifetime of the 6COs. */
-                gw = pico_ipv6_gateway_by_dev(key->dev);
+                gw = pico_ipv6_gateway_by_dev(S, key->dev);
                 while (gw) {
                     pico_6lp_nd_start_soliciting(pico_ipv6_linklocal_get(key->dev), gw);
-                    gw = pico_ipv6_gateway_by_dev_next(key->dev, gw);
+                    gw = pico_ipv6_gateway_by_dev_next(key->dev->stack, key->dev, gw);
                 }
             }
         }
     }
 
-    (void)pico_timer_add(ONE_MINUTE, ctx_lifetime_check, NULL);
+    (void)pico_timer_add(S, ONE_MINUTE, ctx_lifetime_check, S);
+
 }
 
 #endif
@@ -257,9 +277,10 @@ ll_mac_header_estimator(struct pico_frame *f)
 
 /* Alloc's a frame with device's overhead and maximum IEEE802.15.4 header size */
 static struct pico_frame *
-pico_6lowpan_frame_alloc(struct pico_protocol *self, struct pico_device *dev, uint16_t size)
+pico_6lowpan_frame_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size)
 {
     IGNORE_PARAMETER(self);
+    IGNORE_PARAMETER(S);
     if (dev && pico_6lowpan_lls[dev->mode].alloc) {
         return pico_6lowpan_lls[dev->mode].alloc(dev, size);
     } else {
@@ -277,11 +298,12 @@ const struct extension exts[] = {
 };
 
 static int32_t
-pico_6lowpan_ll_process_out(struct pico_protocol *self, struct pico_frame *f)
+pico_6lowpan_ll_process_out(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     uint32_t datalink_len = 0;
     int32_t ret = 0, i = 0;
     IGNORE_PARAMETER(self);
+    IGNORE_PARAMETER(S);
 
     /* Every link layer extension updates the datalink pointer of the frame a little bit. */
     f->datalink_hdr = f->net_hdr;
@@ -306,11 +328,12 @@ fin:
 }
 
 static int32_t
-pico_6lowpan_ll_process_in(struct pico_protocol *self, struct pico_frame *f)
+pico_6lowpan_ll_process_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     int32_t i = 0, ret = 0;
     uint32_t len = 0;
     IGNORE_PARAMETER(self);
+    IGNORE_PARAMETER(S);
 
     /* net_hdr is the pointer that is dynamically updated by the incoming
      * processing functions to always point to right after a particular
@@ -371,7 +394,7 @@ int32_t pico_6lowpan_ll_sendto_dev(struct pico_device *dev, struct pico_frame *f
 }
 
 /* Initialisation routine for 6LoWPAN specific devices */
-int pico_dev_6lowpan_init(struct pico_dev_6lowpan *dev, const char *name, uint8_t *mac, enum pico_ll_mode ll_mode, uint16_t mtu, uint8_t nomac,
+int pico_dev_6lowpan_init(struct pico_stack *S, struct pico_dev_6lowpan *dev, const char *name, uint8_t *mac, enum pico_ll_mode ll_mode, uint16_t mtu, uint8_t nomac,
                           int (* send)(struct pico_device *dev, void *_buf, int len, union pico_ll_addr src, union pico_ll_addr dst),
                           int (* poll)(struct pico_device *dev, int loop_score))
 {
@@ -390,7 +413,7 @@ int pico_dev_6lowpan_init(struct pico_dev_6lowpan *dev, const char *name, uint8_
     picodev->send = NULL;
     dev->send = send;
 
-    return pico_device_init(picodev, name, mac);
+    return pico_device_init(S, picodev, name, mac);
 }
 
 
@@ -430,17 +453,15 @@ struct pico_protocol pico_proto_6lowpan_ll = {
     .alloc = pico_6lowpan_frame_alloc,
     .process_in = pico_6lowpan_ll_process_in,
     .process_out = pico_6lowpan_ll_process_out,
-    .q_in = &pico_6lowpan_ll_in,
-    .q_out = &pico_6lowpan_ll_out
 };
 
-void pico_6lowpan_ll_init(void)
+void pico_6lowpan_ll_init(struct pico_stack *S)
 {
     int32_t i = 0;
 
 #ifdef PICO_6LOWPAN_IPHC_ENABLED
     /* We don't care about failure */
-    (void)pico_timer_add(60000, ctx_lifetime_check, NULL);
+    (void)pico_timer_add(S, 60000, ctx_lifetime_check, S);
 #endif
 
     /* Initialize interface with 6LoWPAN link layer protocols */

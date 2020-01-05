@@ -1,11 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Daniele Lacamera, Kristof Roelants
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera, Kristof Roelants
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include "pico_ipv6.h"
 #include "pico_icmp6.h"
 #include "pico_config.h"
@@ -54,14 +73,12 @@
 static struct pico_ipv6_link *mcast_default_link_ipv6 = NULL;
 #endif
 /* queues */
-static struct pico_queue ipv6_in;
-static struct pico_queue ipv6_out;
 
 const uint8_t PICO_IP6_ANY[PICO_SIZE_IP6] = {
     0
 };
 #ifdef PICO_SUPPORT_MCAST
-static int pico_ipv6_mcast_filter(struct pico_frame *f);
+static int pico_ipv6_mcast_filter(struct pico_stack *S, struct pico_frame *f);
 #endif
 
 
@@ -78,7 +95,7 @@ int pico_ipv6_compare(const struct pico_ip6 *a, const struct pico_ip6 *b)
     return 0;
 }
 
-static int ipv6_link_compare(void *ka, void *kb)
+int ipv6_link_compare(void *ka, void *kb)
 {
     struct pico_ipv6_link *a = ka, *b = kb;
     struct pico_ip6 *a_addr, *b_addr;
@@ -114,7 +131,7 @@ static inline int ipv6_compare_metric(struct pico_ipv6_route *a, struct pico_ipv
     return 0;
 }
 
-static int ipv6_route_compare(void *ka, void *kb)
+int ipv6_route_compare(void *ka, void *kb)
 {
     struct pico_ipv6_route *a = ka, *b = kb;
     int ret;
@@ -132,9 +149,6 @@ static int ipv6_route_compare(void *ka, void *kb)
 
 }
 
-static PICO_TREE_DECLARE(Tree_dev_ip6_link, ipv6_link_compare);
-PICO_TREE_DECLARE(IPV6Routes, ipv6_route_compare);
-PICO_TREE_DECLARE(IPV6Links, ipv6_link_compare);
 
 static char pico_ipv6_dec_to_char(uint8_t u)
 {
@@ -326,7 +340,7 @@ int pico_ipv6_is_localhost(const uint8_t addr[PICO_SIZE_IP6])
 
 }
 
-int pico_ipv6_is_unicast(struct pico_ip6 *a)
+int pico_ipv6_is_unicast(struct pico_stack *S, struct pico_ip6 *a)
 {
     if (pico_ipv6_is_global(a->addr))
         return 1;
@@ -338,7 +352,7 @@ int pico_ipv6_is_unicast(struct pico_ip6 *a)
         return 1;
     else if (pico_ipv6_is_localhost(a->addr))
         return 1;
-    else if(pico_ipv6_link_get(a))
+    else if(pico_ipv6_link_get(S, a))
         return 1;
     else
         return 0;
@@ -395,7 +409,7 @@ int pico_ipv6_is_unspecified(const uint8_t addr[PICO_SIZE_IP6])
     return !memcmp(PICO_IP6_ANY, addr, PICO_SIZE_IP6);
 }
 
-static struct pico_ipv6_route *pico_ipv6_route_find(const struct pico_ip6 *addr)
+static struct pico_ipv6_route *pico_ipv6_route_find(struct pico_stack *S, const struct pico_ip6 *addr)
 {
     struct pico_tree_node *index = NULL;
     struct pico_ipv6_route *r = NULL;
@@ -404,7 +418,7 @@ static struct pico_ipv6_route *pico_ipv6_route_find(const struct pico_ip6 *addr)
         return NULL;
     }
 
-    pico_tree_foreach_reverse(index, &IPV6Routes) {
+    pico_tree_foreach_reverse(index, &S->IPV6Routes) {
         r = index->keyValue;
         for (i = 0; i < PICO_SIZE_IP6; ++i) {
             if ((addr->addr[i] & (r->netmask.addr[i])) != ((r->dest.addr[i]) & (r->netmask.addr[i]))) {
@@ -419,7 +433,7 @@ static struct pico_ipv6_route *pico_ipv6_route_find(const struct pico_ip6 *addr)
     return NULL;
 }
 
-struct pico_ip6 *pico_ipv6_source_find(const struct pico_ip6 *dst)
+struct pico_ip6 *pico_ipv6_source_find(struct pico_stack *S, const struct pico_ip6 *dst)
 {
     struct pico_ip6 *myself = NULL;
     struct pico_ipv6_route *rt;
@@ -429,7 +443,7 @@ struct pico_ip6 *pico_ipv6_source_find(const struct pico_ip6 *dst)
         return NULL;
     }
 
-    rt = pico_ipv6_route_find(dst);
+    rt = pico_ipv6_route_find(S, dst);
     if (rt) {
         myself = &rt->link->address;
     } else
@@ -438,7 +452,7 @@ struct pico_ip6 *pico_ipv6_source_find(const struct pico_ip6 *dst)
     return myself;
 }
 
-struct pico_device *pico_ipv6_source_dev_find(const struct pico_ip6 *dst)
+struct pico_device *pico_ipv6_source_dev_find(struct pico_stack *S, const struct pico_ip6 *dst)
 {
     struct pico_device *dev = NULL;
     struct pico_ipv6_route *rt;
@@ -448,7 +462,7 @@ struct pico_device *pico_ipv6_source_dev_find(const struct pico_ip6 *dst)
         return NULL;
     }
 
-    rt = pico_ipv6_route_find(dst);
+    rt = pico_ipv6_route_find(S, dst);
     if (rt && rt->link) {
         dev = rt->link->dev;
     } else
@@ -457,42 +471,42 @@ struct pico_device *pico_ipv6_source_dev_find(const struct pico_ip6 *dst)
     return dev;
 }
 
-static int pico_ipv6_forward_check_dev(struct pico_frame *f)
+static int pico_ipv6_forward_check_dev(struct pico_stack *S, struct pico_frame *f)
 {
     if(f->dev->mode == LL_MODE_ETHERNET && f->dev->eth != NULL)
         f->len -= PICO_SIZE_ETHHDR;
 
     if(f->len > f->dev->mtu) {
-        pico_notify_pkt_too_big(f);
+        pico_notify_pkt_too_big(S, f);
         return -1;
     }
 
     return 0;
 }
 
-static int pico_ipv6_pre_forward_checks(struct pico_frame *f)
+static int pico_ipv6_pre_forward_checks(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
 
     /* Decrease HOP count, check if expired */
     hdr->hop = (uint8_t)(hdr->hop - 1);
     if (hdr->hop < 1) {
-        pico_notify_ttl_expired(f);
+        pico_notify_ttl_expired(S, f);
         dbg(" ------------------- HOP COUNT EXPIRED\n");
         return -1;
     }
 
     /* If source is local, discard anyway (packets bouncing back and forth) */
-    if (pico_ipv6_link_get(&hdr->src))
+    if (pico_ipv6_link_get(S, &hdr->src))
         return -1;
 
-    if (pico_ipv6_forward_check_dev(f) < 0)
+    if (pico_ipv6_forward_check_dev(S, f) < 0)
         return -1;
 
     return 0;
 }
 
-static int pico_ipv6_forward(struct pico_frame *f)
+static int pico_ipv6_forward(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
     struct pico_ipv6_route *rt;
@@ -501,16 +515,16 @@ static int pico_ipv6_forward(struct pico_frame *f)
         return -1;
     }
 
-    rt = pico_ipv6_route_find(&hdr->dst);
+    rt = pico_ipv6_route_find(S, &hdr->dst);
     if (!rt) {
-        pico_notify_dest_unreachable(f);
+        pico_notify_dest_unreachable(S, f);
         pico_frame_discard(f);
         return -1;
     }
 
     f->dev = rt->link->dev;
 
-    if (pico_ipv6_pre_forward_checks(f) < 0)
+    if (pico_ipv6_pre_forward_checks(S, f) < 0)
     {
         pico_frame_discard(f);
         return -1;
@@ -565,11 +579,11 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
             case PICO_IPV6_EXTHDR_OPT_ACTION_DISCARD:
                 return -1;
             case PICO_IPV6_EXTHDR_OPT_ACTION_DISCARD_SI:
-                pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_IPV6OPT, ptr + (uint32_t)(option - extensions_start));
+                pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_IPV6OPT, ptr + (uint32_t)(option - extensions_start));
                 return -1;
             case PICO_IPV6_EXTHDR_OPT_ACTION_DISCARD_SINM:
                 if (!pico_ipv6_is_multicast(((struct pico_ipv6_hdr *)(f->net_hdr))->dst.addr))
-                    pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_IPV6OPT, ptr + (uint32_t)(option - extensions_start));
+                    pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_IPV6OPT, ptr + (uint32_t)(option - extensions_start));
 
                 return -1;
             }
@@ -593,13 +607,13 @@ static int pico_ipv6_process_routing(struct pico_ipv6_exthdr *routing, struct pi
     switch (routing->ext.routing.routtype) {
     case 0x00:
         /* deprecated */
-        pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_HDRFIELD, ptr + 2);
+        pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_HDRFIELD, ptr + 2);
         return -1;
     case 0x02:
         /* routing type for MIPv6: not supported yet */
         break;
     default:
-        pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_HDRFIELD, ptr + 2);
+        pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_HDRFIELD, ptr + 2);
         return -1;
     }
     return 0;
@@ -638,11 +652,11 @@ static int pico_ipv6_process_destopt(struct pico_ipv6_exthdr *destopt, struct pi
             case PICO_IPV6_EXTHDR_OPT_ACTION_DISCARD:
                 return -1;
             case PICO_IPV6_EXTHDR_OPT_ACTION_DISCARD_SI:
-                pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_IPV6OPT, opt_ptr);
+                pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_IPV6OPT, opt_ptr);
                 return -1;
             case PICO_IPV6_EXTHDR_OPT_ACTION_DISCARD_SINM:
                 if (!pico_ipv6_is_multicast(((struct pico_ipv6_hdr *)(f->net_hdr))->dst.addr)) {
-                    pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_IPV6OPT, opt_ptr);
+                    pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_IPV6OPT, opt_ptr);
                 }
 
                 return -1;
@@ -684,7 +698,7 @@ static int pico_ipv6_check_headers_sequence(struct pico_frame *f)
             return 0;
         default:
             /* Invalid next header */
-            pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_NXTHDR, (uint32_t)cur_nexthdr);
+            pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_NXTHDR, (uint32_t)cur_nexthdr);
             return -1;
         }
         cur_nexthdr = ptr;
@@ -697,7 +711,7 @@ static int pico_ipv6_check_aligned(struct pico_frame *f)
 {
     struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
     if ((short_be(hdr->len) % 8) != 0) {
-        pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_HDRFIELD, 4);
+        pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_HDRFIELD, 4);
         return -1;
     }
 
@@ -729,7 +743,7 @@ static int pico_ipv6_extension_headers(struct pico_frame *f)
                 /* The Hop-by-Hop Options header,
                  * when present, must immediately follow the IPv6 header.
                  */
-                pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_NXTHDR, cur_nexthdr);
+                pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_NXTHDR, cur_nexthdr);
                 return -1;
             }
 
@@ -754,7 +768,7 @@ static int pico_ipv6_extension_headers(struct pico_frame *f)
             f->frag = (uint16_t)((frag_hdr->ext.frag.om[0] << 8) + frag_hdr->ext.frag.om[1]);
             /* If M-Flag is set, and packet is not 8B aligned, discard and alert */
             if (IP6FRAG_MORE(f->frag) && ((short_be(hdr->len) % 8) != 0)) {
-                pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_HDRFIELD, 4);
+                pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_HDRFIELD, 4);
                 return -1;
             }
 
@@ -799,7 +813,7 @@ static int pico_ipv6_extension_headers(struct pico_frame *f)
 
         default:
             /* Invalid next header */
-            pico_icmp6_parameter_problem(f, PICO_ICMP6_PARAMPROB_NXTHDR, cur_nexthdr);
+            pico_icmp6_parameter_problem(f->dev->stack, f, PICO_ICMP6_PARAMPROB_NXTHDR, cur_nexthdr);
             return -1;
         }
         nxthdr = exthdr->nxthdr;
@@ -821,7 +835,7 @@ static int pico_ipv6_process_mcast_in(struct pico_frame *f)
         if (hdr->nxthdr == PICO_PROTO_ICMP6 || (hbh != NULL && hbh->nxthdr == PICO_PROTO_ICMP6)) {
             pico_transport_receive(f, PICO_PROTO_ICMP6);
             return 1;
-        } else if ((pico_ipv6_mcast_filter(f) == 0) && (hdr->nxthdr == PICO_PROTO_UDP)) {
+        } else if ((pico_ipv6_mcast_filter(f->dev->stack, f) == 0) && (hdr->nxthdr == PICO_PROTO_UDP)) {
             pico_enqueue(pico_proto_udp.q_in, f);
             return 1;
         }
@@ -835,22 +849,22 @@ static int pico_ipv6_process_mcast_in(struct pico_frame *f)
 
     return 0;
 }
-static int pico_ipv6_process_in(struct pico_protocol *self, struct pico_frame *f)
+static int pico_ipv6_process_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     int proto = 0;
     struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
     struct pico_ipv6_exthdr *hbh;
     IGNORE_PARAMETER(self);
     /* forward if not local, except if router alert is set */
-    if (pico_ipv6_is_unicast(&hdr->dst) && !pico_ipv6_link_get(&hdr->dst)) {
+    if (pico_ipv6_is_unicast(S, &hdr->dst) && !pico_ipv6_link_get(S, &hdr->dst)) {
         if(hdr->nxthdr == 0) {
             hbh = (struct pico_ipv6_exthdr *) f->transport_hdr;
             if(hbh->ext.routing.routtype == 0 &&
                 hbh->ext.routing.segleft != 0)
-                return pico_ipv6_forward(f);
+                return pico_ipv6_forward(S, f);
         } else
             /* not local, try to forward. */
-            return pico_ipv6_forward(f);
+            return pico_ipv6_forward(S,f);
     }
 
     proto = pico_ipv6_extension_headers(f);
@@ -862,7 +876,7 @@ static int pico_ipv6_process_in(struct pico_protocol *self, struct pico_frame *f
     f->proto = (uint8_t)proto;
     ipv6_dbg("IPv6: payload %u net_len %u nxthdr %u\n", short_be(hdr->len), f->net_len, proto);
 
-    if (pico_ipv6_is_unicast(&hdr->dst)) {
+    if (pico_ipv6_is_unicast(S, &hdr->dst)) {
         pico_transport_receive(f, f->proto);
     } else if (pico_ipv6_is_multicast(hdr->dst.addr)) {
         /* XXX perform multicast filtering: solicited-node multicast address MUST BE allowed! */
@@ -875,9 +889,10 @@ static int pico_ipv6_process_in(struct pico_protocol *self, struct pico_frame *f
     return 0;
 }
 
-static int pico_ipv6_process_out(struct pico_protocol *self, struct pico_frame *f)
+static int pico_ipv6_process_out(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     IGNORE_PARAMETER(self);
+    IGNORE_PARAMETER(S);
 
     f->start = (uint8_t*)f->net_hdr;
 
@@ -889,7 +904,7 @@ static int pico_ipv6_process_out(struct pico_protocol *self, struct pico_frame *
  * increment net_len and transport_hdr with the len of the extension headers, decrement
  * transport_len with this value.
  */
-static struct pico_frame *pico_ipv6_alloc(struct pico_protocol *self, struct pico_device *dev, uint16_t size)
+static struct pico_frame *pico_ipv6_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size)
 {
     struct pico_frame *f = NULL;
 
@@ -898,12 +913,12 @@ static struct pico_frame *pico_ipv6_alloc(struct pico_protocol *self, struct pic
     if (0) {}
 #ifdef PICO_SUPPORT_6LOWPAN
     else if (PICO_DEV_IS_6LOWPAN(dev)) {
-        f = pico_proto_6lowpan_ll.alloc(&pico_proto_6lowpan_ll, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
+        f = pico_proto_6lowpan_ll.alloc(S, &pico_proto_6lowpan_ll, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
     }
 #endif
     else {
 #ifdef PICO_SUPPORT_ETH
-        f = pico_proto_ethernet.alloc(&pico_proto_ethernet, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
+        f = pico_proto_ethernet.alloc(S, &pico_proto_ethernet, dev, (uint16_t)(size + PICO_SIZE_IP6HDR));
 #else
         f = pico_frame_alloc(size + PICO_SIZE_IP6HDR + PICO_SIZE_ETHHDR);
 #endif
@@ -1032,7 +1047,7 @@ static int mcast_group_update_ipv6(struct pico_mcast_group *g, struct pico_tree 
     return 0;
 }
 
-int pico_ipv6_mcast_join(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *_MCASTFilter)
+int pico_ipv6_mcast_join(struct pico_stack *S, struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *_MCASTFilter)
 {
     struct pico_mcast_group *g = NULL, test = {
         0
@@ -1040,7 +1055,7 @@ int pico_ipv6_mcast_join(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_gro
     struct pico_ipv6_link *link = NULL;
     int res = -1;
     if (mcast_link) {
-        link = pico_ipv6_link_get(mcast_link);
+        link = pico_ipv6_link_get(S, mcast_link);
     }
 
     if (!link) {
@@ -1054,7 +1069,7 @@ int pico_ipv6_mcast_join(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_gro
             g->reference_count++;
 
 #ifdef PICO_SUPPORT_MLD
-        res = pico_mld_state_change(mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_UPDATE);
+        res = pico_mld_state_change(S, mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_UPDATE);
 #endif
     } else {
         g = PICO_ZALLOC(sizeof(struct pico_mcast_group));
@@ -1076,7 +1091,7 @@ int pico_ipv6_mcast_join(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_gro
 		}
 
 #ifdef PICO_SUPPORT_MLD
-        res = pico_mld_state_change(mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_CREATE);
+        res = pico_mld_state_change(S, mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_CREATE);
 #endif
     }
 
@@ -1089,7 +1104,7 @@ int pico_ipv6_mcast_join(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_gro
     return res;
 }
 
-int pico_ipv6_mcast_leave(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *_MCASTFilter)
+int pico_ipv6_mcast_leave(struct pico_stack *S, struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *_MCASTFilter)
 {
     struct pico_mcast_group *g = NULL, test = {
         0
@@ -1099,7 +1114,7 @@ int pico_ipv6_mcast_leave(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_gr
     struct pico_ip6 *source = NULL;
     int res = -1;
     if (mcast_link)
-        link = pico_ipv6_link_get(mcast_link);
+        link = pico_ipv6_link_get(S, mcast_link);
 
     if (!link)
         link = mcast_default_link_ipv6;
@@ -1112,7 +1127,7 @@ int pico_ipv6_mcast_leave(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_gr
     } else {
         if (reference_count && (--(g->reference_count) < 1)) {
 #ifdef PICO_SUPPORT_MLD
-            res = pico_mld_state_change(mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_DELETE);
+            res = pico_mld_state_change(S, mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_DELETE);
 #endif
             /* cleanup filter */
             pico_tree_foreach_safe(index, &g->MCASTSources, _tmp) {
@@ -1124,7 +1139,7 @@ int pico_ipv6_mcast_leave(struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_gr
             PICO_FREE(g);
         } else {
 #ifdef PICO_SUPPORT_MLD
-            res = pico_mld_state_change(mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_UPDATE);
+            res = pico_mld_state_change(S, mcast_link, mcast_group, filter_mode, _MCASTFilter, PICO_MLD_STATE_UPDATE);
 #endif
             if (mcast_group_update_ipv6(g, _MCASTFilter, filter_mode) < 0)
                 return -1;
@@ -1140,7 +1155,7 @@ struct pico_ipv6_link *pico_ipv6_get_default_mcastlink(void)
     return mcast_default_link_ipv6;
 }
 
-static int pico_ipv6_mcast_filter(struct pico_frame *f)
+static int pico_ipv6_mcast_filter(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_ipv6_link *link = NULL;
     struct pico_tree_node *index = NULL, *index2 = NULL;
@@ -1153,7 +1168,7 @@ static int pico_ipv6_mcast_filter(struct pico_frame *f)
 #endif
     test.mcast_addr.ip6 = hdr->dst;
 
-    pico_tree_foreach(index, &Tree_dev_ip6_link) {
+    pico_tree_foreach(index, &S->Tree_dev_ip6_link) {
         link = index->keyValue;
         g = pico_tree_findKey(link->MCASTGroups, &test);
         if (g) {
@@ -1245,7 +1260,7 @@ struct pico_ipv6_link *pico_ipv6_get_default_mcastlink(void)
     return NULL;
 }
 #endif /* PICO_SUPPORT_MCAST */
-static inline struct pico_ipv6_route *ipv6_pushed_frame_checks(struct pico_frame *f, struct pico_ip6 *dst)
+static inline struct pico_ipv6_route *ipv6_pushed_frame_checks(struct pico_stack *S, struct pico_frame *f, struct pico_ip6 *dst)
 {
     struct pico_ipv6_route *route = NULL;
 
@@ -1257,7 +1272,7 @@ static inline struct pico_ipv6_route *ipv6_pushed_frame_checks(struct pico_frame
         return NULL;
     }
 
-    route = pico_ipv6_route_find(dst);
+    route = pico_ipv6_route_find(S, dst);
     if (!route && !f->dev) {
         dbg("IPv6: route not found.\n");
         pico_err = PICO_ERR_EHOSTUNREACH;
@@ -1267,7 +1282,7 @@ static inline struct pico_ipv6_route *ipv6_pushed_frame_checks(struct pico_frame
     return route;
 }
 
-static inline void ipv6_push_hdr_adjust(struct pico_frame *f, struct pico_ipv6_link *link, struct pico_ip6 *src, struct pico_ip6 *dst,  uint8_t proto, int is_dad)
+static inline void ipv6_push_hdr_adjust(struct pico_stack *S, struct pico_frame *f, struct pico_ipv6_link *link, struct pico_ip6 *src, struct pico_ip6 *dst,  uint8_t proto, int is_dad)
 {
     struct pico_icmp6_hdr *icmp6_hdr = NULL;
     struct pico_ipv6_hdr *hdr = NULL;
@@ -1281,14 +1296,13 @@ static inline void ipv6_push_hdr_adjust(struct pico_frame *f, struct pico_ipv6_l
     hdr->hop = f->dev->hostvars.hoplimit;
     hdr->dst = *dst;
 
-    if (!src || !pico_ipv6_is_unicast(src))
+    if (!src || !pico_ipv6_is_unicast(S, src))
         /* Address defaults to the link information: src address selection is done via link */
         hdr->src = link->address;
     else {
         /* Sender protocol is forcing an IPv6 address */
         hdr->src = *src;
     }
-
     if (f->send_ttl) {
         hdr->hop = f->send_ttl;
     }
@@ -1359,21 +1373,21 @@ static inline void ipv6_push_hdr_adjust(struct pico_frame *f, struct pico_ipv6_l
 
 }
 
-static int ipv6_frame_push_final(struct pico_frame *f)
+static int ipv6_frame_push_final(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_ipv6_hdr *hdr = NULL;
     hdr = (struct pico_ipv6_hdr *)f->net_hdr;
-    if(pico_ipv6_link_get(&hdr->dst)) {
-        return pico_enqueue(&ipv6_in, f);
+    if(pico_ipv6_link_get(S, &hdr->dst)) {
+        return pico_enqueue(&S->q_ipv6.in, f);
     }
     else {
-        return pico_enqueue(&ipv6_out, f);
+        return pico_enqueue(&S->q_ipv6.out, f);
     }
 }
 
 struct pico_ipv6_link *pico_ipv6_linklocal_get(struct pico_device *dev);
 
-int pico_ipv6_frame_push(struct pico_frame *f, struct pico_ip6 *src, struct pico_ip6 *dst, uint8_t proto, int is_dad)
+int pico_ipv6_frame_push(struct pico_stack *S, struct pico_frame *f, struct pico_ip6 *src, struct pico_ip6 *dst, uint8_t proto, int is_dad)
 {
     struct pico_ipv6_route *route = NULL;
     struct pico_ipv6_link *link = NULL;
@@ -1394,10 +1408,10 @@ int pico_ipv6_frame_push(struct pico_frame *f, struct pico_ip6 *src, struct pico
     }
 
     if (dst && pico_ipv6_is_localhost(dst->addr)) {
-        f->dev = pico_get_device("loop");
+        f->dev = pico_get_device(S, "loop");
     }
 
-    route = ipv6_pushed_frame_checks(f, dst);
+    route = ipv6_pushed_frame_checks(S, f, dst);
     if (!route) {
         pico_frame_discard(f);
         return -1;
@@ -1422,11 +1436,11 @@ int pico_ipv6_frame_push(struct pico_frame *f, struct pico_ip6 *src, struct pico
     #endif
 
 push_final:
-    ipv6_push_hdr_adjust(f, link, src, dst, proto, is_dad);
-    return ipv6_frame_push_final(f);
+    ipv6_push_hdr_adjust(S, f, link, src, dst, proto, is_dad);
+    return ipv6_frame_push_final(S, f);
 }
 
-static int pico_ipv6_frame_sock_push(struct pico_protocol *self, struct pico_frame *f)
+static int pico_ipv6_frame_sock_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     struct pico_ip6 *dst = NULL;
     struct pico_remote_endpoint *remote_endpoint = NULL;
@@ -1445,7 +1459,7 @@ static int pico_ipv6_frame_sock_push(struct pico_protocol *self, struct pico_fra
         dst = &f->sock->remote_addr.ip6;
     }
 
-    return pico_ipv6_frame_push(f, NULL, dst, (uint8_t)f->sock->proto->proto_number, 0);
+    return pico_ipv6_frame_push(S, f, NULL, dst, (uint8_t)f->sock->proto->proto_number, 0);
 }
 
 /* interface: protocol definition */
@@ -1457,8 +1471,6 @@ struct pico_protocol pico_proto_ipv6 = {
     .process_in = pico_ipv6_process_in,
     .process_out = pico_ipv6_process_out,
     .push = pico_ipv6_frame_sock_push,
-    .q_in = &ipv6_in,
-    .q_out = &ipv6_out,
 };
 
 #ifdef DEBUG_IPV6_ROUTE
@@ -1482,10 +1494,10 @@ static void pico_ipv6_dbg_route(void)
 #define pico_ipv6_dbg_route() do { } while(0)
 #endif
 
-static inline struct pico_ipv6_route *ipv6_route_add_link(struct pico_ip6 gateway)
+static inline struct pico_ipv6_route *ipv6_route_add_link(struct pico_stack *S, struct pico_ip6 gateway)
 {
     struct pico_ip6 zerogateway = {{0}};
-    struct pico_ipv6_route *r = pico_ipv6_route_find(&gateway);
+    struct pico_ipv6_route *r = pico_ipv6_route_find(S, &gateway);
 
     if (!r) { /* Specified Gateway is unreachable */
         pico_err = PICO_ERR_EHOSTUNREACH;
@@ -1500,14 +1512,14 @@ static inline struct pico_ipv6_route *ipv6_route_add_link(struct pico_ip6 gatewa
     return r;
 }
 
-struct pico_ipv6_route *pico_ipv6_gateway_by_dev(struct pico_device *dev)
+struct pico_ipv6_route *pico_ipv6_gateway_by_dev(struct pico_stack *S, struct pico_device *dev)
 {
     struct pico_ipv6_link *link = pico_ipv6_link_by_dev(dev);
     struct pico_ipv6_route *route = NULL;
     struct pico_tree_node *node = NULL;
 
     /* Iterate over the IPv6-routes */
-    pico_tree_foreach(node, &IPV6Routes) {
+    pico_tree_foreach(node, &S->IPV6Routes) {
         route = (struct pico_ipv6_route *)node->keyValue;
         /* If the route is a default router, specified by the gw being set */
         if (!pico_ipv6_is_unspecified(route->gateway.addr) && pico_ipv6_is_unspecified(route->netmask.addr)) {
@@ -1524,7 +1536,7 @@ struct pico_ipv6_route *pico_ipv6_gateway_by_dev(struct pico_device *dev)
     return NULL;
 }
 
-struct pico_ipv6_route *pico_ipv6_gateway_by_dev_next(struct pico_device *dev, struct pico_ipv6_route *last)
+struct pico_ipv6_route *pico_ipv6_gateway_by_dev_next(struct pico_stack *S, struct pico_device *dev, struct pico_ipv6_route *last)
 {
     struct pico_ipv6_link *link = NULL;
     struct pico_ipv6_route *gw = NULL;
@@ -1534,7 +1546,7 @@ struct pico_ipv6_route *pico_ipv6_gateway_by_dev_next(struct pico_device *dev, s
     if (last == NULL)
         valid = 1;
 
-    pico_tree_foreach(i, &IPV6Routes) {
+    pico_tree_foreach(i, &S->IPV6Routes) {
         gw = (struct pico_ipv6_route *)i->keyValue;
         /* If the route is a default router, specified by the gw being set */
         if (!pico_ipv6_is_unspecified(gw->gateway.addr) && pico_ipv6_is_unspecified(gw->netmask.addr)) {
@@ -1556,14 +1568,14 @@ struct pico_ipv6_route *pico_ipv6_gateway_by_dev_next(struct pico_device *dev, s
     return NULL;
 }
 
-int pico_ipv6_route_add(struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link)
+int pico_ipv6_route_add(struct pico_stack *S, struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link)
 {
     struct pico_ip6 zerogateway = {{0}};
     struct pico_ipv6_route test, *new = NULL;
     test.dest = address;
     test.netmask = netmask;
     test.metric = (uint32_t)metric;
-    if (pico_tree_findKey(&IPV6Routes, &test)) {
+    if (pico_tree_findKey(&S->IPV6Routes, &test)) {
         /* Route already exists */
         pico_err = PICO_ERR_EINVAL;
         return -1;
@@ -1584,7 +1596,7 @@ int pico_ipv6_route_add(struct pico_ip6 address, struct pico_ip6 netmask, struct
         /* No gateway provided, use the link */
         new->link = link;
     } else {
-        struct pico_ipv6_route *r = ipv6_route_add_link(gateway);
+        struct pico_ipv6_route *r = ipv6_route_add_link(S, gateway);
         if (!r) {
             if (link)
                 new->link = link;
@@ -1607,7 +1619,7 @@ int pico_ipv6_route_add(struct pico_ip6 address, struct pico_ip6 netmask, struct
         return -1;
     }
 
-    if (pico_tree_insert(&IPV6Routes, new)) {
+    if (pico_tree_insert(&S->IPV6Routes, new)) {
         ipv6_dbg("IPv6: Failed to insert route in tree\n");
         PICO_FREE(new);
 		return -1;
@@ -1617,7 +1629,7 @@ int pico_ipv6_route_add(struct pico_ip6 address, struct pico_ip6 netmask, struct
     return 0;
 }
 
-int pico_ipv6_route_del(struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link)
+int pico_ipv6_route_del(struct pico_stack *S, struct pico_ip6 address, struct pico_ip6 netmask, struct pico_ip6 gateway, int metric, struct pico_ipv6_link *link)
 {
     struct pico_ipv6_route test, *found = NULL;
 
@@ -1632,9 +1644,9 @@ int pico_ipv6_route_del(struct pico_ip6 address, struct pico_ip6 netmask, struct
     test.netmask = netmask;
     test.metric = (uint32_t)metric;
 
-    found = pico_tree_findKey(&IPV6Routes, &test);
+    found = pico_tree_findKey(&S->IPV6Routes, &test);
     if (found) {
-        pico_tree_delete(&IPV6Routes, found);
+        pico_tree_delete(&S->IPV6Routes, found);
         PICO_FREE(found);
         pico_ipv6_dbg_route();
         return 0;
@@ -1644,18 +1656,18 @@ int pico_ipv6_route_del(struct pico_ip6 address, struct pico_ip6 netmask, struct
     return -1;
 }
 
-void pico_ipv6_router_down(const struct pico_ip6 *address)
+void pico_ipv6_router_down(struct pico_stack *S, const struct pico_ip6 *address)
 {
     struct pico_tree_node *index = NULL, *_tmp = NULL;
     struct pico_ipv6_route *route = NULL;
     if (!address)
         return;
 
-    pico_tree_foreach_safe(index, &IPV6Routes, _tmp)
+    pico_tree_foreach_safe(index, &S->IPV6Routes, _tmp)
     {
         route = index->keyValue;
         if (pico_ipv6_compare(address, &route->gateway) == 0) {
-            if (pico_ipv6_route_del(route->dest, route->netmask, route->gateway, (int)route->metric, route->link) != 0) {
+            if (pico_ipv6_route_del(S, route->dest, route->netmask, route->gateway, (int)route->metric, route->link) != 0) {
                 dbg("Route del FAILED\n");
             }
         }
@@ -1665,20 +1677,19 @@ void pico_ipv6_router_down(const struct pico_ip6 *address)
 #ifndef UNIT_TEST
 static void pico_ipv6_nd_dad(pico_time now, void *arg)
 {
-    struct pico_ip6 *address = (struct pico_ip6 *)arg;
-    struct pico_ipv6_link *l = NULL;
+    struct pico_ipv6_link *l, *info = (struct pico_ipv6_link *)arg;
     struct pico_ip6 old_address;
     if (!arg)
         return;
 
     IGNORE_PARAMETER(now);
 
-    l = pico_ipv6_link_istentative(address);
+    l = pico_ipv6_link_istentative(info->dev->stack, &info->address);
     if (!l)
         return;
 
     if (pico_device_link_state(l->dev) == 0) {
-        l->dad_timer = pico_timer_add(100, pico_ipv6_nd_dad, &l->address);
+        l->dad_timer = pico_timer_add(l->dev->stack, 100, pico_ipv6_nd_dad, &l);
         if (!l->dad_timer) {
             dbg("IPv6: Failed to start nd_dad timer\n");
             /* TODO does this have disastrous consequences? */
@@ -1688,20 +1699,20 @@ static void pico_ipv6_nd_dad(pico_time now, void *arg)
 
     if (l->isduplicate) {
         dbg("IPv6: duplicate address.\n");
-        old_address = *address;
-        if (pico_ipv6_is_linklocal(address->addr)) {
-            address->addr[8] = (uint8_t)((uint8_t)(pico_rand() & 0xff) & (uint8_t)(~0x03));
-            address->addr[9] = pico_rand() & 0xff;
-            address->addr[10] = pico_rand() & 0xff;
-            address->addr[11] = pico_rand() & 0xff;
-            address->addr[12] = pico_rand() & 0xff;
-            address->addr[13] = pico_rand() & 0xff;
-            address->addr[14] = pico_rand() & 0xff;
-            address->addr[15] = pico_rand() & 0xff;
-            pico_ipv6_link_add(l->dev, *address, l->netmask);
+        old_address = info->address;
+        if (pico_ipv6_is_linklocal(info->address.addr)) {
+            info->address.addr[8] = (uint8_t)((uint8_t)(pico_rand() & 0xff) & (uint8_t)(~0x03));
+            info->address.addr[9] = pico_rand() & 0xff;
+            info->address.addr[10] = pico_rand() & 0xff;
+            info->address.addr[11] = pico_rand() & 0xff;
+            info->address.addr[12] = pico_rand() & 0xff;
+            info->address.addr[13] = pico_rand() & 0xff;
+            info->address.addr[14] = pico_rand() & 0xff;
+            info->address.addr[15] = pico_rand() & 0xff;
+            pico_ipv6_link_add(l->dev, info->address, l->netmask);
         }
 
-        pico_ipv6_link_del(l->dev, old_address);
+        pico_ipv6_link_del(info->dev->stack, l->dev, old_address);
     }
     else {
         if (l->dup_detect_retrans-- == 0) {
@@ -1711,7 +1722,7 @@ static void pico_ipv6_nd_dad(pico_time now, void *arg)
         } else {
             /* Duplicate Address Detection */
             pico_icmp6_neighbor_solicitation(l->dev, &l->address, PICO_ICMP6_ND_DAD, NULL);
-            l->dad_timer = pico_timer_add(PICO_ICMP6_MAX_RTR_SOL_DELAY, pico_ipv6_nd_dad, &l->address);
+            l->dad_timer = pico_timer_add(l->dev->stack, PICO_ICMP6_MAX_RTR_SOL_DELAY, pico_ipv6_nd_dad, &l);
             if (!l->dad_timer) {
                 dbg("IPv6: Failed to start nd_dad timer\n");
                 /* TODO does this have disastrous consequences? */
@@ -1741,7 +1752,7 @@ static struct pico_ipv6_link *pico_ipv6_do_link_add(struct pico_device *dev, str
     test.dev = dev;
     /** XXX: Valid netmask / unicast address test **/
 
-    if (pico_tree_findKey(&IPV6Links, &test)) {
+    if (pico_tree_findKey(&dev->stack->IPV6Links, &test)) {
         dbg("IPv6: trying to assign an invalid address (in use)\n");
         pico_err = PICO_ERR_EADDRINUSE;
         return NULL;
@@ -1779,7 +1790,7 @@ static struct pico_ipv6_link *pico_ipv6_do_link_add(struct pico_device *dev, str
     new->mcast_last_query_interval = MLD_QUERY_INTERVAL;
 #endif
 #endif
-    if (pico_tree_insert(&IPV6Links, new)) {
+    if (pico_tree_insert(&dev->stack->IPV6Links, new)) {
         ipv6_dbg("IPv6: Failed to insert link in tree\n");
 #ifdef PICO_SUPPORT_MCAST
         PICO_FREE(new->MCASTGroups);
@@ -1794,19 +1805,19 @@ static struct pico_ipv6_link *pico_ipv6_do_link_add(struct pico_device *dev, str
     do {
         if (!mcast_default_link_ipv6) {
             mcast_default_link_ipv6 = new;
-            pico_ipv6_route_add(mcast_addr, mcast_nm, mcast_gw, 1, new);
+            pico_ipv6_route_add(dev->stack, mcast_addr, mcast_nm, mcast_gw, 1, new);
         }
 
-        pico_ipv6_mcast_join(&address, &all_hosts, 1, PICO_IP_MULTICAST_EXCLUDE, NULL);
+        pico_ipv6_mcast_join(dev->stack, &address, &all_hosts, 1, PICO_IP_MULTICAST_EXCLUDE, NULL);
     } while(0);
 #else
     IGNORE_PARAMETER(all_hosts);
 #endif
-    pico_ipv6_route_add(network, netmask, gateway, 1, new);
+    pico_ipv6_route_add(dev->stack, network, netmask, gateway, 1, new);
 #ifdef PICO_SUPPORT_6LOWPAN
     if (!PICO_DEV_IS_6LOWPAN(dev))
 #endif
-        pico_ipv6_route_add(mcast_addr, mcast_nm, mcast_gw, 1, new);
+        pico_ipv6_route_add(dev->stack, mcast_addr, mcast_nm, mcast_gw, 1, new);
     /* XXX MUST join the all-nodes multicast address on that interface, as well as
      *     the solicited-node multicast address corresponding to each of the IP
      *     addresses assigned to the interface. (RFC 4861 $7.2.1)
@@ -1845,10 +1856,10 @@ struct pico_ipv6_link *pico_ipv6_link_add(struct pico_device *dev, struct pico_i
     new->dup_detect_retrans = PICO_IPV6_DEFAULT_DAD_RETRANS;
 #ifndef UNIT_TEST
     /* Duplicate Address Detection */
-    new->dad_timer = pico_timer_add(100, pico_ipv6_nd_dad, &new->address);
+    new->dad_timer = pico_timer_add(dev->stack, 100, pico_ipv6_nd_dad, &new);
     if (!new->dad_timer) {
         dbg("IPv6: Failed to start nd_dad timer\n");
-        pico_ipv6_link_del(dev, address);
+        pico_ipv6_link_del(dev->stack, dev, address);
         return NULL;
     }
 #else
@@ -1862,35 +1873,35 @@ struct pico_ipv6_link *pico_ipv6_link_add(struct pico_device *dev, struct pico_i
     return new;
 }
 
-static int pico_ipv6_cleanup_routes(struct pico_ipv6_link *link)
+static int pico_ipv6_cleanup_routes(struct pico_stack *S, struct pico_ipv6_link *link)
 {
     struct pico_tree_node *index = NULL, *_tmp = NULL;
     struct pico_ipv6_route *route = NULL;
 
-    pico_tree_foreach_safe(index, &IPV6Routes, _tmp)
+    pico_tree_foreach_safe(index, &S->IPV6Routes, _tmp)
     {
         route = index->keyValue;
         if (link == route->link)
-            pico_ipv6_route_del(route->dest, route->netmask, route->gateway, (int)route->metric, route->link);
+            pico_ipv6_route_del(S, route->dest, route->netmask, route->gateway, (int)route->metric, route->link);
     }
     return 0;
 }
 
-int pico_ipv6_cleanup_links(struct pico_device *dev)
+int pico_ipv6_cleanup_links(struct pico_stack *S, struct pico_device *dev)
 {
     struct pico_tree_node *index = NULL, *_tmp = NULL;
     struct pico_ipv6_link *link = NULL;
 
-    pico_tree_foreach_safe(index, &IPV6Links, _tmp)
+    pico_tree_foreach_safe(index, &S->IPV6Links, _tmp)
     {
         link = index->keyValue;
         if (dev == link->dev)
-            pico_ipv6_link_del(dev, link->address);
+            pico_ipv6_link_del(dev->stack, dev, link->address);
     }
     return 0;
 }
 
-int pico_ipv6_link_del(struct pico_device *dev, struct pico_ip6 address)
+int pico_ipv6_link_del(struct pico_stack *S, struct pico_device *dev, struct pico_ip6 address)
 {
     struct pico_ipv6_link test = {
         0
@@ -1908,15 +1919,15 @@ int pico_ipv6_link_del(struct pico_device *dev, struct pico_ip6 address)
 
     test.address = address;
     test.dev = dev;
-    found = pico_tree_findKey(&IPV6Links, &test);
+    found = pico_tree_findKey(&S->IPV6Links, &test);
     if (!found) {
         pico_err = PICO_ERR_ENXIO;
         return -1;
     }
 
-    pico_ipv6_cleanup_routes(found);
+    pico_ipv6_cleanup_routes(S, found);
     if (found->dad_timer)
-        pico_timer_cancel(found->dad_timer);
+        pico_timer_cancel(S, found->dad_timer);
 
 #ifdef PICO_SUPPORT_MCAST
     /* TODO: Not sure how to properly delete MCAST groups, etc
@@ -1925,7 +1936,7 @@ int pico_ipv6_link_del(struct pico_device *dev, struct pico_ip6 address)
 
     if (found == mcast_default_link_ipv6) {
         mcast_default_link_ipv6 = NULL;
-        pico_ipv6_mcast_leave(&found->address, &all_hosts, 1, PICO_IP_MULTICAST_EXCLUDE, NULL);
+        pico_ipv6_mcast_leave(S, &found->address, &all_hosts, 1, PICO_IP_MULTICAST_EXCLUDE, NULL);
     }
 
     pico_tree_foreach_safe(index, found->MCASTGroups, _tmp)
@@ -1938,20 +1949,20 @@ int pico_ipv6_link_del(struct pico_device *dev, struct pico_ip6 address)
     PICO_FREE(found->MCASTGroups);
 #endif
 
-    pico_tree_delete(&IPV6Links, found);
+    pico_tree_delete(&S->IPV6Links, found);
     /* XXX MUST leave the solicited-node multicast address corresponding to the address (RFC 4861 $7.2.1) */
     PICO_FREE(found);
     return 0;
 }
 
-struct pico_ipv6_link *pico_ipv6_link_istentative(struct pico_ip6 *address)
+struct pico_ipv6_link *pico_ipv6_link_istentative(struct pico_stack *S, struct pico_ip6 *address)
 {
     struct pico_ipv6_link test = {
         0
     }, *found = NULL;
     test.address = *address;
 
-    found = pico_tree_findKey(&IPV6Links, &test);
+    found = pico_tree_findKey(&S->IPV6Links, &test);
     if (!found)
         return NULL;
 
@@ -1961,13 +1972,13 @@ struct pico_ipv6_link *pico_ipv6_link_istentative(struct pico_ip6 *address)
     return NULL;
 }
 
-struct pico_ipv6_link *pico_ipv6_link_get(struct pico_ip6 *address)
+struct pico_ipv6_link *pico_ipv6_link_get(struct pico_stack *S, struct pico_ip6 *address)
 {
     struct pico_ipv6_link test = {
         0
     }, *found = NULL;
     test.address = *address;
-    found = pico_tree_findKey(&IPV6Links, &test);
+    found = pico_tree_findKey(&S->IPV6Links, &test);
     if (!found) {
         return NULL;
     }
@@ -1979,7 +1990,7 @@ struct pico_ipv6_link *pico_ipv6_link_get(struct pico_ip6 *address)
     return found;
 }
 
-struct pico_device *pico_ipv6_link_find(struct pico_ip6 *address)
+struct pico_device *pico_ipv6_link_find(struct pico_stack *S, struct pico_ip6 *address)
 {
     struct pico_ipv6_link test = {
         0
@@ -1991,7 +2002,7 @@ struct pico_device *pico_ipv6_link_find(struct pico_ip6 *address)
 
     test.dev = NULL;
     test.address = *address;
-    found = pico_tree_findKey(&IPV6Links, &test);
+    found = pico_tree_findKey(&S->IPV6Links, &test);
     if (!found) {
         pico_err = PICO_ERR_ENXIO;
         return NULL;
@@ -2004,7 +2015,7 @@ struct pico_device *pico_ipv6_link_find(struct pico_ip6 *address)
     return found->dev;
 }
 
-struct pico_ip6 pico_ipv6_route_get_gateway(struct pico_ip6 *addr)
+struct pico_ip6 pico_ipv6_route_get_gateway(struct pico_stack *S, struct pico_ip6 *addr)
 {
     struct pico_ip6 nullip = {{0}};
     struct pico_ipv6_route *route = NULL;
@@ -2014,7 +2025,7 @@ struct pico_ip6 pico_ipv6_route_get_gateway(struct pico_ip6 *addr)
         return nullip;
     }
 
-    route = pico_ipv6_route_find(addr);
+    route = pico_ipv6_route_find(S, addr);
     if (!route) {
         pico_err = PICO_ERR_EHOSTUNREACH;
         return nullip;
@@ -2029,7 +2040,7 @@ struct pico_ipv6_link *pico_ipv6_link_by_dev(struct pico_device *dev)
     struct pico_tree_node *index = NULL;
     struct pico_ipv6_link *link = NULL;
 
-    pico_tree_foreach(index, &IPV6Links)
+    pico_tree_foreach(index, &dev->stack->IPV6Links)
     {
         link = index->keyValue;
         if (dev == link->dev)
@@ -2047,7 +2058,7 @@ struct pico_ipv6_link *pico_ipv6_link_by_dev_next(struct pico_device *dev, struc
     if (last == NULL)
         valid = 1;
 
-    pico_tree_foreach(index, &IPV6Links)
+    pico_tree_foreach(index, &dev->stack->IPV6Links)
     {
         link = index->keyValue;
         if (link->dev == dev) {
@@ -2060,12 +2071,12 @@ struct pico_ipv6_link *pico_ipv6_link_by_dev_next(struct pico_device *dev, struc
     return NULL;
 }
 
-struct pico_ipv6_link *pico_ipv6_prefix_configured(struct pico_ip6 *prefix)
+struct pico_ipv6_link *pico_ipv6_prefix_configured(struct pico_stack *S, struct pico_ip6 *prefix)
 {
     unsigned int nm64_len = 8;
     struct pico_tree_node *index = NULL;
     struct pico_ipv6_link *link = NULL;
-    pico_tree_foreach(index, &IPV6Links) {
+    pico_tree_foreach(index, &S->IPV6Links) {
         link = index->keyValue;
         if (memcmp(link->address.addr, prefix->addr, nm64_len) == 0)
             return link;
@@ -2106,10 +2117,10 @@ struct pico_ipv6_link *pico_ipv6_global_get(struct pico_device *dev)
 static uint32_t ipv6_lifetimer_check = 0u;
 
 static void pico_ipv6_check_link_lifetime_expired(pico_time now, void *arg);
-static void pico_ipv6_nd_enable_lifetime_check(void) 
+static void pico_ipv6_nd_enable_lifetime_check(struct pico_stack *S) 
 {
     if (!ipv6_lifetimer_check)
-        ipv6_lifetimer_check = pico_timer_add(1000, pico_ipv6_check_link_lifetime_expired, NULL);
+        ipv6_lifetimer_check = pico_timer_add(S, 1000, pico_ipv6_check_link_lifetime_expired, S);
 }
 
 static void pico_ipv6_check_link_lifetime_expired(pico_time now, void *arg)
@@ -2120,32 +2131,33 @@ static void pico_ipv6_check_link_lifetime_expired(pico_time now, void *arg)
 #ifdef PICO_SUPPORT_6LOWPAN
     struct pico_ipv6_route *gw = NULL;
 #endif
+	struct pico_stack *S = (struct pico_stack *)arg;
     (void)arg;
 
-    pico_tree_foreach_safe(index, &IPV6Links, temp) {
+    pico_tree_foreach_safe(index, &S->IPV6Links, temp) {
         link = index->keyValue;
         if ((link->expire_time > 0) && (link->expire_time < now)) {
             dbg("Warning: IPv6 address has expired.\n");
-            pico_ipv6_link_del(link->dev, link->address);
+            pico_ipv6_link_del(S,link->dev, link->address);
         }
 #ifdef PICO_SUPPORT_6LOWPAN
         else if (PICO_DEV_IS_6LOWPAN(link->dev) && !pico_ipv6_is_linklocal(link->address.addr) &&
                  (link->expire_time > 0) && (int)(link->expire_time - now) < (int)(TWO_HOURS >> 4)) {
             /* RFC6775: The host SHOULD unicast one or more RSs to the router well before the
              * shortest of the, Router Lifetime, PIO lifetimes and the lifetime of the 6COs. */
-            while ((gw = pico_ipv6_gateway_by_dev_next(link->dev, gw))) {
+            while ((gw = pico_ipv6_gateway_by_dev_next(S, link->dev, gw))) {
                 pico_6lp_nd_start_soliciting(link, gw);
             }
         }
 #endif
     }
-    if (!pico_timer_add(1000, pico_ipv6_check_link_lifetime_expired, NULL)) {
+    if (!pico_timer_add(S, 1000, pico_ipv6_check_link_lifetime_expired, arg)) {
         dbg("IPv6: Failed to start check_link_lifetime timer\n");
         /* TODO No more link lifetime checking now */
     }
     ipv6_lifetimer_check = 0u;
     if (check_needed)
-        pico_ipv6_nd_enable_lifetime_check();
+        pico_ipv6_nd_enable_lifetime_check(arg);
 }
 
 int pico_ipv6_lifetime_set(struct pico_ipv6_link *l, pico_time expire)
@@ -2162,7 +2174,7 @@ int pico_ipv6_lifetime_set(struct pico_ipv6_link *l, pico_time expire)
     } else {
         l->expire_time = now + TWO_HOURS;
     }
-    pico_ipv6_nd_enable_lifetime_check();
+    pico_ipv6_nd_enable_lifetime_check(l->dev->stack);
     return 0;
 }
 
@@ -2171,7 +2183,7 @@ int pico_ipv6_dev_routing_enable(struct pico_device *dev)
     pico_time next_timer_expire;
     if (!dev->hostvars.routing)  {
         next_timer_expire = PICO_IPV6_ND_MIN_RADV_INTERVAL + (pico_rand() % (PICO_IPV6_ND_MAX_RADV_INTERVAL - PICO_IPV6_ND_MIN_RADV_INTERVAL));
-        pico_timer_add(next_timer_expire, pico_ipv6_nd_ra_timer_callback, dev);
+        pico_timer_add(dev->stack, next_timer_expire, pico_ipv6_nd_ra_timer_callback, dev);
     }
     dev->hostvars.routing = 1;
     return 0;
@@ -2183,11 +2195,11 @@ int pico_ipv6_dev_routing_disable(struct pico_device *dev)
     return 0;
 }
 
-void pico_ipv6_unreachable(struct pico_frame *f, uint8_t code)
+void pico_ipv6_unreachable(struct pico_stack *S, struct pico_frame *f, uint8_t code)
 {
     struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
 #if defined PICO_SUPPORT_TCP || defined PICO_SUPPORT_UDP
-    pico_transport_error(f, hdr->nxthdr, code);
+    pico_transport_error(S, f, hdr->nxthdr, code);
 #endif
 }
 

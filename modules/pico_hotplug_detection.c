@@ -1,8 +1,29 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Frederik Van Slycken
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Frederik Van Slycken
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #include "pico_protocol.h"
 #include "pico_hotplug_detection.h"
@@ -16,9 +37,8 @@ struct pico_hotplug_device {
     struct pico_tree init_callbacks; /* functions we still need to call for initialization */
 };
 
-static uint32_t timer_id = 0;
 
-static int pico_hotplug_dev_cmp(void *ka, void *kb)
+int pico_hotplug_dev_cmp(void *ka, void *kb)
 {
     struct pico_hotplug_device *a = ka, *b = kb;
     if (a->dev->hash < b->dev->hash)
@@ -41,17 +61,16 @@ static int callback_compare(void *ka, void *kb)
     return 0;
 }
 
-static PICO_TREE_DECLARE(Hotplug_device_tree, pico_hotplug_dev_cmp);
-
-static void timer_cb(__attribute__((unused)) pico_time t, __attribute__((unused)) void*v)
+static void hotplug_timer_cb(__attribute__((unused)) pico_time t, void *v)
 {
     struct pico_tree_node *node = NULL, *safe = NULL, *cb_node = NULL, *cb_safe = NULL;
     int new_state, event;
     struct pico_hotplug_device *hpdev = NULL;
     void (*cb)(struct pico_device *dev, int event);
+    struct pico_stack *S = (struct pico_stack *)v;
 
     /* we don't know if one of the callbacks might deregister, so be safe */
-    pico_tree_foreach_safe(node, &Hotplug_device_tree, safe)
+    pico_tree_foreach_safe(node, &S->Hotplug_device_tree, safe)
     {
         hpdev = node->keyValue;
         new_state = hpdev->dev->link_state(hpdev->dev);
@@ -80,33 +99,24 @@ static void timer_cb(__attribute__((unused)) pico_time t, __attribute__((unused)
         }
     }
 
-    timer_id = pico_timer_add(PICO_HOTPLUG_INTERVAL, &timer_cb, NULL);
-    if (timer_id == 0) {
+    S->hotplug_timer_id = pico_timer_add(S, PICO_HOTPLUG_INTERVAL, &hotplug_timer_cb, S);
+    if (S->hotplug_timer_id == 0) {
         dbg("HOTPLUG: Failed to start timer\n");
     }
 }
 
-static int ensure_hotplug_timer(void)
+static int ensure_hotplug_timer(struct pico_stack *S)
 {
-    if (timer_id == 0)
+    if (S->hotplug_timer_id == 0)
     {
-        timer_id = pico_timer_add(PICO_HOTPLUG_INTERVAL, &timer_cb, NULL);
-        if (timer_id == 0) {
+        S->hotplug_timer_id = pico_timer_add(S, PICO_HOTPLUG_INTERVAL, &hotplug_timer_cb, S);
+        if (S->hotplug_timer_id == 0) {
             dbg("HOTPLUG: Failed to start timer\n");
             return -1;
         }
     }
 
     return 0;
-}
-
-static void disable_hotplug_timer(void)
-{
-    if (timer_id != 0)
-    {
-        pico_timer_cancel(timer_id);
-        timer_id = 0;
-    }
 }
 
 int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device *dev, int event))
@@ -123,7 +133,7 @@ int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device
         return -1;
     }
 
-    hotplug_dev = (struct pico_hotplug_device*)pico_tree_findKey(&Hotplug_device_tree, &search);
+    hotplug_dev = (struct pico_hotplug_device*)pico_tree_findKey(&dev->stack->Hotplug_device_tree, &search);
     if (!hotplug_dev )
     {
         hotplug_dev = PICO_ZALLOC(sizeof(struct pico_hotplug_device));
@@ -139,7 +149,7 @@ int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device
         hotplug_dev->callbacks.compare = &callback_compare;
         hotplug_dev->init_callbacks.root = &LEAF;
         hotplug_dev->init_callbacks.compare = &callback_compare;
-        if (pico_tree_insert(&Hotplug_device_tree, hotplug_dev)) {
+        if (pico_tree_insert(&dev->stack->Hotplug_device_tree, hotplug_dev)) {
             PICO_FREE(hotplug_dev);
         	return -1;
 		}
@@ -156,7 +166,7 @@ int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device
 		return -1;
 	}
 
-    if (ensure_hotplug_timer() < 0) {
+    if (ensure_hotplug_timer(dev->stack) < 0) {
         pico_hotplug_deregister((struct pico_device *)hotplug_dev, cb);
         return -1;
     }
@@ -171,7 +181,7 @@ int pico_hotplug_deregister(struct pico_device *dev, void (*cb)(struct pico_devi
         .dev = dev
     };
 
-    hotplug_dev = (struct pico_hotplug_device*)pico_tree_findKey(&Hotplug_device_tree, &search);
+    hotplug_dev = (struct pico_hotplug_device*)pico_tree_findKey(&dev->stack->Hotplug_device_tree, &search);
     if (!hotplug_dev)
         /* wasn't registered */
         return 0;
@@ -180,14 +190,14 @@ int pico_hotplug_deregister(struct pico_device *dev, void (*cb)(struct pico_devi
     pico_tree_delete(&hotplug_dev->init_callbacks, cb);
     if (pico_tree_empty(&hotplug_dev->callbacks))
     {
-        pico_tree_delete(&Hotplug_device_tree, hotplug_dev);
+        pico_tree_delete(&dev->stack->Hotplug_device_tree, hotplug_dev);
         PICO_FREE(hotplug_dev);
     }
 
-    if (pico_tree_empty(&Hotplug_device_tree) && timer_id != 0)
+    if (pico_tree_empty(&dev->stack->Hotplug_device_tree) && dev->stack->hotplug_timer_id != 0)
     {
-        pico_timer_cancel(timer_id);
-        timer_id = 0;
+        pico_timer_cancel(dev->stack, dev->stack->hotplug_timer_id);
+        dev->stack->hotplug_timer_id = 0;
     }
 
     return 0;

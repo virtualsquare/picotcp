@@ -1,3 +1,29 @@
+/*********************************************************************
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
+ *********************************************************************/
 #ifndef INCLUDE_PICO_MCAST
 #define INCLUDE_PICO_MCAST
 
@@ -15,7 +41,7 @@
 #define MCAST_EVENT_TIMER_EXPIRED             (0x5)
 #define MCAST_NO_REPORT                       (1)
 
-PACKED_STRUCT_DEF mcast_parameters {
+struct mcast_parameters {
     uint8_t event;
     uint8_t state;
     uint8_t general_query;
@@ -26,16 +52,18 @@ PACKED_STRUCT_DEF mcast_parameters {
     union pico_address mcast_group;
     struct pico_tree *MCASTFilter;
     struct pico_frame *f;
+    struct pico_stack *stack;
 };
 
-PACKED_STRUCT_DEF pico_mcast_group {
+struct pico_mcast_group {
     uint8_t filter_mode;
     uint16_t reference_count;
     union pico_address mcast_addr;
     struct pico_tree MCASTSources;
+    struct pico_stack *stack;
 };
 
-PACKED_STRUCT_DEF mcast_filter_parameters {
+struct mcast_filter_parameters {
     struct mcast_parameters *p;
     struct pico_tree *allow;
     struct pico_tree *block;
@@ -48,6 +76,6 @@ PACKED_STRUCT_DEF mcast_filter_parameters {
 };
 
 
-extern int8_t pico_mcast_generate_filter(struct mcast_filter_parameters *filter, struct mcast_parameters *p);
+extern int8_t pico_mcast_generate_filter(struct pico_stack *S, struct mcast_filter_parameters *filter, struct mcast_parameters *p);
 
 #endif

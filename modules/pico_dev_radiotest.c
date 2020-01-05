@@ -1,8 +1,29 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
-
-   Authors: Daniele Lacamera, Jelle De Vleeschouwer
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera, Jelle De Vleeschouwer
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 
 /*******************************************************************************
@@ -437,7 +458,7 @@ pico_radiotest_quit(int signum)
 }
 
 /* Creates a radiotest-device */
-struct pico_device *pico_radiotest_create(uint8_t addr, uint8_t area0, uint8_t area1, int loop, char *dump)
+struct pico_device *pico_radiotest_create(struct pico_stack *S, uint8_t addr, uint8_t area0, uint8_t area1, int loop, char *dump)
 {
     struct radiotest_radio *radio = PICO_ZALLOC(sizeof(struct radiotest_radio));
     struct pico_dev_6lowpan *lp = (struct pico_dev_6lowpan *)radio;
@@ -463,13 +484,13 @@ struct pico_device *pico_radiotest_create(uint8_t addr, uint8_t area0, uint8_t a
         if ((connection = radiotest_connect(addr, area0, area1)) <= 0) {
             return NULL;
         }
-        if (pico_dev_6lowpan_init(lp, "radio", (uint8_t *)&radio->addr, LL_MODE_IEEE802154, MTU_802154_MAC, 0, radiotest_send, radiotest_poll)) {
+        if (pico_dev_6lowpan_init(S, lp, "radio", (uint8_t *)&radio->addr, LL_MODE_IEEE802154, MTU_802154_MAC, 0, radiotest_send, radiotest_poll)) {
             RADIO_DBG("pico_device_init failed.\n");
             pico_device_destroy((struct pico_device *)lp);
             return NULL;
         }
     } else {
-        if (pico_dev_6lowpan_init(lp, "radio", (uint8_t *)&radio->addr, LL_MODE_IEEE802154, MTU_802154_MAC, 0, pico_loop_send, pico_loop_poll)) {
+        if (pico_dev_6lowpan_init(S, lp, "radio", (uint8_t *)&radio->addr, LL_MODE_IEEE802154, MTU_802154_MAC, 0, pico_loop_send, pico_loop_poll)) {
             RADIO_DBG("pico_device_init failed.\n");
             pico_device_destroy((struct pico_device *)lp);
             return NULL;

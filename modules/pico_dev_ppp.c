@@ -1,12 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012 TASS Belgium NV. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Serge Gadeyne, Daniele Lacamera, Maxime Vincent
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012 TASS Belgium NV.
+ * Authors: Serge Gadeyne, Daniele Lacamera, Maxime Vincent
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -1248,13 +1266,13 @@ static void ppp_ipv4_conf(struct pico_device_ppp *ppp)
     };
     ip.addr = ppp->ipcp_ip;
     nm.addr = 0xFFFFFF00;
-    pico_ipv4_link_add(&ppp->dev, ip, nm);
-    pico_ipv4_route_add(any, any, any, 1, pico_ipv4_link_by_dev(&ppp->dev));
+    pico_ipv4_link_add(ppp->dev.stack, &ppp->dev, ip, nm);
+    pico_ipv4_route_add(ppp->dev.stack, any, any, any, 1, pico_ipv4_link_by_dev(ppp->dev.stack, &ppp->dev));
 
     dns1.addr = ppp->ipcp_dns1;
     dns2.addr = ppp->ipcp_dns2;
-    pico_dns_client_nameserver(&dns1, PICO_DNS_NS_ADD);
-    pico_dns_client_nameserver(&dns2, PICO_DNS_NS_ADD);
+    pico_dns_client_nameserver(ppp->dev.stack, &dns1, PICO_DNS_NS_ADD);
+    pico_dns_client_nameserver(ppp->dev.stack, &dns2, PICO_DNS_NS_ADD);
 }
 
 
@@ -2172,13 +2190,13 @@ static void pico_ppp_tick(pico_time t, void *arg)
         evaluate_lcp_state(ppp, PPP_LCP_EVENT_OPEN);
     }
 
-    if (!pico_timer_add(1000, pico_ppp_tick, arg)) {
+    if (!pico_timer_add(ppp->dev.stack, 1000, pico_ppp_tick, arg)) {
         ppp_dbg("PPP: Failed to start tick timer\n");
         /* TODO No more PPP ticks now */
     }
 }
 
-struct pico_device *pico_ppp_create(void)
+struct pico_device *pico_ppp_create(struct pico_stack *S)
 {
     struct pico_device_ppp *ppp = PICO_ZALLOC(sizeof(struct pico_device_ppp));
     char devname[MAX_DEVICE_NAME];
@@ -2188,7 +2206,7 @@ struct pico_device *pico_ppp_create(void)
 
     snprintf(devname, MAX_DEVICE_NAME, "ppp%d", ppp_devnum++);
 
-    if( 0 != pico_device_init((struct pico_device *)ppp, devname, NULL)) {
+    if( 0 != pico_device_init(S, (struct pico_device *)ppp, devname, NULL)) {
         return NULL;
     }
 
@@ -2204,7 +2222,7 @@ struct pico_device *pico_ppp_create(void)
     ppp->auth_state = PPP_AUTH_STATE_INITIAL;
     ppp->ipcp_state = PPP_IPCP_STATE_INITIAL;
 
-    ppp->timer = pico_timer_add(1000, pico_ppp_tick, ppp);
+    ppp->timer = pico_timer_add(ppp->dev.stack, 1000, pico_ppp_tick, ppp);
     if (!ppp->timer) {
         ppp_dbg("PPP: Failed to start tick timer\n");
         pico_device_destroy((struct pico_device*) ppp);
@@ -2235,7 +2253,7 @@ int pico_ppp_disconnect(struct pico_device *dev)
     ppp->autoreconnect = 0;
     evaluate_lcp_state(ppp, PPP_LCP_EVENT_CLOSE);
 
-    pico_ipv4_cleanup_links(dev);
+    pico_ipv4_cleanup_links(dev->stack, dev);
 
     return 0;
 }

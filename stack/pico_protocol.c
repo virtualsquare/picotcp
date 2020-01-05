@@ -1,13 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include "pico_protocol.h"
 #include "pico_tree.h"
 #include "pico_stack.h"
@@ -25,7 +42,7 @@ static int pico_proto_cmp(void *ka, void *kb)
 }
 
 
-static int proto_loop_in(struct pico_protocol *proto, int loop_score)
+static int proto_loop_in(struct pico_stack *S, struct pico_protocol *proto, int loop_score)
 {
     struct pico_frame *f;
     while(loop_score > 0) {
@@ -33,14 +50,14 @@ static int proto_loop_in(struct pico_protocol *proto, int loop_score)
             break;
 
         f = pico_dequeue(proto->q_in);
-        if ((f) && (proto->process_in(proto, f) > 0)) {
+        if ((f) && (proto->process_in(S, proto, f) > 0)) {
             loop_score--;
         }
     }
     return loop_score;
 }
 
-static int proto_loop_out(struct pico_protocol *proto, int loop_score)
+static int proto_loop_out(struct pico_stack *S, struct pico_protocol *proto, int loop_score)
 {
     struct pico_frame *f;
     while(loop_score > 0) {
@@ -48,7 +65,7 @@ static int proto_loop_out(struct pico_protocol *proto, int loop_score)
             break;
 
         f = pico_dequeue(proto->q_out);
-        if ((f) && (proto->process_out(proto, f) > 0)) {
+        if ((f) && (proto->process_out(S, proto, f) > 0)) {
             loop_score--;
         }
     }
@@ -56,7 +73,7 @@ static int proto_loop_out(struct pico_protocol *proto, int loop_score)
 }
 
 #ifdef PICO_SUPPORT_TICKLESS
-static void proto_full_loop_in(void *arg)
+static void proto_full_loop_in(struct pico_stack *S, void *arg)
 {
     struct pico_protocol *proto = (struct pico_protocol *)arg;
     struct pico_frame *f;
@@ -65,11 +82,11 @@ static void proto_full_loop_in(void *arg)
             break;
 
         f = pico_dequeue(proto->q_in);
-        proto->process_in(proto, f);
+        proto->process_in(S, proto, f);
     }
 }
 
-static void proto_full_loop_out(void *arg)
+static void proto_full_loop_out(struct pico_stack *S, void *arg)
 {
     struct pico_protocol *proto = (struct pico_protocol *)arg;
     struct pico_frame *f;
@@ -78,20 +95,20 @@ static void proto_full_loop_out(void *arg)
             break;
 
         f = pico_dequeue(proto->q_out);
-        proto->process_out(proto, f);
+        proto->process_out(S, proto, f);
     }
 }
 #endif
 
 
 
-static int proto_loop(struct pico_protocol *proto, int loop_score, int direction)
+static int proto_loop(struct pico_stack *S, struct pico_protocol *proto, int loop_score, int direction)
 {
 
     if (direction == PICO_LOOP_DIR_IN)
-        loop_score = proto_loop_in(proto, loop_score);
+        loop_score = proto_loop_in(S, proto, loop_score);
     else if (direction == PICO_LOOP_DIR_OUT)
-        loop_score = proto_loop_out(proto, loop_score);
+        loop_score = proto_loop_out(S, proto, loop_score);
 
     return loop_score;
 }
@@ -122,7 +139,7 @@ static void roundrobin_end(struct pico_proto_rr *rr, int direction, struct pico_
         rr->node_out = last;
 }
 
-static int pico_protocol_generic_loop(struct pico_proto_rr *rr, int loop_score, int direction)
+static int pico_protocol_generic_loop(struct pico_stack *S, struct pico_proto_rr *rr, int loop_score, int direction)
 {
     struct pico_protocol *start, *next;
     struct pico_tree_node *next_node = roundrobin_init(rr, direction);
@@ -137,7 +154,7 @@ static int pico_protocol_generic_loop(struct pico_proto_rr *rr, int loop_score, 
 
     /* round-robin all layer protocols, break if traversed all protocols */
     while (loop_score > 1 && next != NULL) {
-        loop_score = proto_loop(next, loop_score, direction);
+        loop_score = proto_loop(S, next, loop_score, direction);
         next_node = pico_tree_next(next_node);
         next = next_node->keyValue;
         if (next == NULL)
@@ -155,22 +172,22 @@ static int pico_protocol_generic_loop(struct pico_proto_rr *rr, int loop_score, 
 
 int pico_protocol_datalink_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&S->sched->rr_datalink, loop_score, direction);
+    return pico_protocol_generic_loop(S, &S->sched->rr_datalink, loop_score, direction);
 }
 
 int pico_protocol_network_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&S->sched->rr_network, loop_score, direction);
+    return pico_protocol_generic_loop(S, &S->sched->rr_network, loop_score, direction);
 }
 
 int pico_protocol_transport_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&S->sched->rr_transport, loop_score, direction);
+    return pico_protocol_generic_loop(S, &S->sched->rr_transport, loop_score, direction);
 }
 
 int pico_protocol_socket_loop(struct pico_stack *S, int loop_score, int direction)
 {
-    return pico_protocol_generic_loop(&S->sched->rr_socket, loop_score, direction);
+    return pico_protocol_generic_loop(S, &S->sched->rr_socket, loop_score, direction);
 }
 
 static void proto_layer_rr_reset(struct pico_proto_rr *rr)
@@ -238,8 +255,8 @@ void pico_protocol_init(struct pico_stack *S, struct pico_protocol *p)
             return;
     }
 #ifdef PICO_SUPPORT_TICKLESS
-    pico_queue_register_listener(p->q_in, proto_full_loop_in, p);
-    pico_queue_register_listener(p->q_out, proto_full_loop_out, p);
+    pico_queue_register_listener(S, p->q_in, proto_full_loop_in, p);
+    pico_queue_register_listener(S, p->q_out, proto_full_loop_out, p);
 #endif
     dbg("Protocol %s registered (layer: %d).\n", p->name, p->layer);
 

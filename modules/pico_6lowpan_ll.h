@@ -1,8 +1,28 @@
 /*********************************************************************
- PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights
- reserved.  See LICENSE and COPYING for usage.
-
- Authors: Jelle De Vleeschouwer
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 
 #ifndef INCLUDE_PICO_6LOWPAN_LL
@@ -42,13 +62,13 @@ struct iphc_ctx
  *  Looks up a context entry for a particular IPv6-address contained in 'addr' and returns it.
  *  Returns NULL if no entry is found. (See RFC4944)
  */
-struct iphc_ctx * ctx_lookup(struct pico_ip6 addr);
+struct iphc_ctx * ctx_lookup(struct pico_stack *S, struct pico_ip6 addr);
 
 /*
  *  Looks up a context entry that belongs to a certain context identifier.
  *  Returns NULL if no belonging entry is found. (See RFC4944)
  */
-struct iphc_ctx * ctx_lookup_id(uint8_t id);
+struct iphc_ctx * ctx_lookup_id(struct pico_stack *S, uint8_t id);
 
 /*
  *  Creates a new, or updates and existing, context entry for a certain IPv6 address. (See RFC4944)
@@ -80,7 +100,7 @@ struct pico_dev_6lowpan
 };
 
 /* Initialisation routine for 6LoWPAN specific devices */
-int pico_dev_6lowpan_init(struct pico_dev_6lowpan *dev, const char *name, uint8_t *mac, enum pico_ll_mode ll_mode, uint16_t mtu, uint8_t nomac,
+int pico_dev_6lowpan_init(struct pico_stack *S, struct pico_dev_6lowpan *dev, const char *name, uint8_t *mac, enum pico_ll_mode ll_mode, uint16_t mtu, uint8_t nomac,
                           int (* send)(struct pico_device *dev, void *_buf, int len, union pico_ll_addr src, union pico_ll_addr dst),
                           int (* poll)(struct pico_device *dev, int loop_score));
 
@@ -112,7 +132,8 @@ extern struct pico_protocol pico_proto_6lowpan_ll;
  * Public functions
  ******************************************************************************/
 
-void pico_6lowpan_ll_init(void);
+int32_t compare_6lowpan_ctx(void *a, void *b);
+void pico_6lowpan_ll_init(struct pico_stack *S);
 int32_t pico_6lowpan_ll_push(struct pico_frame *f);
 int32_t pico_6lowpan_ll_pull(struct pico_frame *f);
 int32_t frame_6lowpan_ll_store_addr(struct pico_frame *f);

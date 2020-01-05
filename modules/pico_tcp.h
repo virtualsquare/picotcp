@@ -1,9 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_TCP
 #define INCLUDE_PICO_TCP
@@ -76,7 +95,7 @@ PACKED_STRUCT_DEF pico_tcp_option
     uint8_t len;
 };
 
-struct pico_socket *pico_tcp_open(uint16_t family);
+struct pico_socket *pico_tcp_open(struct pico_stack *S, uint16_t family);
 uint32_t pico_tcp_read(struct pico_socket *s, void *buf, uint32_t len);
 int pico_tcp_initconn(struct pico_socket *s);
 int pico_tcp_input(struct pico_socket *s, struct pico_frame *f);
@@ -88,7 +107,7 @@ uint16_t pico_tcp_checksum_ipv6(struct pico_frame *f);
 uint16_t pico_tcp_overhead(struct pico_socket *s);
 int pico_tcp_output(struct pico_socket *s, int loop_score);
 int pico_tcp_queue_in_is_empty(struct pico_socket *s);
-int pico_tcp_reply_rst(struct pico_frame *f);
+int pico_tcp_reply_rst(struct pico_stack *S, struct pico_frame *f);
 void pico_tcp_cleanup_queues(struct pico_socket *sck);
 void pico_tcp_notify_closing(struct pico_socket *sck);
 void pico_tcp_flags_update(struct pico_frame *f, struct pico_socket *s);

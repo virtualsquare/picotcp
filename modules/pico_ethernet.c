@@ -1,12 +1,30 @@
- /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
-   Authors: Daniele Lacamera
+/*********************************************************************
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #include "pico_config.h"
 #include "pico_stack.h"
 #include "pico_ipv4.h"
@@ -45,33 +63,27 @@ static const uint8_t PICO_ETHADDR_MCAST6[6] = {
  * into the stack.
  */
 
-/* Queues */
-static struct pico_queue ethernet_in = {
-    0
-};
-static struct pico_queue ethernet_out = {
-    0
-};
+int32_t MOCKABLE pico_ethernet_send(struct pico_stack *S, struct pico_frame *f);
+int32_t pico_ethernet_receive(struct pico_stack *S, struct pico_frame *f);
 
-int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f);
-int32_t pico_ethernet_receive(struct pico_frame *f);
-
-static int pico_ethernet_process_out(struct pico_protocol *self, struct pico_frame *f)
+static int pico_ethernet_process_out(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     IGNORE_PARAMETER(self);
-    return pico_ethernet_send(f);
+    return pico_ethernet_send(S, f);
 }
 
-static int pico_ethernet_process_in(struct pico_protocol *self, struct pico_frame *f)
+static int pico_ethernet_process_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(self);
-    return (pico_ethernet_receive(f) <= 0); /* 0 on success, which is ret > 0 */
+    return (pico_ethernet_receive(S, f) <= 0); /* 0 on success, which is ret > 0 */
 }
 
-static struct pico_frame *pico_ethernet_alloc(struct pico_protocol *self, struct pico_device *dev, uint16_t size)
+static struct pico_frame *pico_ethernet_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size)
 {
     struct pico_frame *f = NULL;
     uint32_t overhead = 0;
+    (void)S;
     IGNORE_PARAMETER(self);
 
     if (dev)
@@ -96,11 +108,9 @@ struct pico_protocol pico_proto_ethernet = {
     .alloc = pico_ethernet_alloc,
     .process_in = pico_ethernet_process_in,
     .process_out = pico_ethernet_process_out,
-    .q_in = &ethernet_in,
-    .q_out = &ethernet_out,
 };
 
-static int destination_is_bcast(struct pico_frame *f)
+static int destination_is_bcast(struct pico_stack *S, struct pico_frame *f)
 {
     if (!f)
         return 0;
@@ -111,7 +121,7 @@ static int destination_is_bcast(struct pico_frame *f)
 #ifdef PICO_SUPPORT_IPV4
     else {
         struct pico_ipv4_hdr *hdr = (struct pico_ipv4_hdr *) f->net_hdr;
-        return pico_ipv4_is_broadcast(hdr->dst.addr);
+        return pico_ipv4_is_broadcast(S, hdr->dst.addr);
     }
 #else
     return 0;
@@ -142,7 +152,7 @@ static int destination_is_mcast(struct pico_frame *f)
 }
 
 #ifdef PICO_SUPPORT_IPV4
-static int32_t pico_ipv4_ethernet_receive(struct pico_frame *f)
+static int32_t pico_ipv4_ethernet_receive(struct pico_stack *S, struct pico_frame *f)
 {
     if (IS_IPV4(f)) {
         if (pico_enqueue(pico_proto_ipv4.q_in, f) < 0) {
@@ -150,7 +160,7 @@ static int32_t pico_ipv4_ethernet_receive(struct pico_frame *f)
             return -1;
         }
     } else {
-        (void)pico_icmp4_param_problem(f, 0);
+        (void)pico_icmp4_param_problem(S, f, 0);
         pico_frame_discard(f);
         return -1;
     }
@@ -177,7 +187,7 @@ static int32_t pico_ipv6_ethernet_receive(struct pico_frame *f)
 }
 #endif
 
-static int32_t pico_eth_receive(struct pico_frame *f)
+static int32_t pico_eth_receive(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_eth_hdr *hdr = (struct pico_eth_hdr *) f->datalink_hdr;
     f->net_hdr = f->datalink_hdr + sizeof(struct pico_eth_hdr);
@@ -189,7 +199,7 @@ static int32_t pico_eth_receive(struct pico_frame *f)
 
 #if defined (PICO_SUPPORT_IPV4)
     if (hdr->proto == PICO_IDETH_IPV4)
-        return pico_ipv4_ethernet_receive(f);
+        return pico_ipv4_ethernet_receive(S, f);
 #endif
 
 #if defined (PICO_SUPPORT_IPV6)
@@ -201,15 +211,16 @@ static int32_t pico_eth_receive(struct pico_frame *f)
     return -1;
 }
 
-static void pico_eth_check_bcast(struct pico_frame *f)
+static void pico_eth_check_bcast(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_eth_hdr *hdr = (struct pico_eth_hdr *) f->datalink_hdr;
+    (void)S;
     /* Indicate a link layer broadcast packet */
     if (memcmp(hdr->daddr, PICO_ETHADDR_ALL, PICO_SIZE_ETH) == 0)
         f->flags |= PICO_FRAME_FLAG_BCAST;
 }
 
-int32_t pico_ethernet_receive(struct pico_frame *f)
+int32_t pico_ethernet_receive(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_eth_hdr *hdr;
     if (!f || !f->dev || !f->datalink_hdr)
@@ -230,8 +241,8 @@ int32_t pico_ethernet_receive(struct pico_frame *f)
         return -1;
     }
 
-    pico_eth_check_bcast(f);
-    return pico_eth_receive(f);
+    pico_eth_check_bcast(S, f);
+    return pico_eth_receive(S, f);
 }
 
 static struct pico_eth *pico_ethernet_mcast_translate(struct pico_frame *f, uint8_t *pico_mcast_mac)
@@ -262,7 +273,7 @@ static struct pico_eth *pico_ethernet_mcast6_translate(struct pico_frame *f, uin
 }
 #endif
 
-static int pico_ethernet_ipv6_dst(struct pico_frame *f, struct pico_eth *const dstmac)
+static int pico_ethernet_ipv6_dst(struct pico_stack *S, struct pico_frame *f, struct pico_eth *const dstmac)
 {
     int retval = -1;
     if (!dstmac)
@@ -277,7 +288,7 @@ static int pico_ethernet_ipv6_dst(struct pico_frame *f, struct pico_eth *const d
         memcpy(dstmac, pico_mcast6_mac, PICO_SIZE_ETH);
         retval = 0;
     } else {
-        struct pico_eth *neighbor = pico_ipv6_get_neighbor(f);
+        struct pico_eth *neighbor = pico_ipv6_get_neighbor(S, f);
         if (neighbor)
         {
             memcpy(dstmac, neighbor, PICO_SIZE_ETH);
@@ -297,7 +308,7 @@ static int pico_ethernet_ipv6_dst(struct pico_frame *f, struct pico_eth *const d
  * Returns 0 if the packet is not for us or an error occured.
  * Returns 1 if the packet is cloned to our own receive queue, the original supplied frame will be discarded
  * */
-static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr)
+static int32_t pico_ethsend_local(struct pico_stack *S, struct pico_frame *f, struct pico_eth_hdr *hdr)
 {
     if (!hdr || !f)
         return 0;
@@ -306,7 +317,7 @@ static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr
     if(!memcmp(hdr->daddr, hdr->saddr, PICO_SIZE_ETH)) {
         struct pico_frame *clone = pico_frame_copy(f);
         dbg("sending out packet destined for our own mac\n");
-        if (pico_ethernet_receive(clone) < 0) {
+        if (pico_ethernet_receive(S, clone) < 0) {
             dbg("pico_ethernet_receive() failed\n");
             return 0;
         }
@@ -321,10 +332,10 @@ static int32_t pico_ethsend_local(struct pico_frame *f, struct pico_eth_hdr *hdr
  * Returns 0 if the packet is not bcast, so it will be handled somewhere else.
  * Returns 1 if the packet is handled by the pico_device_broadcast() function and is discarded
  * */
-static int32_t pico_ethsend_bcast(struct pico_frame *f)
+static int32_t pico_ethsend_bcast(struct pico_stack *S, struct pico_frame *f)
 {
     if (IS_LIMITED_BCAST(f)) {
-        (void)pico_device_broadcast(f); /* We can discard broadcast even if it's not sent. */
+        (void)pico_device_broadcast(S, f); /* We can discard broadcast even if it's not sent. */
         return 1;
     }
 
@@ -355,7 +366,7 @@ static int eth_check_headroom(struct pico_frame *f)
 /* This function looks for the destination mac address
  * in order to send the frame being processed.
  */
-int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
+int32_t MOCKABLE pico_ethernet_send(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_eth dstmac;
     uint8_t dstmac_valid = 0;
@@ -367,11 +378,11 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
      * destination address is taken from the ND tables
      */
     if (IS_IPV6(f)) {
-        if (pico_ethernet_ipv6_dst(f, &dstmac) < 0)
+        if (pico_ethernet_ipv6_dst(S, f, &dstmac) < 0)
         {
             /* Enqueue copy of frame in IPv6 ND-module to retry later. Discard
              * frame, otherwise we have a duplicate in IPv6-ND */
-            pico_ipv6_nd_postpone(f);
+            pico_ipv6_nd_postpone(S,f);
             pico_frame_discard(f);
             return (int32_t)len;
         }
@@ -383,7 +394,7 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
 #endif
 
     /* In case of broadcast (IPV4 only), dst mac is FF:FF:... */
-    if (IS_BCAST(f) || destination_is_bcast(f))
+    if (IS_BCAST(f) || destination_is_bcast(S, f))
     {
         memcpy(&dstmac, PICO_ETHADDR_ALL, PICO_SIZE_ETH);
         dstmac_valid = 1;
@@ -402,7 +413,7 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
 #if (defined PICO_SUPPORT_IPV4)
     else {
         struct pico_eth *arp_get;
-        arp_get = pico_arp_get(f);
+        arp_get = pico_arp_get(S, f);
         if (arp_get) {
             memcpy(&dstmac, arp_get, PICO_SIZE_ETH);
             dstmac_valid = 1;
@@ -431,7 +442,7 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_frame *f)
                 hdr->proto = proto;
             }
             len = f->len;
-            if (pico_ethsend_local(f, hdr) || pico_ethsend_bcast(f) || pico_ethsend_dispatch(f)) {
+            if (pico_ethsend_local(S, f, hdr) || pico_ethsend_bcast(S, f) || pico_ethsend_dispatch(f)) {
                 /* one of the above functions has delivered the frame accordingly.
                  * (returned != 0). It is safe to directly return successfully. */
                 return (int32_t)len;

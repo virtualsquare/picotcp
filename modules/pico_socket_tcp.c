@@ -1,3 +1,29 @@
+/*********************************************************************
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
+ *********************************************************************/
 #include "pico_config.h"
 #include "pico_socket.h"
 #include "pico_ipv4.h"
@@ -225,12 +251,12 @@ int pico_socket_tcp_deliver(struct pico_sockport *sp, struct pico_frame *f)
     return socket_tcp_do_deliver(target, f);
 }
 
-struct pico_socket *pico_socket_tcp_open(uint16_t family)
+struct pico_socket *pico_socket_tcp_open(struct pico_stack *S, uint16_t family)
 {
     struct pico_socket *s = NULL;
     (void) family;
 #ifdef PICO_SUPPORT_TCP
-    s = pico_tcp_open(family);
+    s = pico_tcp_open(S, family);
     if (!s) {
         pico_err = PICO_ERR_ENOMEM;
         return NULL;

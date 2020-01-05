@@ -1,7 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_PROTOCOL
 #define INCLUDE_PICO_PROTOCOL
@@ -98,11 +119,11 @@ struct pico_protocol {
     uint16_t proto_number;
     struct pico_queue *q_in;
     struct pico_queue *q_out;
-    struct pico_frame *(*alloc)(struct pico_protocol *self, struct pico_device *dev, uint16_t size); /* Frame allocation. */
-    int (*push)(struct pico_protocol *self, struct pico_frame *p);    /* Push function, for active outgoing pkts from above */
-    int (*process_out)(struct pico_protocol *self, struct pico_frame *p);  /* Send loop. */
-    int (*process_in)(struct pico_protocol *self, struct pico_frame *p);  /* Recv loop. */
-    uint16_t (*get_mtu)(struct pico_protocol *self);
+    struct pico_frame *(*alloc)(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size); /* Frame allocation. */
+    int (*push)(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p);    /* Push function, for active outgoing pkts from above */
+    int (*process_out)(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p);  /* Send loop. */
+    int (*process_in)(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p);  /* Recv loop. */
+    uint16_t (*get_mtu)(struct pico_stack *S, struct pico_protocol *self);
 };
 
 int pico_protocols_loop(int loop_score);

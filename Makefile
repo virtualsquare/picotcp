@@ -46,11 +46,11 @@ DHCP_CLIENT?=1
 DHCP_SERVER?=1
 DNS_CLIENT?=1
 MDNS?=1
-DNS_SD?=1
+DNS_SD?=0
 SNTP_CLIENT?=1
 IPFILTER?=1
 CRC?=1
-OLSR?=0
+OLSR?=1
 SLAACV4?=1
 TFTP?=1
 AODV?=1
@@ -60,13 +60,14 @@ TUN?=0
 TAP?=0
 PCAP?=0
 PPP?=1
-6LOWPAN?=0
+6LOWPAN?=1
 IEEE802154?=0
 IPC?=0
 CYASSL?=0
 WOLFSSL?=0
 POLARSSL?=0
 TICKLESS?=0
+RAW=1
 
 #IPv6 related
 IPV6?=1
@@ -96,7 +97,7 @@ EXTRA_CFLAGS+=$(PLATFORM_CFLAGS)
 
 CFLAGS=-I$(PREFIX)/include -Iinclude -Imodules  $(EXTRA_CFLAGS)
 # options for adding warnings
-CFLAGS+= -Wall -W -Wextra -Wshadow -Wcast-qual -Wwrite-strings -Wundef -Wdeclaration-after-statement
+CFLAGS+= -Wall -W -Wextra -Wshadow -Wcast-qual -Wwrite-strings -Wundef -Wdeclaration-after-statement -Wno-address-of-packed-member
 CFLAGS+= -Wconversion -Wcast-align -Wmissing-prototypes
 # options for supressing warnings
 CFLAGS+= -Wno-missing-field-initializers
@@ -349,6 +350,9 @@ ifneq ($(POLARSSL),0)
 endif
 ifneq ($(TICKLESS),0)
   include rules/tickless.mk
+endif
+ifneq ($(RAW),0)
+  include rules/rawsockets.mk
 endif
 
 all: mod core lib

@@ -1,11 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012 TASS Belgium NV. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   This module handles the equalities between the IGMP and the MLD protocol
-   Authors: Roel Postelmans
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Roel Postelmans
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #include "pico_stack.h"
 #include "pico_ipv6.h"
 #include "pico_mld.h"
@@ -51,7 +70,7 @@
 #define MCAST_BLOCK_OLD_SOURCES            (6)
 
 
-static void pico_mcast_src_filtering_cleanup(struct mcast_filter_parameters*mcast )
+static void pico_mcast_src_filtering_cleanup(struct mcast_filter_parameters *mcast )
 {
     struct pico_tree_node *index = NULL, *_tmp = NULL;
     /* cleanup filters */
@@ -227,8 +246,9 @@ static int pico_mcast_src_filtering_excl_excl(struct mcast_filter_parameters*mca
     return MCAST_NO_REPORT;
 }
 
-int8_t pico_mcast_generate_filter(struct mcast_filter_parameters *filter, struct mcast_parameters *p)
+int8_t pico_mcast_generate_filter(struct pico_stack *S, struct mcast_filter_parameters *filter, struct mcast_parameters *p)
 {
+    p->stack = S;
 
     /* "non-existent" state of filter mode INCLUDE and empty source list */
     if (p->event == MCAST_EVENT_DELETE_GROUP) {
