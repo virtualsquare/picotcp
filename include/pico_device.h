@@ -69,7 +69,6 @@ struct pico_device {
 
 int pico_dev_cmp(void *ka, void *kb);
 int pico_device_init(struct pico_stack *S, struct pico_device *dev, const char *name, const uint8_t *mac);
-int pico_device_init_ex(struct pico_stack *S, struct pico_device *dev, const char *name, const uint8_t *mac);
 void pico_device_destroy(struct pico_device *dev);
 int pico_devices_loop(struct pico_stack *S, int loop_score, int direction);
 struct pico_device*pico_get_device(struct pico_stack *S, const char*name);

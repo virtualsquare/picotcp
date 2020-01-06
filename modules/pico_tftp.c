@@ -961,7 +961,7 @@ static struct pico_socket *tftp_socket_open(struct pico_stack *S, uint16_t famil
     struct pico_socket *sock;
     union pico_address local_address;
 
-    sock = pico_socket_open_ex(S, family, PICO_PROTO_UDP, tftp_cb);
+    sock = pico_socket_open(S, family, PICO_PROTO_UDP, tftp_cb);
     if (!sock)
         return NULL;
 

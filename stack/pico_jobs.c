@@ -73,4 +73,11 @@ void pico_execute_pending_jobs(struct pico_stack *S)
     }
     */
 }
+#else
+void pico_schedule_job(struct pico_stack *S, void (*exe)(struct pico_stack *, void*), void *arg)
+{
+    (void)(S);
+    (void)(exe);
+    (void)(arg);
+}
 #endif

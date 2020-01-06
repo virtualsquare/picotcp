@@ -124,7 +124,7 @@ static inline struct pico_dhcp_server_setting *dhcps_try_open_socket(struct pico
         pico_err = PICO_ERR_EINVAL;
         return NULL;
     }
-    dhcps->s = pico_socket_open_ex(dhcps->dev->stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcpd_wakeup);
+    dhcps->s = pico_socket_open(dhcps->dev->stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcpd_wakeup);
     if (!dhcps->s) {
         dhcps_dbg("DHCP server ERROR: failure opening socket (%s)\n", strerror(pico_err));
         PICO_FREE(dhcps);

@@ -1,6 +1,7 @@
 #include "utils.h"
 #include <pico_ipv6.h>
 #include <pico_socket.h>
+static struct pico_stack *stack = NULL;
 
 /*** START UDP NAT CLIENT ***/
 /* ./build/test/picoapp.elf --vde pic0:/tmp/pic0.ctl:10.40.0.9:255.255.0.0:10.40.0.10: -a udpnatclient:10.50.0.8:6667: */
@@ -27,7 +28,7 @@ void udpnatclient_send(pico_time __attribute__((unused)) now, void *arg)
 
             printf("End!\n");
         }
-        if (!pico_timer_add(1000, deferred_exit, NULL)) {
+        if (!pico_timer_add(stack, 1000, deferred_exit, NULL)) {
             printf("Failed to start exit timer, exiting now\n");
             exit(1);
         }
@@ -68,7 +69,7 @@ void udpnatclient_open_socket(pico_time __attribute__((unused)) now, void __attr
     if (!(loop % 100))
         printf("Created %d sockets\n", loop);
 
-    s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &cb_udpnatclient);
+    s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &cb_udpnatclient);
     if (!s)
         exit(1);
 
@@ -80,18 +81,18 @@ void udpnatclient_open_socket(pico_time __attribute__((unused)) now, void __attr
 
     picoapp_dbg("New socket with port %u\n", s->local_port);
 
-    if (!pico_timer_add(25, udpnatclient_send, s)) {
+    if (!pico_timer_add(stack, 25, udpnatclient_send, s)) {
         printf("Failed to start send timer, exiting now\n");
         exit(1);
     }
 
-    if (!pico_timer_add(25, udpnatclient_open_socket, 0)) {
+    if (!pico_timer_add(stack, 25, udpnatclient_open_socket, 0)) {
         printf("Failed to start open_socket timer, exiting now\n");
         exit(1);
     }
 }
 
-void app_udpnatclient(char *arg)
+void app_udpnatclient(struct pico_stack *S, char *arg)
 {
     struct pico_socket *s;
     char *daddr, *dport;
@@ -99,6 +100,7 @@ void app_udpnatclient(char *arg)
     uint16_t port_be = 0;
     struct pico_ip4 inaddr_dst = ZERO_IP4;
     char *nxt;
+    stack = S;
 
     nxt = cpy_arg(&daddr, arg);
     if (!daddr) {
@@ -121,7 +123,7 @@ void app_udpnatclient(char *arg)
 
     printf("UDP NAT client started. Sending packets to %s:%d\n", daddr, short_be(port_be));
 
-    s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &cb_udpnatclient);
+    s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &cb_udpnatclient);
     if (!s)
         exit(1);
 
@@ -138,12 +140,12 @@ void app_udpnatclient(char *arg)
     udpnatclient_inaddr_dst = inaddr_dst;
     udpnatclient_port_be = port_be;
 
-    if (!pico_timer_add(100, udpnatclient_send, s)) {
+    if (!pico_timer_add(stack, 100, udpnatclient_send, s)) {
         printf("Failed to start send timer, exiting now\n");
         exit(1);
     }
 
-    if (!pico_timer_add(1000, udpnatclient_open_socket, 0)) {
+    if (!pico_timer_add(stack, 1000, udpnatclient_open_socket, 0)) {
         printf("Failed to start open_socket timer, exiting now\n");
         exit(1);
     }

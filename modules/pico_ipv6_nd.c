@@ -49,7 +49,6 @@
 #define nd_dbg(...) do {} while(0)
 #endif
 
-extern struct pico_tree IPV6Links;
 
 #define ONE_MINUTE_MS                       ((pico_time)(1000 * 60))
 
@@ -103,7 +102,7 @@ struct pico_ipv6_router {
 
 #ifdef PICO_SUPPORT_6LOWPAN
 static void pico_6lp_nd_deregister(struct pico_ipv6_link *);
-static void pico_6lp_nd_unreachable_gateway(const struct pico_ip6 *a);
+static void pico_6lp_nd_unreachable_gateway(struct pico_stack *S, const struct pico_ip6 *a);
 static int pico_6lp_nd_neigh_adv_process(struct pico_frame *f);
 static int neigh_sol_detect_dad_6lp(struct pico_stack *S, struct pico_frame *f);
 #endif
@@ -475,7 +474,7 @@ static void pico_nd_trigger_queued_packets(struct pico_stack *S, struct pico_ip6
     struct pico_ipv6_neighbor *n = NULL;
     struct pico_ip6 frame_dst;
 
-    n = pico_get_neighbor_from_ncache(n->stack, dst);
+    n = pico_get_neighbor_from_ncache(S, dst);
 
     /* RFC 4861 $7.2.2
      *  * While waiting for address resolution to complete,
@@ -603,7 +602,7 @@ static void pico_nd_delete_entry(struct pico_ipv6_neighbor *n)
 #ifdef PICO_SUPPORT_6LOWPAN
     /* 6LP: Find any 6LoWPAN-hosts for which this address might have been a default gateway.
      * If such a host found, send a router solicitation again */
-    pico_6lp_nd_unreachable_gateway(&n->address);
+    pico_6lp_nd_unreachable_gateway(n->stack, &n->address);
 #endif /* PICO_SUPPORT_6LOWPAN */
 
     pico_nd_clear_queued_packets(n);
@@ -1219,7 +1218,7 @@ static int pico_nd_neigh_sol_recv(struct pico_frame *f)
 
 /*MARK*/
 #ifdef PICO_SUPPORT_6LOWPAN
-static void pico_6lp_nd_unreachable_gateway(const struct pico_ip6 *a)
+static void pico_6lp_nd_unreachable_gateway(struct pico_stack *S, const struct pico_ip6 *a)
 {
     struct pico_ipv6_route *route = NULL;
     struct pico_ipv6_link *local = NULL;
@@ -1230,7 +1229,7 @@ static void pico_6lp_nd_unreachable_gateway(const struct pico_ip6 *a)
      *  ... HOSTS need to intelligently retransmit RSs when one of its
      *  default routers becomes unreachable ...
      */
-    pico_tree_foreach(node, &Device_tree) {
+    pico_tree_foreach(node, &S->Device_tree) {
         if (PICO_DEV_IS_6LOWPAN(dev) && (!dev->hostvars.routing)) {
             /* Check if there's a gateway configured */
             route = pico_ipv6_gateway_by_dev(dev->stack, dev);
@@ -1829,7 +1828,7 @@ static int pico_nd_router_adv_recv(struct pico_frame *f)
     }
 
     hdr = (struct pico_ipv6_hdr *)f->net_hdr;
-    pico_tree_foreach(index,&IPV6Links){
+    pico_tree_foreach(index, &f->dev->stack->IPV6Links){
       link = index->keyValue;
       if(link->rs_retries >= 1 && pico_ipv6_is_linklocal(hdr->src.addr)){
         link->rs_retries = MAX_INITIAL_RTR_ADVERTISEMENTS;
@@ -1929,7 +1928,7 @@ static int neigh_adv_process(struct pico_frame *f)
 #endif
 
     /* Check if there's a NCE in the cache */
-    n = pico_get_neighbor_from_ncache(n->stack, &icmp6_hdr->msg.info.neigh_adv.target);
+    n = pico_get_neighbor_from_ncache(f->dev->stack, &icmp6_hdr->msg.info.neigh_adv.target);
 
     if (!n) {
         /* RFC 4861 $7.2.5
@@ -2214,17 +2213,19 @@ void pico_ipv6_nd_ra_timer_callback(pico_time now, void *arg)
     struct pico_device *dev = (struct pico_device *)arg;
     struct pico_ipv6_route *rt;
     struct pico_ip6 nm64 = { {0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0, 0, 0, 0 } };
+    struct pico_stack *stack;
     pico_time next_timer_expire = 0u;
 
     if (!dev || !dev->hostvars.routing)
         return;
+    stack = dev->stack;
 
     (void)now;
     pico_tree_foreach(rindex, &dev->stack->IPV6Routes)
     {
         rt = rindex->keyValue;
         if (pico_ipv6_compare(&nm64, &rt->netmask) == 0) {
-            pico_tree_foreach(devindex, &Device_tree) {
+            pico_tree_foreach(devindex, &stack->Device_tree) {
                 dev = devindex->keyValue;
                 /* Do not send periodic router advertisements when there aren't 2 interfaces from and to the device can route */
                 if ((!pico_ipv6_is_linklocal(rt->dest.addr)) && dev->hostvars.routing && (rt->link)
@@ -2250,10 +2251,9 @@ static void pico_ipv6_router_sol_timer(pico_time now, void *arg)
     struct pico_ip6 zero = {
         .addr = {0}
     };
+    struct pico_stack *S = (struct pico_stack *)arg;
 
-    IGNORE_PARAMETER(arg);
-
-    pico_tree_foreach(index,&IPV6Links) {
+    pico_tree_foreach(index, &S->IPV6Links) {
       link = index->keyValue;
       if(pico_ipv6_is_linklocal(link->address.addr)  && link->rs_retries < MAX_INITIAL_RTR_ADVERTISEMENTS && (link->rs_expire_time < now)) {
           route = pico_ipv6_gateway_by_dev(link->dev->stack, link->dev);
@@ -2270,7 +2270,7 @@ static void pico_ipv6_router_sol_timer(pico_time now, void *arg)
       }
     }
 
-    if (!pico_timer_add(link->dev->stack, 1000, pico_ipv6_router_sol_timer, NULL)) {
+    if (!pico_timer_add(link->dev->stack, 1000, pico_ipv6_router_sol_timer, S)) {
         dbg("IPV6 ND: Failed to start router sol timer\n");
         /* TODO: no router solicitations will be sent anymore */
     }

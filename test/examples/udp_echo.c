@@ -18,6 +18,7 @@
 static int udpecho_exit = 0;
 
 struct udpecho_pas *udpecho_pas;
+static struct pico_stack *stack = NULL;
 
 void cb_udpecho(uint16_t ev, struct pico_socket *s)
 {
@@ -44,7 +45,7 @@ void cb_udpecho(uint16_t ev, struct pico_socket *s)
             if (r > 0) {
                 if (strncmp(recvbuf, "end", 3) == 0) {
                     printf("Client requested to exit... test successful.\n");
-                    if (!pico_timer_add(1000, deferred_exit, udpecho_pas)) {
+                    if (!pico_timer_add(stack, 1000, deferred_exit, udpecho_pas)) {
                         printf("Failed to start exit timer, exiting now\n");
                         exit(1);
                     }
@@ -66,7 +67,7 @@ void cb_udpecho(uint16_t ev, struct pico_socket *s)
     picoapp_dbg("%s: received packet from %08X:%u\n", __FUNCTION__, long_be(peer), short_be(port));
 }
 
-void app_udpecho(char *arg)
+void app_udpecho(struct pico_stack *S, char *arg)
 {
     char *baddr = NULL, *lport = NULL, *sport = NULL, *s_datasize = NULL;
     char *nxt = arg;
@@ -74,6 +75,7 @@ void app_udpecho(char *arg)
     struct pico_ip4 inaddr_bind = { };
     struct pico_ip6 inaddr_bind6 = { };
     int ret = 0;
+    stack = S;
 
     udpecho_pas = calloc(1, sizeof(struct udpecho_pas));
     if (!udpecho_pas) {
@@ -144,9 +146,9 @@ void app_udpecho(char *arg)
 
     /* end of argument parsing */
     if (!IPV6_MODE)
-        udpecho_pas->s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &cb_udpecho);
+        udpecho_pas->s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &cb_udpecho);
     else
-        udpecho_pas->s = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_UDP, &cb_udpecho);
+        udpecho_pas->s = pico_socket_open(stack, PICO_PROTO_IPV6, PICO_PROTO_UDP, &cb_udpecho);
 
     if (!udpecho_pas->s) {
         printf("%s: error opening socket: %s\n", __FUNCTION__, strerror(pico_err));

@@ -6,6 +6,7 @@
 /*** START PING ***/
 #ifdef PICO_SUPPORT_PING
 #define NUM_PING 10
+static struct pico_stack *stack = NULL;
 
 void cb_ping(struct pico_icmp4_stats *s)
 {
@@ -44,15 +45,15 @@ void ping_abort_timer(pico_time now, void *_id)
     int *id = (int *) _id;
     printf("Ping: aborting...\n");
     if (!IPV6_MODE)
-        pico_icmp4_ping_abort(*id);
+        pico_icmp4_ping_abort(stack, *id);
 
 #ifdef PICO_SUPPORT_IPV6
     else
-        pico_icmp6_ping_abort(*id);
+        pico_icmp6_ping_abort(stack, *id);
 #endif
 }
 
-void app_ping(char *arg)
+void app_ping(struct pico_stack *S, char *arg)
 {
     char *dest = NULL;
     char *next = NULL;
@@ -64,6 +65,7 @@ void app_ping(char *arg)
     static int id;
     int timeout = 0;
     int size = 64;
+    stack = S;
 
     next = cpy_arg(&dest, arg);
     if (!dest) {
@@ -101,7 +103,7 @@ void app_ping(char *arg)
                 printf("Initial delay: %d seconds\n", initial_delay);
                 initial_delay = PICO_TIME_MS() + initial_delay * 1000;
                 while (PICO_TIME_MS() < initial_delay) {
-                    pico_stack_tick();
+                    pico_stack_tick(stack);
                     usleep(10000);
                 }
             }
@@ -111,15 +113,15 @@ void app_ping(char *arg)
     printf("Starting ping.\n");
 
     if (!IPV6_MODE)
-        id = pico_icmp4_ping(dest, NUM_PING, 1000, 10000, size, cb_ping);
+        id = pico_icmp4_ping(stack, dest, NUM_PING, 1000, 10000, size, cb_ping);
 
 #ifdef PICO_SUPPORT_IPV6
     else
-        id = pico_icmp6_ping(dest, NUM_PING, 1000, 10000, size, cb_ping6, pico_ipv6_source_dev_find(&dst));
+        id = pico_icmp6_ping(stack, dest, NUM_PING, 1000, 10000, size, cb_ping6, pico_ipv6_source_dev_find(stack, &dst));
 #endif
     if (timeout > 0) {
         printf("Adding abort timer after %d seconds for id %d\n", timeout, id);
-        if (!pico_timer_add(timeout * 1000, ping_abort_timer, &id)) {
+        if (!pico_timer_add(stack, timeout * 1000, ping_abort_timer, &id)) {
             printf("Failed to set ping abort timeout, aborting ping\n");
             ping_abort_timer((pico_time)0, &id);
             exit(1);

@@ -235,7 +235,6 @@ int pico_device_init(struct pico_stack *S, struct pico_device *dev, const char *
     dev->stack = S;
 
     dev->hash = pico_hash(dev->name, len);
-
     S->Devices_rr_info.node_in  = NULL;
     S->Devices_rr_info.node_out = NULL;
     dev->q_in = PICO_ZALLOC(sizeof(struct pico_queue));

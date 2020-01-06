@@ -177,7 +177,14 @@ static int radiotest_cmp(void *a, void *b)
     return (int)(fa->id - fb->id);
 }
 
-PICO_TREE_DECLARE(LoopFrames, radiotest_cmp);
+#define RADIO_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
+
+RADIO_TREE_DECLARE(LoopFrames, radiotest_cmp);
 
 static uint8_t *radiotest_nxt_rx(int *len, union pico_ll_addr *src, union pico_ll_addr *dst)
 {

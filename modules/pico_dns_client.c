@@ -188,7 +188,7 @@ static struct pico_dns_query *pico_dns_client_add_query(struct pico_stack *S, st
     q->q_ns = *((struct pico_dns_ns *)pico_tree_first(&S->NSTable));
     q->callback = callback;
     q->arg = arg;
-    q->s = pico_socket_open_ex(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dns_client_callback);
+    q->s = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dns_client_callback);
     if (!q->s) {
         PICO_FREE(q);
         return NULL;

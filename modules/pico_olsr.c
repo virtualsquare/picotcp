@@ -1039,7 +1039,7 @@ static void wakeup(uint16_t ev, struct pico_socket *s)
 
     if (ev == PICO_SOCK_EV_ERR) {
         pico_socket_close(s->stack->pico_olsr_socket);
-        s->stack->pico_olsr_socket = pico_socket_open_ex(s->stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &wakeup);
+        s->stack->pico_olsr_socket = pico_socket_open(s->stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &wakeup);
         if (s->stack->pico_olsr_socket)
             pico_socket_bind(s->stack->pico_olsr_socket, &ANY, &port);
     }
@@ -1091,7 +1091,7 @@ void pico_olsr_init(struct pico_stack *S)
     uint16_t port = OLSR_PORT;
     olsr_dbg("OLSR initialized.\n");
     if (!S->pico_olsr_socket) {
-        S->pico_olsr_socket = pico_socket_open_ex(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, &wakeup);
+        S->pico_olsr_socket = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, &wakeup);
         if (S->pico_olsr_socket)
             pico_socket_bind(S->pico_olsr_socket, &ANY, &port);
     }

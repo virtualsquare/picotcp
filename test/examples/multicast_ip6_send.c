@@ -3,7 +3,8 @@
 #include <pico_ipv6.h>
 #include <pico_socket.h>
 
-extern void app_udpclient(char *arg);
+extern void app_udpclient(struct pico_stack *S, char *arg);
+static struct pico_stack *stack = NULL;
 /*** START Multicast SEND ***/
 /*
  * multicast send expects the following format: mcastsend:link_addr:mcast_addr:sendto_port:listen_port
@@ -16,7 +17,7 @@ extern void app_udpclient(char *arg);
  */
 extern struct udpclient_pas *udpclient_pas;
 #ifdef PICO_SUPPORT_MCAST
-void app_mcastsend_ipv6(char *arg)
+void app_mcastsend_ipv6(struct pico_stack *S, char *arg)
 {
     int retval = 0;
     char *maddr = NULL, *laddr = NULL, *lport = NULL, *sport = NULL;
@@ -28,6 +29,7 @@ void app_mcastsend_ipv6(char *arg)
     };
     char *new_arg = NULL, *p = NULL, *nxt = arg;
     struct pico_ip_mreq mreq = ZERO_MREQ_IP6;
+    stack = S;
 
     /* start of parameter parsing */
     if (nxt) {
@@ -93,11 +95,11 @@ void app_mcastsend_ipv6(char *arg)
     p = strcat(p + strlen(lport), ",64,10,5,");
 
     /* DAD needs to verify the link address before we can continue */
-    while(!pico_ipv6_link_get(&inaddr_link)) {
-        pico_stack_tick();
+    while(!pico_ipv6_link_get(stack, &inaddr_link)) {
+        pico_stack_tick(stack);
         usleep(2000);
     }
-    app_udpclient(new_arg);
+    app_udpclient(stack, new_arg);
 
     memcpy(&mreq.mcast_group_addr, &inaddr_mcast, sizeof(struct pico_ip6));
     memcpy(&mreq.mcast_link_addr, &inaddr_link, sizeof(struct pico_ip6));

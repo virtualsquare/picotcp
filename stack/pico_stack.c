@@ -762,14 +762,6 @@ static int calc_score(struct pico_stack *S)
 #endif
 
 
-void pico_stack_loop(void)
-{
-    while(1) {
-        pico_stack_tick();
-        PICO_IDLE();
-    }
-}
-
 static uint32_t
 pico_timer_ref_add(struct pico_stack *S, pico_time expire, struct pico_timer *t, uint32_t id, uint32_t hash)
 {
@@ -842,7 +834,7 @@ uint32_t pico_timer_add_hashed(struct pico_stack *S, pico_time expire, void (*ti
 
 static struct pico_stack *Mono_S = NULL;
 
-int MOCKABLE pico_stack_init_ex(struct pico_stack **S)
+int MOCKABLE pico_stack_init(struct pico_stack **S)
 {
     int i;
     if (!S) {
@@ -857,6 +849,9 @@ int MOCKABLE pico_stack_init_ex(struct pico_stack **S)
         if (!*S)
             return PICO_ERR_ENOMEM;
     }
+
+    /* Initialize stack scheduler */
+    pico_protocol_scheduler_init(*S);
 
     EMPTY_TREE((*S)->Device_tree, pico_dev_cmp);
     EMPTY_TREE((*S)->Hotplug_device_tree, pico_hotplug_dev_cmp);
@@ -966,7 +961,6 @@ int MOCKABLE pico_stack_init_ex(struct pico_stack **S)
     pico_dns_client_init((*S));
 #endif
     
-    pico_protocol_scheduler_init(*S);
 
 #ifdef PICO_SUPPORT_MDNS
 #   if PICO_MDNS_ALLOW_CACHING == 1
@@ -1019,11 +1013,14 @@ int MOCKABLE pico_stack_init_ex(struct pico_stack **S)
     if (pico_6lowpan_init(*S))
        return -1;
 #endif
+#ifdef PICO_SUPPORT_SNTP_CLIENT
+    (*S)->sntp_port = 123u;
+#endif
     for (i = 0; i < PROTO_DEF_NR; i++)
         (*S)->score[i] = PROTO_DEF_SCORE;
-    pico_stack_tick();
-    pico_stack_tick();
-    pico_stack_tick();
+    pico_stack_tick((*S));
+    pico_stack_tick((*S));
+    pico_stack_tick((*S));
     return 0;
 }
 
@@ -1075,12 +1072,7 @@ static void legacy_pico_stack_tick(struct pico_stack *S)
 }
 #endif
 
-int pico_stack_init(void)
-{
-    return pico_stack_init_ex(NULL);
-}
-
-void pico_stack_tick_ex(struct pico_stack *S)
+void pico_stack_tick(struct pico_stack *S)
 {
 #ifdef PICO_SUPPORT_TICKLESS
     long long int interval;
@@ -1098,9 +1090,4 @@ void pico_stack_tick_ex(struct pico_stack *S)
 struct pico_stack *pico_get_default_stack(void)
 {
     return Mono_S;
-}
-
-void pico_stack_tick(void)
-{
-    pico_stack_tick_ex(Mono_S);
 }

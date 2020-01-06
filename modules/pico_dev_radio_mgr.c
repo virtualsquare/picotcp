@@ -78,7 +78,13 @@ pico_radio_mgr_sock_cmp(void *a, void *b)
     return (int)(sa->id - sb->id);
 }
 
-PICO_TREE_DECLARE(Sockets, pico_radio_mgr_sock_cmp);
+#define SOCK_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
+SOCK_TREE_DECLARE(Sockets, pico_radio_mgr_sock_cmp);
 
 /* Insert a new socket in the tree */
 static int
@@ -167,7 +173,7 @@ pico_radio_mgr_socket_hup(int socket)
 static int
 pico_radio_mgr_welcome(int socket)
 {
-    int ret_len = sizeof(uint8_t);
+    long int ret_len = sizeof(uint8_t);
     uint8_t id = 0, area0, area1;
 
     errno = 0;

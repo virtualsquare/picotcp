@@ -22,6 +22,7 @@
 #define TFTP_PAYLOAD_SIZE 512
 unsigned char tftp_txbuf[TFTP_PAYLOAD_SIZE];
 static uint16_t family;
+static struct pico_stack *stack;
 
 struct command_t {
     char operation;
@@ -144,7 +145,7 @@ int cb_tftp_tx(struct pico_tftp_session *session, uint16_t event, uint8_t *block
     }
 
     if (!clipboard) {
-        if (!pico_timer_add(3000, deferred_exit, NULL)) {
+        if (!pico_timer_add(stack, 3000, deferred_exit, NULL)) {
             printf("Failed to start exit timer, exiting now\n");
             exit(1);
         }
@@ -199,7 +200,7 @@ int cb_tftp_rx(struct pico_tftp_session *session, uint16_t event, uint8_t *block
     }
 
     if (!clipboard) {
-        if (!pico_timer_add(3000, deferred_exit, NULL)) {
+        if (!pico_timer_add(stack, 3000, deferred_exit, NULL)) {
             printf("Failed to start exit timer, exiting now\n");
             exit(1);
         }
@@ -230,7 +231,7 @@ struct pico_tftp_session *make_session_or_die(union pico_address *addr, uint16_t
 {
     struct pico_tftp_session *session;
 
-    session = pico_tftp_session_setup(addr, family);
+    session = pico_tftp_session_setup(stack, addr, family);
     if (!session) {
         fprintf(stderr, "TFTP: Error in session setup\n");
         exit(3);
@@ -252,7 +253,7 @@ void start_rx(struct pico_tftp_session *session, const char *filename, uint16_t 
               int (*rx_callback)(struct pico_tftp_session *session, uint16_t err, uint8_t *block, int32_t len, void *arg),
               struct note_t *note)
 {
-    if (pico_tftp_start_rx(session, port, filename, rx_callback, note)) {
+    if (pico_tftp_start_rx(stack, session, port, filename, rx_callback, note)) {
         fprintf(stderr, "TFTP: Error in initialization\n");
         exit(1);
     }
@@ -262,7 +263,7 @@ void start_tx(struct pico_tftp_session *session, const char *filename, uint16_t 
               int (*tx_callback)(struct pico_tftp_session *session, uint16_t err, uint8_t *block, int32_t len, void *arg),
               struct note_t *note)
 {
-    if (pico_tftp_start_tx(session, port, filename, tx_callback, note)) {
+    if (pico_tftp_start_tx(stack, session, port, filename, tx_callback, note)) {
         fprintf(stderr, "TFTP: Error in initialization\n");
         exit(1);
     }
@@ -298,7 +299,7 @@ void tftp_listen_cb_opt(union pico_address *addr, uint16_t port, uint16_t opcode
     /* declare the options we want to support */
     ret = pico_tftp_parse_request_args(filename, len, &options, &timeout, &filesize);
     if (ret)
-        pico_tftp_reject_request(addr, port, TFTP_ERR_EOPT, "Malformed request");
+        pico_tftp_reject_request(stack, addr, port, TFTP_ERR_EOPT, "Malformed request");
 
     if (opcode == PICO_TFTP_RRQ) {
         printf("Received TFTP get request for %s\n", filename);
@@ -310,7 +311,7 @@ void tftp_listen_cb_opt(union pico_address *addr, uint16_t port, uint16_t opcode
         if (options & PICO_TFTP_OPTION_FILE) {
             ret = get_filesize(filename);
             if (ret < 0) {
-                pico_tftp_reject_request(addr, port, TFTP_ERR_ENOENT, "File not found");
+                pico_tftp_reject_request(stack, addr, port, TFTP_ERR_ENOENT, "File not found");
                 return;
             }
 
@@ -426,13 +427,14 @@ struct command_t *parse_arguments(char *arg)
     return commands;
 }
 
-void app_tftp(char *arg)
+void app_tftp(struct pico_stack *S, char *arg)
 {
     struct command_t *commands, *old_cmd;
     struct note_t *note;
     struct pico_tftp_session *session;
     int is_server_enabled = 0;
     int filesize;
+    stack = S;
 
     family = IPV6_MODE ? PICO_PROTO_IPV6 : PICO_PROTO_IPV4;
 
@@ -446,7 +448,7 @@ void app_tftp(char *arg)
         case 'S':
         case 's':
             if (!is_server_enabled) {
-                pico_tftp_listen(PICO_PROTO_IPV4, (commands->operation == 'S') ? tftp_listen_cb_opt : tftp_listen_cb);
+                pico_tftp_listen(S, PICO_PROTO_IPV4, (commands->operation == 'S') ? tftp_listen_cb_opt : tftp_listen_cb);
                 is_server_enabled = 1;
             }
 

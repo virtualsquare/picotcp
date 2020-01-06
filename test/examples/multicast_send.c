@@ -2,7 +2,8 @@
 #include <pico_ipv4.h>
 #include <pico_socket.h>
 
-extern void app_udpclient(char *arg);
+extern void app_udpclient(struct pico_stack *S, char *arg);
+static struct pico_stack *stack = NULL;
 /*** START Multicast SEND ***/
 /*
  * multicast send expects the following format: mcastsend:link_addr:mcast_addr:sendto_port:listen_port
@@ -15,7 +16,7 @@ extern void app_udpclient(char *arg);
  */
 extern struct udpclient_pas *udpclient_pas;
 #ifdef PICO_SUPPORT_MCAST
-void app_mcastsend(char *arg)
+void app_mcastsend(struct pico_stack *S, char *arg)
 {
     char *maddr = NULL, *laddr = NULL, *lport = NULL, *sport = NULL;
     uint16_t sendto_port = 0;
@@ -26,6 +27,7 @@ void app_mcastsend(char *arg)
     };
     char *new_arg = NULL, *p = NULL, *nxt = arg;
     struct pico_ip_mreq mreq = ZERO_MREQ;
+    stack = S;
 
     /* start of parameter parsing */
     if (nxt) {
@@ -90,7 +92,7 @@ void app_mcastsend(char *arg)
     p = strcat(p + 1, lport);
     p = strcat(p + strlen(lport), ":64:10:5:");
 
-    app_udpclient(new_arg);
+    app_udpclient(stack, new_arg);
     free(new_arg);
 
     mreq.mcast_group_addr = inaddr_mcast;
@@ -120,7 +122,7 @@ out:
     exit(255);
 }
 #else
-void app_mcastsend(char *arg)
+void app_mcastsend(struct pico_stack *S, char *arg)
 {
     picoapp_dbg("ERROR: PICO_SUPPORT_MCAST disabled\n");
     return;

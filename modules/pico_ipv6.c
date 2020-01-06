@@ -1722,7 +1722,7 @@ static void pico_ipv6_nd_dad(pico_time now, void *arg)
         } else {
             /* Duplicate Address Detection */
             pico_icmp6_neighbor_solicitation(l->dev, &l->address, PICO_ICMP6_ND_DAD, NULL);
-            l->dad_timer = pico_timer_add(l->dev->stack, PICO_ICMP6_MAX_RTR_SOL_DELAY, pico_ipv6_nd_dad, &l);
+            l->dad_timer = pico_timer_add(l->dev->stack, PICO_ICMP6_MAX_RTR_SOL_DELAY, pico_ipv6_nd_dad, l);
             if (!l->dad_timer) {
                 dbg("IPv6: Failed to start nd_dad timer\n");
                 /* TODO does this have disastrous consequences? */
@@ -1848,7 +1848,11 @@ struct pico_ipv6_link *pico_ipv6_link_add(struct pico_device *dev, struct pico_i
     };
 #endif
     /* Try to add the basic link */
-    struct pico_ipv6_link *new = pico_ipv6_do_link_add(dev, address, netmask);
+    struct pico_ipv6_link *new;
+    if (!dev)
+        return NULL;
+    
+    new = pico_ipv6_do_link_add(dev, address, netmask);
     if (!new)
         return NULL;
 
@@ -1856,7 +1860,7 @@ struct pico_ipv6_link *pico_ipv6_link_add(struct pico_device *dev, struct pico_i
     new->dup_detect_retrans = PICO_IPV6_DEFAULT_DAD_RETRANS;
 #ifndef UNIT_TEST
     /* Duplicate Address Detection */
-    new->dad_timer = pico_timer_add(dev->stack, 100, pico_ipv6_nd_dad, &new);
+    new->dad_timer = pico_timer_add(dev->stack, 100, pico_ipv6_nd_dad, new);
     if (!new->dad_timer) {
         dbg("IPv6: Failed to start nd_dad timer\n");
         pico_ipv6_link_del(dev->stack, dev, address);

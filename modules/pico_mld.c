@@ -327,6 +327,7 @@ static int pico_mld_timer_start(struct pico_stack *S, struct mld_timer *t)
     test.type = t->type;
     test.mcast_link = t->mcast_link;
     test.mcast_group = t->mcast_group;
+    test.stack = S;
     timer = pico_tree_findKey(&S->MLDTimers, &test);
     if (timer)
         return pico_mld_timer_reset(t);
@@ -367,6 +368,7 @@ static int pico_mld_timer_stop(struct mld_timer *t)
     test.type = t->type;
     test.mcast_link = t->mcast_link;
     test.mcast_group = t->mcast_group;
+    test.stack = t->stack;
     timer = pico_tree_findKey(&t->stack->MLDTimers, &test);
     if (!timer)
         return -1;
@@ -388,6 +390,7 @@ static int pico_mld_timer_is_running(struct mld_timer *t)
     test.type = t->type;
     test.mcast_link = t->mcast_link;
     test.mcast_group = t->mcast_group;
+    test.stack = t->stack;
     timer = pico_tree_findKey(&t->stack->MLDTimers, &test);
     if (timer)
         return 1;
@@ -404,6 +407,7 @@ static struct mld_timer *pico_mld_find_timer(struct pico_stack *S, uint8_t type,
     test.type = type;
     test.mcast_link = *mcast_link;
     test.mcast_group = *mcast_group;
+    test.stack = S;
     return pico_tree_findKey(&S->MLDTimers, &test);
 }
 
@@ -479,6 +483,7 @@ static int pico_mld_compatibility_mode(struct pico_stack *S, struct pico_frame *
     if( datalen >= 28) {
         /* MLDv2 */
         t.type = MLD_TIMER_V2_QUERIER;
+        t.stack = S;
         if (pico_mld_timer_is_running(&t)) { /* MLDv1 querier present timer still running */
             mld_dbg("Timer is already running\n");
             return -1;
@@ -508,6 +513,7 @@ static int pico_mld_compatibility_mode(struct pico_stack *S, struct pico_frame *
         t.delay = (pico_time) ((MLD_ROBUSTNESS * link->mcast_last_query_interval) + MLD_QUERY_RESPONSE_INTERVAL) * 1000;
         t.f = f;
         t.mld_callback = pico_mld_v1querier_expired;
+        t.stack = S;
         if (pico_mld_timer_start(S, &t) < 0)
             return -1;
     } else {
@@ -544,6 +550,7 @@ int pico_mld_state_change(struct pico_stack *S, struct pico_ip6 *mcast_link, str
         p->state = MLD_STATE_NON_LISTENER;
         p->mcast_link.ip6 = *mcast_link;
         p->mcast_group.ip6 = *mcast_group;
+        p->stack = S;
         if(pico_tree_insert(&S->MLDParameters, p)){
 			PICO_FREE(p);
 			return -1;
@@ -898,6 +905,7 @@ static int mld_stsdifs(struct mcast_parameters *p)
     t.type = MLD_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip6;
     t.mcast_group = p->mcast_group.ip6;
+    t.stack = p->stack;
     if (pico_mld_timer_stop(&t) < 0)
         return -1;
 
@@ -958,6 +966,7 @@ static int mld_srsfst(struct mcast_parameters *p)
     t.type = MLD_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip6;
     t.mcast_group = p->mcast_group.ip6;
+    t.stack = p->stack;
 
     t.delay = (pico_rand() % (MLD_UNSOLICITED_REPORT_INTERVAL * 10000));
     t.f = p->f;
@@ -984,6 +993,7 @@ static int mld_stcl(struct mcast_parameters *p)
     t.type = MLD_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip6;
     t.mcast_group = p->mcast_group.ip6;
+    t.stack = p->stack;
     if (pico_mld_timer_stop(&t) < 0)
         return -1;
 
@@ -1105,6 +1115,7 @@ static int mld_srst(struct mcast_parameters *p)
     t.delay = (pico_rand() % (MLD_UNSOLICITED_REPORT_INTERVAL * 10000));
     t.f = p->f;
     t.mld_callback = pico_mld_report_expired;
+    t.stack = p->stack;
 
     if (pico_mld_timer_start(p->stack, &t) < 0)
         return -1;

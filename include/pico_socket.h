@@ -201,8 +201,7 @@ struct pico_msginfo {
 
 int pico_socket_table_compare(void *ka, void *kb);
 
-struct pico_socket *pico_socket_open(uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s));
-struct pico_socket *pico_socket_open_ex(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s));
+struct pico_socket *pico_socket_open(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s));
 
 int pico_socket_read(struct pico_socket *s, void *buf, int len);
 int pico_socket_write(struct pico_socket *s, const void *buf, int len);

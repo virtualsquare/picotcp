@@ -37,6 +37,7 @@
 #include "pico_mdns.h"
 #include "pico_tftp.h"
 #include "pico_olsr.h"
+#include "pico_sntp_client.h"
 
 #ifdef PICO_SUPPORT_IPV6PMTU
 #include "pico_ipv6_pmtu.h"
@@ -52,7 +53,6 @@ struct arp_service_ipconflict {
     void (*conflict)(struct pico_stack *, int);
 };
 
-void pico_stack_tick_ex(struct pico_stack *S);
 
 
 #define PROTO_DEF_NR      11
@@ -273,13 +273,17 @@ struct pico_stack {
 #endif
 
 #ifdef PICO_SUPPORT_OLSR
-
     struct pico_socket *pico_olsr_socket;
     uint16_t pico_olsr_ansn;
     struct olsr_route_entry  *OLSRLocal_interfaces;
     struct olsr_dev_entry    *OLSRLocal_devices;
     uint16_t pico_olsr_msg_counter;
+#endif
 
+#ifdef PICO_SUPPORT_SNTP_CLIENT
+    uint16_t sntp_port;
+    struct pico_timeval sntp_server_time;
+    pico_time sntp_tick_stamp;
 #endif
 
 };
@@ -356,13 +360,10 @@ int32_t pico_ethernet_receive(struct pico_stack *S, struct pico_frame *f);
 #   define pico_ethernet_receive(f) (-1)
 #endif
 
-/* ----- Initialization ----- */
-int pico_stack_init(void);
-int pico_stack_init_ex(struct pico_stack **S);
+/* ----- Initialization & tick ----- */
+int pico_stack_init(struct pico_stack **S);
+void pico_stack_tick(struct pico_stack *S);
 
-/* ----- Loop Function. ----- */
-void pico_stack_tick(void);
-void pico_stack_loop(void);
 struct pico_stack *pico_get_default_stack(void);
 
 /* ---- Notifications for stack errors */

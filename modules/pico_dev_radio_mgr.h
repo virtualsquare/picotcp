@@ -29,6 +29,6 @@
 #define __PICO_DEV_RADIO_MGR_H_
 
 /* Start listening for TCP connection requests on 'LISTENING_PORT' */
-int pico_radio_mgr_start(struct pico_stack *S);
+int pico_radio_mgr_start(void);
 
 #endif

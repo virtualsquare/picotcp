@@ -38,6 +38,6 @@ struct pico_timeval
 
 int pico_sntp_sync(struct pico_stack *S, const char *sntp_server, void (*cb_synced)(pico_err_t status));
 int pico_sntp_sync_ip(struct pico_stack *S, union pico_address *sntp_addr, void (*cb_synced)(pico_err_t status));
-int pico_sntp_gettimeofday(struct pico_timeval *tv);
+int pico_sntp_gettimeofday(struct pico_stack *S, struct pico_timeval *tv);
 
 #endif /* _INCLUDE_PICO_SNTP_CLIENT */

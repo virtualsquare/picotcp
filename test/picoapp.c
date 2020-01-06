@@ -54,29 +54,29 @@
 #include "pthread.h"
 #endif
 
-void app_udpecho(char *args);
-void app_tcpecho(char *args);
-void app_udpclient(char *args);
-void app_tcpclient(char *args);
-void app_tcpbench(char *args);
-void app_natbox(char *args);
-void app_udpdnsclient(char *args);
-void app_udpnatclient(char *args);
-void app_mcastsend(char *args);
-void app_mcastreceive_ipv6(char *args);
-void app_mcastsend_ipv6(char *args);
-void app_mcastreceive(char *args);
-void app_ping(char *args);
-void app_dhcp_server(char *args);
-void app_dhcp_client(char *args);
-void app_dns_sd(char *arg, struct pico_ip4 addr);
-void app_mdns(char *arg, struct pico_ip4 addr);
-void app_sntp(char *args);
-void app_tftp(char *args);
-void app_slaacv4(char *args);
-void app_udpecho(char *args);
-void app_sendto_test(char *args);
-void app_noop(void);
+void app_udpecho(struct pico_stack *S, char *args);
+void app_tcpecho(struct pico_stack *S, char *args);
+void app_udpclient(struct pico_stack *S, char *args);
+void app_tcpclient(struct pico_stack *S, char *args);
+void app_tcpbench(struct pico_stack *S, char *args);
+void app_natbox(struct pico_stack *S, char *args);
+void app_udpdnsclient(struct pico_stack *S, char *args);
+void app_udpnatclient(struct pico_stack *S, char *args);
+void app_mcastsend(struct pico_stack *S, char *args);
+void app_mcastreceive_ipv6(struct pico_stack *S, char *args);
+void app_mcastsend_ipv6(struct pico_stack *S, char *args);
+void app_mcastreceive(struct pico_stack *S, char *args);
+void app_ping(struct pico_stack *S, char *args);
+void app_dhcp_server(struct pico_stack *S, char *args);
+void app_dhcp_client(struct pico_stack *S, char *args);
+void app_dns_sd(struct pico_stack *S, char *arg, struct pico_ip4 addr);
+void app_mdns(struct pico_stack *S, char *arg, struct pico_ip4 addr);
+void app_sntp(struct pico_stack *S, char *args);
+void app_tftp(struct pico_stack *S, char *args);
+void app_slaacv4(struct pico_stack *S, char *args);
+void app_udpecho(struct pico_stack *S, char *args);
+void app_sendto_test(struct pico_stack *S, char *args);
+void app_noop(struct pico_stack *S);
 
 struct pico_ip4 ZERO_IP4 = {
     0
@@ -223,6 +223,7 @@ int main(int argc, char **argv)
     };
     uint16_t *macaddr_low = (uint16_t *) (macaddr + 2);
     struct pico_device *dev = NULL;
+    struct pico_stack *stack = NULL;
     struct pico_ip4 addr4 = {
         0
     };
@@ -264,7 +265,10 @@ int main(int argc, char **argv)
 #ifdef PICO_SUPPORT_MM
     pico_mem_init(128 * 1024);
 #endif
-    pico_stack_init();
+    if (pico_stack_init(&stack) < 0)
+    {
+        fprintf(stderr, "PicoTCP: cannot initialize stack. %s\n", strerror(pico_err));
+    }
     /* Parse args */
     while(1) {
         c = getopt_long(argc, argv, "v:b:t:T:a:r:hl", long_options, &option_idx);
@@ -296,7 +300,7 @@ int main(int argc, char **argv)
                 exit(1);
             }
 
-            dev = pico_tap_create(name);
+            dev = pico_tap_create(stack, name);
             if (!dev) {
                 perror("Creating tap");
                 exit(1);
@@ -304,12 +308,12 @@ int main(int argc, char **argv)
 
             pico_string_to_ipv4(addr, &ipaddr.addr);
             pico_string_to_ipv4(nm, &netmask.addr);
-            pico_ipv4_link_add(dev, ipaddr, netmask);
+            pico_ipv4_link_add(stack, dev, ipaddr, netmask);
             bcastAddr.addr = (ipaddr.addr) | (~netmask.addr);
             if (gw && *gw) {
                 pico_string_to_ipv4(gw, &gateway.addr);
                 printf("Adding default route via %08x\n", gateway.addr);
-                pico_ipv4_route_add(zero, zero, gateway, 1, NULL);
+                pico_ipv4_route_add(stack, zero, zero, gateway, 1, NULL);
             }
 
 #ifdef PICO_SUPPORT_IPV6
@@ -320,7 +324,7 @@ int main(int argc, char **argv)
                 pico_ipv6_link_add(dev, ipaddr6, netmask6);
                 if (gw && *gw) {
                     pico_string_to_ipv6(gw, gateway6.addr);
-                    pico_ipv6_route_add(zero6, zero6, gateway6, 1, NULL);
+                    pico_ipv6_route_add(stack, zero6, zero6, gateway6, 1, NULL);
                 }
 
                 pico_ipv6_dev_routing_enable(dev);
@@ -350,7 +354,7 @@ int main(int argc, char **argv)
                 exit(1);
             }
 
-            dev = pico_tun_create(name);
+            dev = pico_tun_create(stack, name);
             if (!dev) {
                 perror("Creating tun");
                 exit(1);
@@ -358,12 +362,12 @@ int main(int argc, char **argv)
 
             pico_string_to_ipv4(addr, &ipaddr.addr);
             pico_string_to_ipv4(nm, &netmask.addr);
-            pico_ipv4_link_add(dev, ipaddr, netmask);
+            pico_ipv4_link_add(stack, dev, ipaddr, netmask);
             bcastAddr.addr = (ipaddr.addr) | (~netmask.addr);
             if (gw && *gw) {
                 pico_string_to_ipv4(gw, &gateway.addr);
                 printf("Adding default route via %08x\n", gateway.addr);
-                pico_ipv4_route_add(zero, zero, gateway, 1, NULL);
+                pico_ipv4_route_add(stack, zero, zero, gateway, 1, NULL);
             }
 
 #ifdef PICO_SUPPORT_IPV6
@@ -374,7 +378,7 @@ int main(int argc, char **argv)
                 pico_ipv6_link_add(dev, ipaddr6, netmask6);
                 if (gw && *gw) {
                     pico_string_to_ipv6(gw, gateway6.addr);
-                    pico_ipv6_route_add(zero6, zero6, gateway6, 1, NULL);
+                    pico_ipv6_route_add(stack, zero6, zero6, gateway6, 1, NULL);
                 }
 
                 pico_ipv6_dev_routing_enable(dev);
@@ -442,7 +446,7 @@ int main(int argc, char **argv)
 
             macaddr[4] ^= (uint8_t)(getpid() >> 8);
             macaddr[5] ^= (uint8_t) (getpid() & 0xFF);
-            dev = pico_vde_create(sock, name, macaddr);
+            dev = pico_vde_create(stack, sock, name, macaddr);
             NXT_MAC(macaddr);
             if (!dev) {
                 perror("Creating vde");
@@ -458,12 +462,12 @@ int main(int argc, char **argv)
             if (!IPV6_MODE) {
                 pico_string_to_ipv4(addr, &ipaddr.addr);
                 pico_string_to_ipv4(nm, &netmask.addr);
-                pico_ipv4_link_add(dev, ipaddr, netmask);
+                pico_ipv4_link_add(stack, dev, ipaddr, netmask);
                 addr4 = ipaddr;
                 bcastAddr.addr = (ipaddr.addr) | (~netmask.addr);
                 if (gw && *gw) {
                     pico_string_to_ipv4(gw, &gateway.addr);
-                    pico_ipv4_route_add(zero, zero, gateway, 1, NULL);
+                    pico_ipv4_route_add(stack, zero, zero, gateway, 1, NULL);
                 }
             }
 
@@ -476,7 +480,7 @@ int main(int argc, char **argv)
                 pico_ipv6_link_add(dev, ipaddr6, netmask6);
                 if (gw6 && *gw6) {
                     pico_string_to_ipv6(gw6, gateway6.addr);
-                    pico_ipv6_route_add(zero6, zero6, gateway6, 1, NULL);
+                    pico_ipv6_route_add(stack, zero6, zero6, gateway6, 1, NULL);
                 }
 
                 pico_ipv6_dev_routing_enable(dev);
@@ -538,7 +542,7 @@ check:      if (!name || !area0 || !area1) {
                 printf("Starting radio-network...\n");
                 pico_radio_mgr_start();
             } else {
-                dev = pico_radiotest_create(n_id, n_area0, n_area1, 0, dump);
+                dev = pico_radiotest_create(stack, n_id, n_area0, n_area1, 0, dump);
                 if (!dev) {
                     exit(1);
                 }
@@ -573,7 +577,7 @@ check:      if (!name || !area0 || !area1) {
 
             macaddr[4] ^= (uint8_t)(getpid() >> 8);
             macaddr[5] ^= (uint8_t)(getpid() & 0xFF);
-            dev = pico_vde_create(sock, name, macaddr);
+            dev = pico_vde_create(stack, sock, name, macaddr);
             NXT_MAC(macaddr);
             if (!dev) {
                 if (sock)
@@ -599,7 +603,7 @@ check:      if (!name || !area0 || !area1) {
         {
             struct pico_ip4 ipaddr, netmask;
 
-            dev = pico_loop_create();
+            dev = pico_loop_create(stack);
             if (!dev) {
                 perror("Creating loop");
                 exit(1);
@@ -607,7 +611,7 @@ check:      if (!name || !area0 || !area1) {
 
             pico_string_to_ipv4("127.0.0.1", &ipaddr.addr);
             pico_string_to_ipv4("255.0.0.0", &netmask.addr);
-            pico_ipv4_link_add(dev, ipaddr, netmask);
+            pico_ipv4_link_add(stack, dev, ipaddr, netmask);
             printf("Loopback created\n");
 #ifdef PICO_SUPPORT_IPV6
             if (IPV6_MODE) {
@@ -646,7 +650,7 @@ check:      if (!name || !area0 || !area1) {
             pico_string_to_ipv4(addr, &ipaddr.addr);
             pico_string_to_ipv4(nm, &netmask.addr);
             pico_string_to_ipv4(gw, &gateway.addr);
-            if (pico_ipv4_route_add(ipaddr, netmask, gateway, 1, NULL) == 0)
+            if (pico_ipv4_route_add(stack, ipaddr, netmask, gateway, 1, NULL) == 0)
                 fprintf(stderr, "ROUTE ADDED *** to %s via %s\n", addr, gw);
             else
                 fprintf(stderr, "ROUTE ADD: ERROR %s \n", strerror(pico_err));
@@ -661,7 +665,7 @@ check:      if (!name || !area0 || !area1) {
             printf("DNS nameserver address = %s\n", optarg);
             cpy_arg(&straddr, optarg);
             pico_string_to_ipv4(straddr, &ipaddr.addr);
-            pico_dns_client_nameserver(&ipaddr, PICO_DNS_NS_ADD);
+            pico_dns_client_nameserver(stack, &ipaddr, PICO_DNS_NS_ADD);
             break;
         }
         case 'a':
@@ -672,99 +676,99 @@ check:      if (!name || !area0 || !area1) {
 
             printf("+++ NAME: %s ARGS: %s\n", name, args);
             IF_APPNAME("udpecho") {
-                app_udpecho(args);
+                app_udpecho(stack, args);
             } else IF_APPNAME("tcpecho") {
-                app_tcpecho(args);
+                app_tcpecho(stack, args);
             } else IF_APPNAME("udpclient") {
-                app_udpclient(args);
+                app_udpclient(stack, args);
             } else IF_APPNAME("tcpclient") {
-                app_tcpclient(args);
+                app_tcpclient(stack, args);
             } else IF_APPNAME("tcpbench") {
-                app_tcpbench(args);
+                app_tcpbench(stack, args);
             } else IF_APPNAME("natbox") {
-                app_natbox(args);
+                app_natbox(stack, args);
             } else IF_APPNAME("udpdnsclient") {
-                app_udpdnsclient(args);
+                app_udpdnsclient(stack, args);
             } else IF_APPNAME("udpnatclient") {
-                app_udpnatclient(args);
+                app_udpnatclient(stack, args);
             } else IF_APPNAME("mcastsend") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
-                app_mcastsend(args);
+                app_mcastsend(stack, args);
             } else IF_APPNAME("mcastreceive") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
-                app_mcastreceive(args);
+                app_mcastreceive(stack, args);
             }
             else IF_APPNAME("mcastsend_ipv6") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
-                app_mcastsend_ipv6(args);
+                app_mcastsend_ipv6(stack, args);
             } else IF_APPNAME("mcastreceive_ipv6") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
-                app_mcastreceive_ipv6(args);
+                app_mcastreceive_ipv6(stack, args);
             }
 
 #ifdef PICO_SUPPORT_PING
             else IF_APPNAME("ping") {
-                app_ping(args);
+                app_ping(stack, args);
             }
 #endif
             else IF_APPNAME("dhcpserver") {
 #ifndef PICO_SUPPORT_DHCPD
                 return 0;
 #else
-                app_dhcp_server(args);
+                app_dhcp_server(stack, args);
 #endif
             } else IF_APPNAME("dhcpclient") {
 #ifndef PICO_SUPPORT_DHCPC
                 return 0;
 #else
-                app_dhcp_client(args);
+                app_dhcp_client(stack, args);
 #endif
             } else IF_APPNAME("dns_sd") {
 #ifndef PICO_SUPPORT_DNS_SD
                 return 0;
 #else
-                app_dns_sd(args, addr4);
+                app_dns_sd(stack, args, addr4);
 #endif
             } else IF_APPNAME("mdns") {
 #ifndef PICO_SUPPORT_MDNS
                 return 0;
 #else
-                app_mdns(args, addr4);
+                app_mdns(stack, args, addr4);
 #endif
 #ifdef PICO_SUPPORT_SNTP_CLIENT
             } else IF_APPNAME("sntp") {
-                app_sntp(args);
+                app_sntp(stack, args);
 #endif
             } else IF_APPNAME("bcast") {
                 struct pico_ip4 any = {
                     .addr = 0xFFFFFFFFu
                 };
 
-                struct pico_socket *s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &__wakeup);
+                struct pico_socket *s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &__wakeup);
                 pico_socket_sendto(s, "abcd", 5u, &any, 1000);
 
                 pico_socket_sendto(s, "abcd", 5u, &bcastAddr, 1000);
 #ifdef PICO_SUPPORT_TFTP
             } else IF_APPNAME("tftp") {
-                app_tftp(args);
+                app_tftp(stack, args);
 #endif
             } else IF_APPNAME("noop") {
 #ifdef PICO_SUPPORT_OLSR
             } else IF_APPNAME("olsr") {
-                dev = pico_get_device("pic0");
+                dev = pico_get_device(stack, "pic0");
                 if(dev) {
                     pico_olsr_add(dev);
                 }
 
-                dev = pico_get_device("pic1");
+                dev = pico_get_device(stack, "pic1");
                 if(dev) {
                     pico_olsr_add(dev);
                 }
@@ -773,10 +777,10 @@ check:      if (!name || !area0 || !area1) {
 #ifndef PICO_SUPPORT_SLAACV4
                 return 0;
 #else
-                app_slaacv4(args);
+                app_slaacv4(stack, args);
 #endif
             } else IF_APPNAME("udp_sendto_test") {
-                app_sendto_test(args);
+                app_sendto_test(stack, args);
             } else {
                 fprintf(stderr, "Unknown application %s\n", name);
                 usage(argv[0]);
@@ -833,7 +837,7 @@ check:      if (!name || !area0 || !area1) {
 #endif
     printf("-~-~-~-~-~-~-~-~-~ %s: launching PicoTCP loop -~-~-~-~-~-~-~-~-~\n", __FUNCTION__);
     while(1) {
-        pico_stack_tick();
+        pico_stack_tick(stack);
         usleep(2000);
     }
 }

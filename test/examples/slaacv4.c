@@ -2,6 +2,7 @@
 #include <pico_slaacv4.h>
 #include <pico_icmp4.h>
 /*** START SLAACV4 ***/
+struct pico_stack *stack = NULL;
 
 void ping_callback_slaacv4(struct pico_icmp4_stats *s)
 {
@@ -30,7 +31,7 @@ void slaacv4_cb(struct pico_ip4 *ip, uint8_t code)
     if (code == 0)
     {
 #ifdef PICO_SUPPORT_PING
-        pico_icmp4_ping(dst, 3, 1000, 5000, 32, ping_callback_slaacv4);
+        pico_icmp4_ping(stack, dst, 3, 1000, 5000, 32, ping_callback_slaacv4);
 #else
         exit(0);
 #endif
@@ -43,11 +44,12 @@ void slaacv4_cb(struct pico_ip4 *ip, uint8_t code)
 }
 
 
-void app_slaacv4(char *arg)
+void app_slaacv4(struct pico_stack *S, char *arg)
 {
     char *sdev = NULL;
     char *nxt = arg;
     struct pico_device *dev = NULL;
+    stack = S;
 
     if (!nxt)
         exit(255);
@@ -60,7 +62,7 @@ void app_slaacv4(char *arg)
             }
         }
     }
-    dev = pico_get_device(sdev);
+    dev = pico_get_device(stack, sdev);
     free(sdev);
     if(dev == NULL) {
         printf("%s: error getting device %s: %s\n", __FUNCTION__, dev->name, strerror(pico_err));

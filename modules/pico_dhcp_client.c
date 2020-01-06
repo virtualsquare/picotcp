@@ -163,6 +163,7 @@ static struct pico_dhcp_client_cookie *pico_dhcp_client_add_cookie(uint32_t xid,
     *(dhcpc->uid) = 0;
     dhcpc->cb = cb;
     dhcpc->dev = dev;
+    dhcpc->stack = dev->stack;
 
 
     if (pico_tree_insert(&dev->stack->DHCPCookies, dhcpc)) {
@@ -419,7 +420,7 @@ static int pico_dhcp_client_init(struct pico_dhcp_client_cookie *dhcpc)
      * automatically adds a route for a global broadcast */
     pico_ipv4_link_add(dhcpc->stack, dhcpc->dev, inaddr_any, bcast_netmask);
     if (!dhcpc->s)
-        dhcpc->s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcp_client_wakeup);
+        dhcpc->s = pico_socket_open(dhcpc->stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcp_client_wakeup);
 
     if (!dhcpc->s) {
         if (!pico_dhcp_timer_add(dhcpc->stack, PICO_DHCPC_TIMER_INIT, DHCP_CLIENT_REINIT, dhcpc))
@@ -690,7 +691,7 @@ static int renew(struct pico_dhcp_client_cookie *dhcpc, uint8_t *buf)
     uint16_t port = PICO_DHCP_CLIENT_PORT;
     (void) buf;
     dhcpc->state = DHCP_CLIENT_STATE_RENEWING;
-    dhcpc->s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcp_client_wakeup);
+    dhcpc->s = pico_socket_open(dhcpc->stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcp_client_wakeup);
     if (!dhcpc->s) {
         dhcpc_dbg("DHCP client ERROR: failure opening socket on renew, aborting DHCP! (%s)\n", strerror(pico_err));
         if (dhcpc->cb)

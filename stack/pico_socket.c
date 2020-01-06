@@ -318,11 +318,11 @@ static int pico_generic_port_in_use(uint16_t proto, uint16_t port, struct pico_s
 #ifdef PICO_SUPPORT_IPV4
     if (net == &pico_proto_ipv4)
     {
-        if (pico_port_in_use_by_nat(sp->stack, proto, port)) {
+        if (sp && pico_port_in_use_by_nat(sp->stack, proto, port)) {
             return 1;
         }
 
-        if (pico_port_in_use_ipv4(sp, addr)) {
+        if (sp && pico_port_in_use_ipv4(sp, addr)) {
             return 1;
         }
     }
@@ -332,7 +332,7 @@ static int pico_generic_port_in_use(uint16_t proto, uint16_t port, struct pico_s
 #ifdef PICO_SUPPORT_IPV6
     if (net == &pico_proto_ipv6)
     {
-        if (pico_port_in_use_ipv6(sp, addr)) {
+        if (sp && pico_port_in_use_ipv6(sp, addr)) {
             return 1;
         }
     }
@@ -657,7 +657,7 @@ static struct pico_socket *pico_socket_transport_open(struct pico_stack *S, uint
 
 }
 
-struct pico_socket *pico_socket_open_ex(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *))
+struct pico_socket *pico_socket_open(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *))
 {
 
     struct pico_socket *s = NULL;
@@ -676,18 +676,12 @@ struct pico_socket *pico_socket_open_ex(struct pico_stack *S, uint16_t net, uint
         pico_err = PICO_ERR_ENETUNREACH;
         return NULL;
     }
+    s->stack = S;
     s->q_in.max_size = PICO_DEFAULT_SOCKETQ;
     s->q_out.max_size = PICO_DEFAULT_SOCKETQ;
     s->wakeup = wakeup;
-    s->stack = pico_get_default_stack();
     return s;
 }
-
-struct pico_socket *MOCKABLE pico_socket_open(uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *))
-{
-    return pico_socket_open_ex(pico_get_default_stack(), net, proto, wakeup);
-}
-
 
 static void pico_socket_clone_assign_address(struct pico_socket *s, struct pico_socket *facsimile)
 {

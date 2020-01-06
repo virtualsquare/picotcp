@@ -3658,7 +3658,7 @@ pico_mdns_init(struct pico_stack *S,
     mdns_hash = pico_hash(hostname, (uint32_t)strlen(hostname));
 
     /* Open global IPv4 mDNS socket */
-    S->mdns_sock_ipv4 = pico_socket_open_ex(S, proto4, PICO_PROTO_UDP, &pico_mdns_event4);
+    S->mdns_sock_ipv4 = pico_socket_open(S, proto4, PICO_PROTO_UDP, &pico_mdns_event4);
     if(!S->mdns_sock_ipv4) {
         mdns_dbg("pico_socket_open_ex returned NULL-ptr...\n");
         return -1;

@@ -12,6 +12,7 @@ static char *buffer0;
 int tcpbench_mode = 0;
 struct pico_socket *tcpbench_sock = NULL;
 static pico_time tcpbench_time_start, tcpbench_time_end;
+static struct pico_stack *stack = NULL;
 
 void cb_tcpbench(uint16_t ev, struct pico_socket *s)
 {
@@ -81,7 +82,7 @@ void cb_tcpbench(uint16_t ev, struct pico_socket *s)
             printf("tcpbench> Called shutdown write, ev = %d\n", ev);
         }
 
-        if (!pico_timer_add(5000, deferred_exit, NULL)) {
+        if (!pico_timer_add(stack, 5000, deferred_exit, NULL)) {
             printf("tcpbench> Failed to start exit timer, exiting now\n");
             exit(1);
         }
@@ -90,7 +91,7 @@ void cb_tcpbench(uint16_t ev, struct pico_socket *s)
     if (ev & PICO_SOCK_EV_ERR) {
         printf("tcpbench> ---- Socket Error received: %s. Bailing out.\n", strerror(pico_err));
         if (!pico_err == PICO_ERR_ECONNRESET) {
-            if (pico_timer_add(5000, deferred_exit, NULL)) {
+            if (pico_timer_add(stack, 5000, deferred_exit, NULL)) {
                 printf("tcpbench> Failed to start exit timer, exiting now\n");
                 exit(1);
             }
@@ -142,7 +143,7 @@ void cb_tcpbench(uint16_t ev, struct pico_socket *s)
     }
 }
 
-void app_tcpbench(char *arg)
+void app_tcpbench(struct pico_stack *S, char *arg)
 {
     struct pico_socket *s;
     char *dport = NULL;
@@ -160,6 +161,7 @@ void app_tcpbench(char *arg)
     } inaddr_any = {
         .ip4 = {0}, .ip6 = {{0}}
     };
+    stack = S;
 
     nxt = cpy_arg(&mode, arg);
 
@@ -215,7 +217,7 @@ void app_tcpbench(char *arg)
 
         if (!IPV6_MODE) {
             struct pico_ip4 server_addr;
-            s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpbench);
+            s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpbench);
             if (!s)
                 exit(1);
 
@@ -230,7 +232,7 @@ void app_tcpbench(char *arg)
             pico_socket_connect(s, &server_addr, port_be);
         } else {
             struct pico_ip6 server_addr;
-            s = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpbench);
+            s = pico_socket_open(stack, PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpbench);
             if (!s)
                 exit(1);
 
@@ -272,9 +274,9 @@ void app_tcpbench(char *arg)
 
         printf("tcpbench> OPEN\n");
         if (!IPV6_MODE)
-            s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpbench);
+            s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpbench);
         else
-            s = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpbench);
+            s = pico_socket_open(stack, PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpbench);
 
         if (!s)
             exit(1);

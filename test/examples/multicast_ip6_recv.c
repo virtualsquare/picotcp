@@ -2,7 +2,7 @@
 #include <pico_ipv6.h>
 #include <pico_socket.h>
 
-extern void app_udpecho(char *arg);
+extern void app_udpecho(struct pico_stack *S, char *arg);
 
 /*** START Multicast RECEIVE + ECHO ***/
 /*
@@ -16,12 +16,14 @@ extern void app_udpecho(char *arg);
  */
 extern struct udpclient_pas *udpclient_pas;
 extern struct udpecho_pas *udpecho_pas;
+static struct pico_stack *stack = NULL;
 #ifdef PICO_SUPPORT_MCAST
-void app_mcastreceive_ipv6(char *arg)
+void app_mcastreceive_ipv6(struct pico_stack *S, char *arg)
 {
     char *new_arg = NULL, *p = NULL, *nxt = arg;
     char *laddr = NULL, *maddr = NULL, *lport = NULL, *sport = NULL;
     uint16_t listen_port = 0;
+    stack = S;
     union pico_address inaddr_link = {
         0
     }, inaddr_mcast = {
@@ -100,14 +102,14 @@ void app_mcastreceive_ipv6(char *arg)
     p = strcat(p + strlen(sport), ",64,");
 
     /* DAD needs to verify the link address before we can continue */
-    while(!pico_ipv6_link_get(&inaddr_link.ip6)) {
-        pico_stack_tick();
+    while(!pico_ipv6_link_get(stack, &inaddr_link.ip6)) {
+        pico_stack_tick(stack);
         usleep(2000);
     }
-    app_udpecho(new_arg);
+    app_udpecho(stack, new_arg);
 
     memcpy(&mreq.mcast_group_addr, &inaddr_mcast, sizeof(struct pico_ip6));
-    memcpy( &mreq_source.mcast_group_addr, &inaddr_mcast, sizeof(struct pico_ip6));
+    memcpy(&mreq_source.mcast_group_addr, &inaddr_mcast, sizeof(struct pico_ip6));
     memcpy(&mreq.mcast_link_addr, &inaddr_link, sizeof(struct pico_ip6));
     memcpy(&mreq_source.mcast_link_addr, &inaddr_link, sizeof(struct pico_ip6));
     memcpy(&mreq_source.mcast_source_addr, &src[0], sizeof(struct pico_ip6));
@@ -173,7 +175,7 @@ out:
     exit(255);
 }
 #else
-void app_mcastreceive_ipv6(char *arg)
+void app_mcastreceive_ipv6(struct pico_stack *S, char *arg)
 {
     printf("ERROR: PICO_SUPPORT_MCAST disabled\n");
     return;

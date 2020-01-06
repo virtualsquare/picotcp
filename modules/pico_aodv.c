@@ -626,7 +626,7 @@ MOCKABLE int pico_aodv_init(struct pico_stack *S)
         return -1;
     }
 
-    S->aodv_socket = pico_socket_open_ex(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, pico_aodv_socket_callback);
+    S->aodv_socket = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, pico_aodv_socket_callback);
     if (!S->aodv_socket)
         return -1;
 
