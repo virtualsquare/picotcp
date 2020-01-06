@@ -71,7 +71,6 @@
 
 
 #ifdef PICO_SUPPORT_TCP
-
 #ifdef DEBUG_TCP_GENERAL
 #define tcp_dbg              dbg
 #else
@@ -957,7 +956,7 @@ static inline int tcp_send_try_enqueue(struct pico_socket_tcp *ts, struct pico_f
         return -1;
     }
 
-    if ((pico_enqueue(&ts->sock.stack->q_tcp.in, cpy) > 0)) {
+    if ((pico_enqueue(&ts->sock.stack->q_tcp.out, cpy) > 0)) {
         if (f->payload_len > 0) {
             ts->in_flight++;
             ts->snd_nxt += f->payload_len; /* update next pointer here to prevent sending same segment twice when called twice in same tick */

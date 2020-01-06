@@ -547,6 +547,7 @@ static struct mcast_parameters *pico_igmp_analyse_packet(struct pico_frame *f)
         p->state = IGMP_STATE_NON_MEMBER;
         p->mcast_link.ip4 = link->address;
         p->mcast_group.ip4 = mcast_group;
+        p->stack = f->dev->stack;
         if (pico_tree_insert(&f->dev->stack->IGMPParameters, p)) {
             igmp_dbg("IGMP: Failed to insert parameters in tree\n");
             PICO_FREE(p);
@@ -641,6 +642,7 @@ int pico_igmp_state_change(struct pico_stack *S, struct pico_ip4 *mcast_link, st
         p->state = IGMP_STATE_NON_MEMBER;
         p->mcast_link.ip4 = *mcast_link;
         p->mcast_group.ip4 = *mcast_group;
+        p->stack = S;
         if (pico_tree_insert(&S->IGMPParameters, p)) {
             igmp_dbg("IGMP: Failed to insert parameters in tree\n");
             PICO_FREE(p);
@@ -853,6 +855,7 @@ static int stslifs(struct mcast_parameters *p)
     t.type = IGMP_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip4;
     t.mcast_group = p->mcast_group.ip4;
+    t.stack = p->stack;
     if (pico_igmp_timer_stop(&t) < 0)
         return -1;
 
@@ -1055,6 +1058,7 @@ static int stcl(struct mcast_parameters *p)
     t.type = IGMP_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip4;
     t.mcast_group = p->mcast_group.ip4;
+    t.stack = p->stack;
     if (pico_igmp_timer_stop(&t) < 0)
         return -1;
 
