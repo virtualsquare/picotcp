@@ -832,18 +832,12 @@ uint32_t pico_timer_add_hashed(struct pico_stack *S, pico_time expire, void (*ti
 } /* Static path count: 4 */
 
 
-static struct pico_stack *Mono_S = NULL;
 
 int MOCKABLE pico_stack_init(struct pico_stack **S)
 {
     int i;
     if (!S) {
-        S = &Mono_S;
-        if (!Mono_S) {
-            Mono_S = PICO_ZALLOC(sizeof(struct pico_stack));
-            if (!Mono_S)
-                return PICO_ERR_ENOMEM;
-        }
+        return PICO_ERR_EINVAL;
     } else {
         *S = PICO_ZALLOC(sizeof(struct pico_stack));
         if (!*S)
@@ -854,7 +848,6 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
     pico_protocol_scheduler_init(*S);
 
     EMPTY_TREE((*S)->Device_tree, pico_dev_cmp);
-    EMPTY_TREE((*S)->Hotplug_device_tree, pico_hotplug_dev_cmp);
 
 #ifdef PICO_SUPPORT_ETH
     pico_protocol_init(*S, &pico_proto_ethernet);
@@ -889,6 +882,9 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 #   ifdef PICO_SUPPORT_IPV4FRAG
     EMPTY_TREE((*S)->ipv4_fragments, pico_ipv4_frag_compare);
 #   endif
+#   ifdef PICO_SUPPORT_SLAACV4
+    EMPTY_TREE((*S)->Hotplug_device_tree, pico_hotplug_dev_cmp);
+#endif
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
@@ -1076,18 +1072,100 @@ void pico_stack_tick(struct pico_stack *S)
 {
 #ifdef PICO_SUPPORT_TICKLESS
     long long int interval;
-    if (!S)
-        S = Mono_S;
     interval = pico_stack_go(S);
     (void)interval;
 #else
-    if (!S)
-        S = Mono_S;
     legacy_pico_stack_tick(S);
 #endif
 }
 
-struct pico_stack *pico_get_default_stack(void)
+static void pico_terminate_timers(struct pico_stack *S)
 {
-    return Mono_S;
+    struct pico_timer *t;
+    struct pico_timer_ref tref_unused, *tref = heap_first(S->Timers);
+    pico_tick = PICO_TIME_MS();
+    while(tref) {
+        t = tref->tmr;
+        if (t)
+        {
+            PICO_FREE(t);
+        }
+
+        heap_peek(S->Timers, &tref_unused);
+        tref = heap_first(S->Timers);
+    }
+}
+
+static void cleanup_queue(struct pico_queue *q)
+{
+    struct pico_frame *f = pico_dequeue(q);
+    while (f) {
+        pico_frame_discard(f);
+        f = pico_dequeue(q);
+    }
+}
+
+
+#define DETACH_QUEUES(St, pname) \
+    do { \
+       cleanup_queue(&(St)->q_ ## pname.in); \
+       cleanup_queue(&(St)->q_ ## pname.out); \
+    } while(0)
+
+
+void pico_stack_deinit(struct pico_stack *S)
+{
+    struct pico_tree_node *node, *safe;
+    struct pico_device *dev;
+    /* Cleanup: timers */
+    pico_terminate_timers(S);
+    /* Cleanup: devices */
+    pico_tree_foreach_safe(node, &S->Device_tree, safe) {
+        dev = node->keyValue;
+        if (dev->destroy)
+            dev->destroy(dev);
+        pico_device_destroy(dev);
+    }
+    /* Cleanup: sockets */
+    pico_socket_destroy_all(S);
+
+    /* Cleanup: queues */
+    
+#ifdef PICO_SUPPORT_ETH
+    DETACH_QUEUES(S, ethernet);
+#endif
+
+#ifdef PICO_SUPPORT_6LOWPAN
+    DETACH_QUEUES(S, sixlowpan);
+    DETACH_QUEUES(S, sixlowpan_ll);
+#endif
+
+#ifdef PICO_SUPPORT_IPV4
+    DETACH_QUEUES(S, ipv4);
+#endif
+
+#ifdef PICO_SUPPORT_IPV6
+    DETACH_QUEUES(S, ipv6);
+#endif
+
+#ifdef PICO_SUPPORT_ICMP4
+    DETACH_QUEUES(S, icmp4);
+#endif
+
+#ifdef PICO_SUPPORT_ICMP6
+    DETACH_QUEUES(S, icmp6);
+#endif
+
+#if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
+    DETACH_QUEUES(S, igmp);
+#endif
+
+#ifdef PICO_SUPPORT_UDP
+    DETACH_QUEUES(S, udp);
+#endif
+
+#ifdef PICO_SUPPORT_TCP
+    DETACH_QUEUES(S, tcp);
+#endif
+
 }

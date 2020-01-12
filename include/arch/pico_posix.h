@@ -59,7 +59,7 @@ static inline void pico_free(void *x)
 extern int32_t prescale_time;
 #endif
 
-#if defined(PICO_SUPPORT_RTOS) || defined (PICO_SUPPORT_PTHREAD)
+#if defined(PICO_SUPPORT_RTOS)
 /* pico_ms_tick must be defined */
 extern volatile uint32_t pico_ms_tick;
 

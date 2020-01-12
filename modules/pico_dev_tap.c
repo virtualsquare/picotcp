@@ -121,7 +121,7 @@ int pico_tap_WFI(struct pico_device *dev, int timeout_ms)
    pfd.events = POLLIN;
    if (poll(&pfd, 1, timeout_ms) <= 0)
        return 0;
-   pico_schedule_job(pico_tap_dsr, tap);
+   pico_schedule_job(dev->stack, pico_tap_dsr, tap);
    return 1;
 }
 #endif

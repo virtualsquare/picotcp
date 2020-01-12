@@ -279,6 +279,7 @@ uint32_t pico_socket_get_mss(struct pico_socket *s);
 int pico_socket_set_family(struct pico_socket *s, uint16_t family);
 
 int pico_count_sockets(struct pico_stack *S, uint8_t proto);
+void pico_socket_destroy_all(struct pico_stack *S);
 
 #define PICO_SOCKET_SETOPT_EN(socket, index)  (socket->opt_flags |=  (1 << index))
 #define PICO_SOCKET_SETOPT_DIS(socket, index) (socket->opt_flags &= (uint16_t) ~(1 << index))

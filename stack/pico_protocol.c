@@ -254,10 +254,6 @@ void pico_protocol_init(struct pico_stack *S, struct pico_protocol *p)
             dbg("Unknown protocol: %s (layer: %d)\n", p->name, p->layer);
             return;
     }
-#ifdef PICO_SUPPORT_TICKLESS
-    pico_queue_register_listener(S, p->q_in, proto_full_loop_in, p);
-    pico_queue_register_listener(S, p->q_out, proto_full_loop_out, p);
-#endif
     dbg("Protocol %s registered (layer: %d).\n", p->name, p->layer);
 
     if (pico_tree_insert(tree, p)) {

@@ -69,10 +69,21 @@ struct arp_service_ipconflict {
         struct pico_queue in, out; \
     }  q_ ## proto
 
+#ifdef PICO_SUPPORT_TICKLESS
+    #define ATTACH_QUEUES_LISTENERS(St, pname, P) \
+        do { \
+        pico_queue_register_listener(St, &((St->q_ ## pname.in, proto_full_loop_in, P); \
+        pico_queue_register_listener(St, &((St->q_ ## pname.out, proto_full_loop_out, P); \
+    } while(0)
+#else
+    #define ATTACH_QUEUES_LISTENERS(St, pname, P) do {} while(0)
+#endif
+
 #define ATTACH_QUEUES(St, pname, P) \
     do { \
        P.q_in =  &((St)->q_ ## pname.in); \
        P.q_out = &((St)->q_ ## pname.out); \
+       ATTACH_QUEUES_LISTENERS(St, pname, P); \
     } while(0)
 
 #define EMPTY_TREE(name,comp) \
@@ -143,6 +154,10 @@ struct pico_stack {
     uint32_t ipv4_fragments_timer;
     struct pico_tree ipv6_fragments;
 #   endif
+    uint16_t ipv4_pre_forward_last_id;
+    uint16_t ipv4_pre_forward_last_proto;
+    struct pico_ip4 ipv4_pre_forward_last_src;
+    struct pico_ip4 ipv4_pre_forward_last_dst;
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
@@ -199,6 +214,9 @@ struct pico_stack {
 #if defined(PICO_SUPPORT_TCP) || defined(PICO_SUPPORT_UDP)
     struct pico_sockport *sp_udp, *sp_tcp;
     struct pico_tree_node *tcp_loop_index, *udp_loop_index;
+#ifdef PICO_SUPPORT_MUTEX
+    void *SockMutex;
+#endif
 #endif
 
 #ifdef PICO_SUPPORT_DHCPC
@@ -391,5 +409,7 @@ int32_t pico_seq_compare(uint32_t a, uint32_t b);
 #ifdef PICO_SUPPORT_TICKLESS
 long long int pico_stack_go(struct pico_stack *S);
 #endif
+
+void pico_stack_deinit(struct pico_stack *S);
 
 #endif

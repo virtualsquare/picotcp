@@ -1645,14 +1645,7 @@ int pico_ipv4_rebound(struct pico_stack *S, struct pico_frame *f)
 
 static int pico_ipv4_pre_forward_checks(struct pico_stack *S, struct pico_frame *f)
 {
-    static uint16_t last_id = 0;
-    static uint16_t last_proto = 0;
-    static struct pico_ip4 last_src = {
-        0
-    };
-    static struct pico_ip4 last_dst = {
-        0
-    };
+
     struct pico_ipv4_hdr *hdr = (struct pico_ipv4_hdr *)f->net_hdr;
 
     /* Decrease TTL, check if expired */
@@ -1671,14 +1664,14 @@ static int pico_ipv4_pre_forward_checks(struct pico_stack *S, struct pico_frame 
         return -1;
 
     /* If this was the last forwarded packet, silently discard to prevent duplications */
-    if ((last_src.addr == hdr->src.addr) && (last_id == hdr->id)
-        && (last_dst.addr == hdr->dst.addr) && (last_proto == hdr->proto)) {
+    if ((S->ipv4_pre_forward_last_src.addr == hdr->src.addr) && (S->ipv4_pre_forward_last_id == hdr->id)
+        && (S->ipv4_pre_forward_last_dst.addr == hdr->dst.addr) && (S->ipv4_pre_forward_last_proto == hdr->proto)) {
         return -1;
     } else {
-        last_src.addr = hdr->src.addr;
-        last_dst.addr = hdr->dst.addr;
-        last_id = hdr->id;
-        last_proto = hdr->proto;
+        S->ipv4_pre_forward_last_src.addr = hdr->src.addr;
+        S->ipv4_pre_forward_last_dst.addr = hdr->dst.addr;
+        S->ipv4_pre_forward_last_id = hdr->id;
+        S->ipv4_pre_forward_last_proto = hdr->proto;
     }
 
     return 0;

@@ -51,9 +51,6 @@
 #define PICO_MIN_MSS (1280)
 #define TCP_STATE(s) (s->state & PICO_SOCKET_STATE_TCP)
 
-#ifdef PICO_SUPPORT_MUTEX
-static void *Mutex = NULL;
-#endif
 
 /* Mockables */
 #if defined UNIT_TEST
@@ -401,14 +398,14 @@ struct pico_socket *pico_sockets_find(struct pico_stack *S, uint16_t local, uint
 int8_t pico_socket_add(struct pico_socket *s)
 {
     struct pico_sockport *sp = pico_get_sockport(s->stack, PROTO(s), s->local_port);
-    PICOTCP_MUTEX_LOCK(Mutex);
+    PICOTCP_MUTEX_LOCK(s->stack->SockMutex);
     if (!sp) {
         /* dbg("Creating sockport..%04x\n", s->local_port); / * In comment due to spam during test * / */
         sp = PICO_ZALLOC(sizeof(struct pico_sockport));
 
         if (!sp) {
             pico_err = PICO_ERR_ENOMEM;
-            PICOTCP_MUTEX_UNLOCK(Mutex);
+            PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
             return -1;
         }
         sp->stack = s->stack;
@@ -422,7 +419,7 @@ int8_t pico_socket_add(struct pico_socket *s)
         {
             if (pico_tree_insert(&s->stack->UDPTable, sp)) {
 				PICO_FREE(sp);
-				PICOTCP_MUTEX_UNLOCK(Mutex);
+				PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
 				return -1;
 			}
 
@@ -434,7 +431,7 @@ int8_t pico_socket_add(struct pico_socket *s)
         {
             if (pico_tree_insert(&s->stack->TCPTable, sp)) {
 				PICO_FREE(sp);
-				PICOTCP_MUTEX_UNLOCK(Mutex);
+				PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
 				return -1;
 			}
         }
@@ -442,11 +439,11 @@ int8_t pico_socket_add(struct pico_socket *s)
     }
 
     if (pico_tree_insert(&sp->socks, s)) {
-		PICOTCP_MUTEX_UNLOCK(Mutex);
+		PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
 		return -1;
 	}
     s->state |= PICO_SOCKET_STATE_BOUND;
-    PICOTCP_MUTEX_UNLOCK(Mutex);
+    PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
 #ifdef DEBUG_SOCKET_TREE
     {
         struct pico_tree_node *index;
@@ -460,7 +457,6 @@ int8_t pico_socket_add(struct pico_socket *s)
 #endif
     return 0;
 }
-
 
 static void socket_clean_queues(struct pico_socket *sock)
 {
@@ -529,7 +525,7 @@ int8_t pico_socket_del(struct pico_socket *s)
         return -1;
     }
 
-    PICOTCP_MUTEX_LOCK(Mutex);
+    PICOTCP_MUTEX_LOCK(s->stack->SockMutex);
     pico_tree_delete(&sp->socks, s);
     pico_socket_check_empty_sockport(s, sp);
 #ifdef PICO_SUPPORT_MCAST
@@ -539,11 +535,11 @@ int8_t pico_socket_del(struct pico_socket *s)
     s->state = PICO_SOCKET_STATE_CLOSED;
     if (!pico_timer_add(s->stack, (pico_time)10, socket_garbage_collect, s)) {
         dbg("SOCKET: Failed to start garbage collect timer, doing garbage collection now\n");
-        PICOTCP_MUTEX_UNLOCK(Mutex);
+        PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
         socket_garbage_collect((pico_time)0, s);
         return -1;
     }
-    PICOTCP_MUTEX_UNLOCK(Mutex);
+    PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
     return 0;
 }
 
@@ -1981,6 +1977,63 @@ int MOCKABLE pico_socket_close(struct pico_socket *s)
 
 #endif
     return pico_socket_shutdown(s, PICO_SHUT_RDWR);
+}
+
+void pico_socket_destroy_all(struct pico_stack *S)
+{
+    struct pico_sockport *start = NULL;
+    struct pico_socket *s;
+    struct pico_tree_node *sp_node, *sp_safe;
+    struct pico_tree_node *index, *safe;
+    PICOTCP_MUTEX_LOCK(S->SockMutex);
+
+    if (S->sp_udp) {
+        pico_tree_foreach_safe(sp_node, &S->sp_udp->socks, sp_safe) {
+            start = sp_node->keyValue;
+            pico_tree_foreach_safe(index, &start->socks, safe){
+                s = index->keyValue;
+                socket_clean_queues(s);
+                pico_tree_delete(&S->sp_udp->socks, s);
+                pico_socket_check_empty_sockport(s, S->sp_udp);
+#ifdef PICO_SUPPORT_MCAST
+                pico_multicast_delete(s);
+#endif
+                socket_clean_queues(s);
+                PICO_FREE(s);
+            }
+        }
+    }
+    if (S->sp_tcp) {
+        pico_tree_foreach_safe(sp_node, &S->sp_tcp->socks, sp_safe) {
+            start = sp_node->keyValue;
+            pico_tree_foreach_safe(index, &start->socks, safe){
+                s = index->keyValue;
+                socket_clean_queues(s);
+                pico_tree_delete(&S->sp_tcp->socks, s);
+                pico_socket_check_empty_sockport(s, S->sp_tcp);
+                pico_socket_tcp_delete(s);
+                socket_clean_queues(s);
+                PICO_FREE(s);
+            }
+        }
+    }
+#ifdef PICO_SUPPORT_ICMP4
+    pico_tree_foreach_safe(index, &S->ICMP4Sockets, safe){
+        s = index->keyValue;
+        pico_socket_icmp4_close(s);
+        socket_clean_queues(s);
+        PICO_FREE(s);
+    }
+#endif
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    pico_tree_foreach_safe(index, &S->IP4Sockets, safe){
+        s = index->keyValue;
+        pico_socket_ipv4_close(s);
+        socket_clean_queues(s);
+        PICO_FREE(s);
+    }
+#endif
+    PICOTCP_MUTEX_UNLOCK(S->SockMutex);
 }
 
 #ifdef PICO_SUPPORT_CRC

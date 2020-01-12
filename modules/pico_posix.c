@@ -39,7 +39,7 @@ void *pico_mutex_init(void)
     return m;
 }
 
-void pico_mutex_destroy(void *mux)
+void pico_mutex_deinit(void *mux)
 {
     PICO_FREE(mux);
     mux = NULL;

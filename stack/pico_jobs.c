@@ -23,6 +23,7 @@
 #include "pico_defines.h"
 #ifdef PICO_SUPPORT_TICKLESS
 #include "pico_jobs.h"
+#include "pico_stack.h"
 struct pico_job
 {
     void (*exe)(struct pico_stack *, void *);

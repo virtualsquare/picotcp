@@ -139,7 +139,7 @@ struct pico_device *irqdev = NULL;
 static void IRQ_dispatcher(void) 
 {
     if (irqdev)
-        pico_schedule_job(pico_vde_dsr, irqdev);
+        pico_schedule_job(irqdev->stack, pico_vde_dsr, irqdev);
 }
 
 /* Thread body, to emulate IRQ emission from a vde device 
@@ -806,7 +806,7 @@ check:      if (!name || !area0 || !area1) {
         struct timespec idle_time = {0, 0};
         printf("%s: launching PicoTCP loop in TICKLESS mode\n", __FUNCTION__);
         while(1) {
-            interval = pico_stack_go();
+            interval = pico_stack_go(stack);
             if (interval != 0) {
                 int ret;
                 clock_gettime(CLOCK_REALTIME, &idle_time);
@@ -830,7 +830,7 @@ check:      if (!name || !area0 || !area1) {
         }
     } else {
         while(1) {
-            interval = pico_stack_go();
+            interval = pico_stack_go(stack);
         }
     }
     exit(0);
