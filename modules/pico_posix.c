@@ -24,6 +24,7 @@
  *
  *
  *********************************************************************/
+#include "pico_defines.h"
 #ifdef PICO_SUPPORT_THREADING
 
 #include <pthread.h>
