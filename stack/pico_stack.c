@@ -1122,8 +1122,6 @@ void pico_stack_deinit(struct pico_stack *S)
     /* Cleanup: devices */
     pico_tree_foreach_safe(node, &S->Device_tree, safe) {
         dev = node->keyValue;
-        if (dev->destroy)
-            dev->destroy(dev);
         pico_device_destroy(dev);
     }
     /* Cleanup: sockets */
