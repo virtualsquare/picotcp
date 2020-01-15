@@ -364,10 +364,14 @@ int pico_tcp_queue_in_is_empty(struct pico_socket *s)
 /* checks tcpq_in size */
 int pico_tcp_queue_in_size(struct pico_socket *s)
 {
+    struct pico_frame *f;
     struct pico_socket_tcp *t = (struct pico_socket_tcp *) s;
     if (!t)
         return -1;
-    return t->tcpq_in.size;
+    f = first_segment(&t->tcpq_in);
+    if (!f)
+        return 0;
+    return f->payload_len;
 }
 
 /* Useful for getting rid of the beginning of the buffer (read() op) */

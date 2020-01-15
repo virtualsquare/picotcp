@@ -1544,6 +1544,7 @@ int pico_socket_recv(struct pico_socket *s, void *buf, int len)
 int pico_socket_fionread(struct pico_socket *s)
 {
 
+    struct pico_frame *f;
     if (s == NULL) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
@@ -1559,7 +1560,10 @@ int pico_socket_fionread(struct pico_socket *s)
     }
     if (PROTO(s) == PICO_PROTO_UDP)
     {
-        return s->q_in.size;
+        f = pico_queue_peek(&s->q_in);
+        if (!f)
+            return 0;
+        return f->payload_len;
     }
     else if (PROTO(s) == PICO_PROTO_TCP) {
         return pico_tcp_queue_in_size(s);
