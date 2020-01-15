@@ -364,7 +364,7 @@ int pico_tcp_queue_in_is_empty(struct pico_socket *s)
 /* checks tcpq_in size */
 int pico_tcp_queue_in_size(struct pico_socket *s)
 {
-    struct pico_frame *f;
+    struct tcp_input_segment *f;
     struct pico_socket_tcp *t = (struct pico_socket_tcp *) s;
     if (!t)
         return -1;

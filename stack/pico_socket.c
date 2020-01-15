@@ -1563,6 +1563,10 @@ int pico_socket_fionread(struct pico_socket *s)
         f = pico_queue_peek(&s->q_in);
         if (!f)
             return 0;
+        if(!f->payload_len) {
+            f->payload = f->transport_hdr + sizeof(struct pico_udp_hdr);
+            f->payload_len = (uint16_t)(f->transport_len - sizeof(struct pico_udp_hdr));
+        }
         return f->payload_len;
     }
     else if (PROTO(s) == PICO_PROTO_TCP) {
