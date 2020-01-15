@@ -228,6 +228,7 @@ int8_t pico_socket_del(struct pico_socket *s);
 
 int pico_socket_setoption(struct pico_socket *s, int option, void *value);
 int pico_socket_getoption(struct pico_socket *s, int option, void *value);
+int pico_socket_fionread(struct pico_socket *s);
 
 int pico_socket_shutdown(struct pico_socket *s, int mode);
 int pico_socket_close(struct pico_socket *s);

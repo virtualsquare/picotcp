@@ -1541,6 +1541,33 @@ int pico_socket_recv(struct pico_socket *s, void *buf, int len)
     return pico_socket_recvfrom(s, buf, len, NULL, NULL);
 }
 
+int pico_socket_fionread(struct pico_socket *s)
+{
+
+    if (s == NULL) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    } else {
+        if (pico_check_socket(s) != 0) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
+    }
+    if ((s->state & PICO_SOCKET_STATE_BOUND) == 0) {
+        pico_err = PICO_ERR_EIO;
+        return -1;
+    }
+    if (PROTO(s) == PICO_PROTO_UDP)
+    {
+        return s->q_in.size;
+    }
+    else if (PROTO(s) == PICO_PROTO_TCP) {
+        return pico_tcp_queue_in_size(s);
+    }
+    else return 0;
+    
+    return 0;
+}
 
 int pico_socket_getname(struct pico_socket *s, void *local_addr, uint16_t *port, uint16_t *proto)
 {
