@@ -539,9 +539,18 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void
         f->transport_len = (uint16_t)len;
         f->sock = s;
         if (dst) {
-            f->info = dst;
+            f->info = PICO_ZALLOC(sizeof(struct pico_remote_endpoint));
+            if (f->info == NULL) {
+                pico_frame_discard(f);
+                pico_err = PICO_ERR_ENOMEM;
+                return -1;
+            }
+            memcpy(f->info, dst, sizeof(struct pico_remote_endpoint));
         }
-        return pico_ipv4_frame_sock_push_ex(s->stack, &pico_proto_ipv4, f, s4->proto);
+        if (pico_ipv4_frame_sock_push_ex(s->stack, &pico_proto_ipv4, f, s4->proto) > 0)
+            return (int)len;
+        else
+            return -1;
     }
 
     /* Allocate packet and send */
@@ -552,7 +561,10 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void
     memcpy(f->net_hdr, (const uint8_t *)buf, len);
     f->start = f->net_hdr;
     f->len = len;
-    return pico_socket_ipv4_process_out(s, f);
+    if (pico_socket_ipv4_process_out(s, f) > 0)
+        return (int)len;
+    else
+        return -1;
 }
 
 int pico_socket_ipv4_close(struct pico_socket *arg)
