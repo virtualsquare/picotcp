@@ -1063,13 +1063,10 @@ static int pico_socket_sendto_transport_offset(struct pico_socket *s)
     #ifdef PICO_SUPPORT_TCP
     if (PROTO(s) == PICO_PROTO_TCP)
         header_offset = pico_tcp_overhead(s);
-
     #endif
-
     #ifdef PICO_SUPPORT_UDP
     if (PROTO(s) == PICO_PROTO_UDP)
         header_offset = sizeof(struct pico_udp_hdr);
-
     #endif
     return header_offset;
 }
@@ -1142,7 +1139,10 @@ static int pico_socket_xmit_one(struct pico_socket *s, const void *buf, const in
         return -1;
     }
 
-    f->payload += hdr_offset;
+    if (PROTO(s) == PICO_PROTO_ICMP4)
+        f->payload = f->transport_hdr;
+    else
+        f->payload += hdr_offset;
     f->payload_len = (uint16_t)(len);
     f->sock = s;
     transport_flags_update(f, s);
@@ -1466,8 +1466,8 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
             pico_endpoint_free(remote_endpoint);
             return -1;
         }
-        pico_socket_sendto_set_dport(s, remote_port);
     }
+    pico_socket_sendto_set_dport(s, remote_port);
     return pico_socket_xmit(s, buf, len, src, remote_endpoint, msginfo); /* Implies discarding the endpoint */
 }
 
