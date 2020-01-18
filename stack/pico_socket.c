@@ -1310,12 +1310,15 @@ struct pico_device *get_sock_dev(struct pico_socket *s)
 static uint32_t pico_socket_adapt_mss_to_proto(struct pico_socket *s, uint32_t mss)
 {
 #ifdef PICO_SUPPORT_RAWSOCKETS
-    struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
-    if (s4->hdr_included)
-        return mss;
+    struct pico_socket_ipv4 *s4;
+    if (s && is_sock_ipv4(s) && (PROTO(s) == PICO_PROTO_IPV4)) {
+        s4 = (struct pico_socket_ipv4 *)s;
+        if (s4->hdr_included)
+            return mss;
+    }
 #endif
 #ifdef PICO_SUPPORT_IPV6
-    if (is_sock_ipv6(s))
+    if (s && is_sock_ipv6(s))
         return mss - PICO_SIZE_IP6HDR;
 #endif
     return mss - PICO_SIZE_IP4HDR;
