@@ -535,15 +535,9 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void
         return -1;
     }
     memcpy(f->net_hdr, (const uint8_t *)buf, len);
-    if (ipfilter(f)) {
-        /* Denied by firewall, discard silently. */
-        pico_frame_discard(f);
-        return (int)len;
-    } else {
-        f->start = f->net_hdr;
-        f->len = len;
-        return pico_socket_ipv4_process_out(s, f);
-    }
+    f->start = f->net_hdr;
+    f->len = len;
+    return pico_socket_ipv4_process_out(s, f);
 }
 
 int pico_socket_ipv4_close(struct pico_socket *arg)
