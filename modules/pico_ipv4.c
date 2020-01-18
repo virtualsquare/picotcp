@@ -75,6 +75,7 @@ int pico_ipv4_rawsocket_cmp(void *ka, void *kb)
 int ipv4_route_compare(void *ka, void *kb);
 struct pico_frame *pico_ipv4_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size);
 static struct pico_ipv4_route *route_find(struct pico_stack *S, const struct pico_ip4 *addr);
+static int pico_ipv4_frame_sock_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f);
 
 
 int pico_ipv4_compare(struct pico_ip4 *a, struct pico_ip4 *b)
@@ -518,7 +519,8 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void
     struct pico_frame *f;
     struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
     (void)dst;
-    if (!s4->hdr_included) {
+    if (!s4->hdr_included && (s4->proto = PICO_PROTO_IPV4)) {
+       /* Raw socket: no send allowed withouth IP_HDRINCL, or if protocol is IPPROTO_IP */
         /* Raw socket: no send allowed withouth IP_HDRINCL */
         pico_err = PICO_ERR_EINVAL;
         return -1;
@@ -527,6 +529,17 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void
     if (len > pico_socket_get_mss(s)) {
         pico_err = PICO_ERR_EMSGSIZE;
         return -1;
+    }
+
+    if (!s4->hdr_included) {
+        f = pico_proto_ipv4.alloc(s->stack, &pico_proto_ipv4, NULL, (uint16_t)(len));
+        if (!f)
+            return -1;
+        memcpy(f->transport_hdr, (const uint8_t *)buf, len);
+        f->transport_len = len;
+        if (dst)
+            f->info = dst;
+        return pico_ipv4_frame_sock_push(s->stack, &pico_proto_ipv4, f);
     }
 
     /* Allocate packet and send */
@@ -755,7 +768,6 @@ struct pico_frame *pico_ipv4_alloc(struct pico_stack *S, struct pico_protocol *s
     return f;
 }
 
-static int pico_ipv4_frame_sock_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f);
 
 /* Interface: protocol definition */
 struct pico_protocol pico_proto_ipv4 = {

@@ -109,6 +109,15 @@ struct pico_socket_ipv4
     uint8_t tos;
     uint8_t ttl;
 };
+
+struct pico_in_pktinfo
+{
+    unsigned int   ipi_ifindex;  /* Device hash */
+    struct pico_ip4 ipi_spec_dst; /* Local address */
+    struct pico_ip4 ipi_addr;     /* Header Destination
+                                    address */
+};
+
 #endif
 
 extern struct pico_ipv4_route initial_default_bcast_route;
