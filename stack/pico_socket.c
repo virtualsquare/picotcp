@@ -1311,7 +1311,7 @@ static uint32_t pico_socket_adapt_mss_to_proto(struct pico_socket *s, uint32_t m
 {
 #ifdef PICO_SUPPORT_RAWSOCKETS
     struct pico_socket_ipv4 *s4;
-    if (s && is_sock_ipv4(s) && (PROTO(s) == PICO_PROTO_IPV4)) {
+    if (s && is_sock_ipv4(s) && s->proto && (PROTO(s) == PICO_PROTO_IPV4)) {
         s4 = (struct pico_socket_ipv4 *)s;
         if (s4->hdr_included)
             return mss;
