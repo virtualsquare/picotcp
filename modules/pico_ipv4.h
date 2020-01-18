@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -99,11 +99,15 @@ struct pico_ipv4_route
 
 #ifdef PICO_SUPPORT_RAWSOCKETS
 /* Raw sockets support */
-struct pico_socket_ipv4 
+struct pico_socket_ipv4
 {
     struct pico_socket sock;
     uint16_t id;
-    uint8_t proto;
+    uint8_t proto; /* PICO_PROTO_IPV4 (=0) or PICO_RAWSOCKET_RAW (=255) or any transport */
+    uint8_t hdr_included; /* IP_HDRINCL option on/off */
+    uint8_t dontroute; /* SO_MSGDONTROUTE on/off */
+    uint8_t tos;
+    uint8_t ttl;
 };
 #endif
 
@@ -146,9 +150,12 @@ int pico_ipv4_cleanup_links(struct pico_stack *S, struct pico_device *dev);
 
 /* Raw socket support (GPLv2/v3 only) */
 struct pico_socket_ipv4;
-struct pico_socket *pico_socket_ipv4_open(struct pico_stack *S, uint8_t proto);
-int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port);
-int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, int len, void *dst, uint8_t protocol);
+struct pico_socket *pico_socket_ipv4_open(struct pico_stack *S, uint16_t proto);
+int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void *orig, uint16_t *remote_port);
+int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void *dst);
+int pico_setsockopt_ipv4(struct pico_socket *s, int option, void *value);
+int pico_getsockopt_ipv4(struct pico_socket *s, int option, void *value);
+
 int pico_socket_ipv4_close(struct pico_socket *arg);
 int ipv4_route_compare(void *ka, void *kb);
 

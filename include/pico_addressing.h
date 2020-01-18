@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -144,5 +144,9 @@ PACKED_STRUCT_DEF pico_trans
 #define PICO_PROTO_UDP    17
 #define PICO_PROTO_IPV6   41
 #define PICO_PROTO_ICMP6  58
+
+/* And some special values used for raw sockets */
+#define PICO_PROTO_RAWSOCKET (3 << 8)
+#define PICO_RAWSOCKET_RAW 255
 
 #endif

@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -48,17 +48,16 @@ void pico_mutex_deinit(void *mux)
 
 void pico_mutex_lock(void *mux)
 {
+    pthread_mutex_t *m = (pthread_mutex_t *)mux;
     if (mux == NULL) return;
 
-    pthread_mutex_t *m = (pthread_mutex_t *)mux;
     pthread_mutex_lock(m);
 }
 
 void pico_mutex_unlock(void *mux)
 {
-    if (mux == NULL) return;
-
     pthread_mutex_t *m = (pthread_mutex_t *)mux;
+    if (mux == NULL) return;
     pthread_mutex_unlock(m);
 }
 
@@ -79,18 +78,17 @@ void pico_sem_destroy(void *sem)
 
 void pico_sem_post(void *sem)
 {
-    if (sem == NULL) return;
-
     sem_t *s = (sem_t *)sem;
+    if (sem == NULL) return;
     sem_post(s);
 }
 
 int pico_sem_wait(void *sem, int timeout)
 {
     struct timespec t;
-    if (sem == NULL) return 0;
 
     sem_t *s = (sem_t *)sem;
+    if (sem == NULL) return 0;
 
     if (timeout < 0) {
         sem_wait(s);

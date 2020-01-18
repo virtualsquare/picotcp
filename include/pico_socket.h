@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -172,6 +172,11 @@ struct pico_ip_mreq_source {
 
 # define PICO_SOCKET_OPT_RCVBUF               52
 # define PICO_SOCKET_OPT_SNDBUF               53
+
+/* IPv4 sockopt */
+# define PICO_SOCKET_OPT_IP_HDRINCL           3
+# define PICO_SOCKET_OPT_IP_DONTROUTE         5
+# define PICO_SOCKET_OPT_IP_BINDTODEVICE      25
 
 
 /* Constants */

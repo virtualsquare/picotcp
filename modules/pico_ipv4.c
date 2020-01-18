@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera, Markian Yskout
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -74,6 +74,7 @@ int pico_ipv4_rawsocket_cmp(void *ka, void *kb)
 /* Functions */
 int ipv4_route_compare(void *ka, void *kb);
 struct pico_frame *pico_ipv4_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size);
+static struct pico_ipv4_route *route_find(struct pico_stack *S, const struct pico_ip4 *addr);
 
 
 int pico_ipv4_compare(struct pico_ip4 *a, struct pico_ip4 *b)
@@ -405,63 +406,144 @@ static void pico_ipv4_process_finally_try_forward(struct pico_stack *S, struct p
 
 #ifdef PICO_SUPPORT_RAWSOCKETS
 
-struct pico_socket *pico_socket_ipv4_open(struct pico_stack *S, uint8_t proto)
+struct pico_socket *pico_socket_ipv4_open(struct pico_stack *S, uint16_t proto)
 {
     struct pico_socket_ipv4 *s;
-    if (proto == 0 || proto == PICO_PROTO_TCP || proto == PICO_PROTO_UDP) {
+    if ((proto & PICO_PROTO_RAWSOCKET) == 0) {
         pico_err = PICO_ERR_EINVAL;
         return NULL;
     }
+
     s = PICO_ZALLOC(sizeof(struct pico_socket_ipv4));
     if (!s) {
         pico_err = PICO_ERR_ENOMEM;
         return NULL;
     }
+    if ((proto & 0x00FF)== PICO_RAWSOCKET_RAW)
+        s->hdr_included = 1;
     s->id = S->IP4Socket_id++;
-    s->proto = proto;
+    s->proto = (uint8_t)(proto & 0x00FF);
+    s->sock.proto = &pico_proto_ipv4;
     s->sock.stack = S;
+
     pico_tree_insert(&S->IP4Sockets, s);
     return (struct pico_socket *)s;
 }
 
-int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig,
+int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void *orig,
                                   uint16_t *remote_port)
 {
     struct pico_frame *f;
+    uint8_t *data;
+    uint16_t real_len;
+    struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
+
     f = pico_dequeue(&s->q_in);
     if (!f)
         return 0;
-    if (f->transport_len < len) {
-        len = f->transport_len;
+    if (s4->hdr_included) {
+        data = f->net_hdr;
+        real_len = f->net_len;
+    } else {
+        data = f->transport_hdr;
+        real_len = f->transport_len;
     }
-    memcpy(buf, f->transport_hdr, (size_t)len);
-    if (orig) {
+    if (real_len < len) {
+        len = real_len;
+    }
+    if (len == 0)
+        return 0;
+    memcpy(buf, data, (size_t)len);
+    if (!s4->hdr_included && orig) {
         struct pico_ipv4_hdr *hdr = (struct pico_ipv4_hdr *)f->net_hdr;
         memcpy(orig, &hdr->src, sizeof(struct pico_ip4));
+        *remote_port = 0;
     }
-    *remote_port = 0;
     pico_frame_discard(f);
-    return len;
+    return (int)len;
 }
 
-int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, int len, void *dst, uint8_t protocol)
+static int pico_socket_ipv4_process_out(struct pico_socket *s, struct pico_frame *f)
+{
+    struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
+    int ret;
+    uint32_t plen = f->len;
+    if (s->dev && ((s->state & PICO_SOCKET_STATE_BOUND) != 0)) {
+        f->dev = s->dev;
+        ret = pico_datalink_send(f); /* implies discard */
+        if (ret > 0)
+            return (int)plen;
+        else
+            return -1;
+    }
+
+    if ((f->net_hdr[0] & 0xF0) == 0x40) {
+        struct pico_ipv4_hdr *hdr = (struct pico_ipv4_hdr *)f->net_hdr;
+        struct pico_ipv4_route *rt;
+        uint16_t iplen = (uint16_t)(
+            (f->net_hdr[0] & 0x0F) * sizeof(uint32_t)); /* Read len of forged iphdr */
+
+        if (iplen >= plen) {
+            pico_err = PICO_ERR_EINVAL;
+            pico_frame_discard(f);
+            return -1;
+        }
+        f->net_len = iplen;
+        f->transport_hdr = f->net_hdr + f->net_len;
+        rt = route_find(s->stack, &hdr->dst);
+        if (!rt) {
+            pico_err = PICO_ERR_EHOSTUNREACH;
+            pico_frame_discard(f);
+            return -1;
+        }
+        if ((rt->gateway.addr != 0U) && (s4->dontroute)) {
+            pico_err = PICO_ERR_EHOSTUNREACH;
+            pico_frame_discard(f);
+            return -1;
+        }
+        f->dev = rt->link->dev;
+        ret = pico_datalink_send(f); /* implies discard */
+        if (ret > 0)
+            return (int)plen;
+        else
+            return -1;
+    }
+    pico_frame_discard(f);
+    pico_err = PICO_ERR_EINVAL;
+    return -1;
+}
+
+int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void *dst)
 {
     struct pico_frame *f;
-
-    if (len < 8) {
+    struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
+    (void)dst;
+    if (!s4->hdr_included) {
+        /* Raw socket: no send allowed withouth IP_HDRINCL */
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
 
+    if (len > pico_socket_get_mss(s)) {
+        pico_err = PICO_ERR_EMSGSIZE;
+        return -1;
+    }
+
     /* Allocate packet and send */
-    f = pico_proto_ipv4.alloc(s->stack, &pico_proto_ipv4, NULL, (uint16_t)(len));
+    f = pico_proto_ethernet.alloc(s->stack, &pico_proto_ethernet, NULL, (uint16_t)(len));
     if (!f) {
         return -1;
     }
-    f->payload_len = (uint16_t)len;
-    memcpy(f->payload, (const uint8_t *)buf, f->payload_len);
-    pico_ipv4_frame_push(s->stack, f, dst, (uint8_t)protocol);
-    return len;
+    memcpy(f->net_hdr, (const uint8_t *)buf, len);
+    if (ipfilter(f)) {
+        /* Denied by firewall, discard silently. */
+        pico_frame_discard(f);
+        return (int)len;
+    } else {
+        f->start = f->net_hdr;
+        f->len = len;
+        return pico_socket_ipv4_process_out(s, f);
+    }
 }
 
 int pico_socket_ipv4_close(struct pico_socket *arg)
@@ -475,7 +557,52 @@ int pico_socket_ipv4_close(struct pico_socket *arg)
     return -1;
 }
 
-static void pico_ipv4_process_raw_socket(struct pico_frame *f)
+int pico_setsockopt_ipv4(struct pico_socket *s, int option, void *value)
+{
+    struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
+    switch(option) {
+        case PICO_SOCKET_OPT_IP_HDRINCL:
+            if (s4->proto == PICO_RAWSOCKET_RAW) {
+                pico_err = PICO_ERR_EINVAL;
+                return -1;
+            }
+            s4->hdr_included = (*(int*)value)?1:0;
+            return 0;
+        case PICO_SOCKET_OPT_IP_DONTROUTE:
+            s4->dontroute = (*(int*)value)?1:0;
+            return 0;
+        case PICO_SOCKET_OPT_IP_BINDTODEVICE:
+            s->dev = (struct pico_device *)value;
+            s->local_addr.ip4.addr = 0;
+            return 0;
+    }
+    /* switch's default */
+    pico_err = PICO_ERR_EINVAL;
+    return -1;
+}
+
+int pico_getsockopt_ipv4(struct pico_socket *s, int option, void *value)
+{
+    int *val = (int *)value;
+    void ** pval = (void *)value;
+    struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
+    switch(option) {
+        case PICO_SOCKET_OPT_IP_HDRINCL:
+            *val = (int)s4->hdr_included;
+            return 0;
+        case PICO_SOCKET_OPT_IP_DONTROUTE:
+            *val = (int)s4->dontroute;
+            return 0;
+        case PICO_SOCKET_OPT_IP_BINDTODEVICE:
+            *pval = s->dev;
+            return 0;
+    }
+    /* switch's default */
+    pico_err = PICO_ERR_EINVAL;
+    return -1;
+}
+
+static void pico_socket_ipv4_process_in(struct pico_frame *f)
 {
     struct pico_tree_node *node;
     struct pico_ipv4_hdr *hdr = (struct pico_ipv4_hdr *)f->net_hdr;
@@ -483,13 +610,19 @@ static void pico_ipv4_process_raw_socket(struct pico_frame *f)
         struct pico_socket_ipv4 *s;
         struct pico_frame *cp;
         s = (struct pico_socket_ipv4 *) node->keyValue;
-        if (s->proto == hdr->proto) {
-            cp = pico_frame_copy(f);
-            if (cp) {
-                pico_enqueue(&s->sock.q_in, cp);
-                if (s->sock.wakeup) {
-                    s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
-                }
+        if (!s->hdr_included && ((s->proto != PICO_PROTO_IPV4) && (s->proto != hdr->proto)))
+            continue;
+        if ((s->sock.state | PICO_SOCKET_STATE_BOUND) != 0) {
+            if (s->sock.dev != f->dev)
+                continue;
+            if ((s->sock.local_addr.ip4.addr != 0) && (s->sock.local_addr.ip4.addr != hdr->dst.addr))
+                continue;
+        }
+        cp = pico_frame_copy(f);
+        if (cp) {
+            pico_enqueue(&s->sock.q_in, cp);
+            if (s->sock.wakeup) {
+                s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
             }
         }
     }
@@ -532,8 +665,6 @@ static int pico_ipv4_process_in(struct pico_stack *S, struct pico_protocol *self
     }
 
 #endif
-
-
     /* ret == 1 indicates to continue the function */
     ret = pico_ipv4_crc_check(f);
     if (ret < 1)
@@ -574,7 +705,7 @@ static int pico_ipv4_process_in(struct pico_stack *S, struct pico_protocol *self
 #endif
 
 #ifdef PICO_SUPPORT_RAWSOCKETS
-    pico_ipv4_process_raw_socket(f);
+    pico_socket_ipv4_process_in(f);
 #endif
 
     if (pico_ipv4_process_bcast_in(S, f) > 0)
@@ -1716,9 +1847,11 @@ static int pico_ipv4_forward(struct pico_stack *S, struct pico_frame *f)
     if (pico_ipv4_forward_check_dev(S, f) < 0)
         return -1;
 
-    pico_datalink_send(f);
-    return 0;
-
+    if (ipfilter(f)) {
+        /*pico_frame is discarded as result of the filtering*/
+        return -1;
+    }
+    return pico_datalink_send(f);
 }
 
 int pico_ipv4_is_broadcast(struct pico_stack *S, uint32_t addr)

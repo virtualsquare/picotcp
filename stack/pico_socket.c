@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -424,7 +424,7 @@ int8_t pico_socket_add(struct pico_socket *s)
 			}
 
         }
-        
+
 #endif
 #ifdef PICO_SUPPORT_TCP
         if (PROTO(s) == PICO_PROTO_TCP)
@@ -645,12 +645,27 @@ static struct pico_socket *pico_socket_transport_open(struct pico_stack *S, uint
 #endif
 
 #ifdef PICO_SUPPORT_ICMP4
-    if (proto == PICO_PROTO_ICMP4)
-        s = pico_socket_icmp4_open(S);
+    if (proto == PICO_PROTO_ICMP4) {
+        if (family == PICO_PROTO_IPV4)
+            s = pico_socket_icmp4_open(S);
+        else
+            pico_err = PICO_ERR_EPROTONOSUPPORT;
+    }
 #endif
 
+#ifdef PICO_SUPPORT_RAWSOCKETS
+#   ifdef PICO_SUPPORT_IPV4
+    if ((family == PICO_PROTO_IPV4) && ((proto & PICO_PROTO_RAWSOCKET) != 0)) {
+        s = pico_socket_ipv4_open(S, proto);
+    }
+#   endif
+#   ifdef  PICO_SUPPORT_IPV6_RAWSOCKETS /* TODO */
+    if (family == PICO_PROTO_IPV6 && ((proto & PICO_PROTO_RAWSOCKET) != 0)) {
+        s = pico_socket_ipv6_open(S, proto);
+    }
+#   endif
+#endif
     return s;
-
 }
 
 struct pico_socket *pico_socket_open(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *))
@@ -742,6 +757,10 @@ static int pico_socket_transport_read(struct pico_socket *s, void *buf, int len)
     }
     else if (PROTO(s) == PICO_PROTO_TCP)
         return pico_socket_tcp_read(s, buf, (uint32_t)len);
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    else if (PROTO(s) == PICO_PROTO_IPV4)
+        return pico_socket_ipv4_recvfrom(s, buf, (uint32_t)len, NULL, NULL);
+#endif
     else return 0;
 }
 
@@ -1290,13 +1309,16 @@ struct pico_device *get_sock_dev(struct pico_socket *s)
 
 static uint32_t pico_socket_adapt_mss_to_proto(struct pico_socket *s, uint32_t mss)
 {
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
+    if (s4->hdr_included)
+        return mss;
+#endif
 #ifdef PICO_SUPPORT_IPV6
     if (is_sock_ipv6(s))
-        mss -= PICO_SIZE_IP6HDR;
-    else
+        return mss - PICO_SIZE_IP6HDR;
 #endif
-    mss -= PICO_SIZE_IP4HDR;
-    return mss;
+    return mss - PICO_SIZE_IP4HDR;
 }
 static uint32_t pico_socket_pmtu_check(struct pico_socket *s, uint32_t mss)
 {
@@ -1409,6 +1431,12 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
     if (pico_socket_sendto_initial_checks(s, buf, len, dst, remote_port) < 0)
         return -1;
 
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    /* Skip src assignment for raw sockets */
+    if (PROTO(s) == PICO_PROTO_IPV4) {
+        return pico_socket_ipv4_sendto(s, buf, (uint32_t)len, dst);
+    }
+#endif
 
     src = pico_socket_sendto_get_src(s, dst);
     if (!src) {
@@ -1470,20 +1498,19 @@ int pico_socket_send(struct pico_socket *s, const void *buf, int len)
 int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, void *orig,
                                   uint16_t *remote_port, struct pico_msginfo *msginfo)
 {
-    if (!s || buf == NULL) { /* / || orig == NULL || remote_port == NULL) { */
+    if (!s || buf == NULL) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
-    } else {
-        /* check if exists in tree */
-        if ((PROTO(s) != PICO_PROTO_ICMP4) && pico_check_socket(s) != 0) {
-            pico_err = PICO_ERR_EINVAL;
-            /* See task #178 */
-            return -1;
-        }
     }
 
-    /* forward request to icmp layer */
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    if ((PROTO(s) == PICO_PROTO_IPV4)) {
+        return pico_socket_ipv4_recvfrom(s, buf, (uint16_t)len, orig, remote_port);
+    }
+#endif
+
 #ifdef PICO_SUPPORT_ICMP4
+    /* forward request to icmp layer */
     if (PROTO(s) == PICO_PROTO_ICMP4) {
         if(len > 0xFFFF) {
             pico_err = PICO_ERR_EINVAL;
@@ -1493,12 +1520,17 @@ int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, voi
     }
 #endif
 
+    /* check if exists in tree */
+    if ((PROTO(s) != PICO_PROTO_ICMP4) && pico_check_socket(s) != 0) {
+        pico_err = PICO_ERR_EINVAL;
+        /* See task #178 */
+        return -1;
+    }
+
     if ((s->state & PICO_SOCKET_STATE_BOUND) == 0) {
         pico_err = PICO_ERR_EADDRNOTAVAIL;
         return -1;
     }
-   
-    
 
 #ifdef PICO_SUPPORT_UDP
     if (PROTO(s) == PICO_PROTO_UDP) {
@@ -1569,11 +1601,24 @@ int pico_socket_fionread(struct pico_socket *s)
         }
         return f->payload_len;
     }
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    else if (PROTO(s) == PICO_PROTO_IPV4) {
+        struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
+        f = pico_queue_peek(&s->q_in);
+        if (!f)
+            return 0;
+        if(!f->payload_len) {
+            f->payload = f->net_hdr + f->net_len;
+            f->payload_len = (uint16_t)(f->len);
+            if (!s4->hdr_included)
+                f->payload_len = (uint16_t)(f->payload_len - PICO_SIZE_IP4HDR);
+        }
+        return f->payload_len;
+    }
+#endif
     else if (PROTO(s) == PICO_PROTO_TCP) {
         return pico_tcp_queue_in_size(s);
     }
-    else return 0;
-    
     return 0;
 }
 
@@ -1642,6 +1687,8 @@ int pico_socket_getpeername(struct pico_socket *s, void *remote_addr, uint16_t *
 
 int MOCKABLE pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t *port)
 {
+    struct pico_device *dev;
+
     if (!s || !local_addr || !port) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
@@ -1651,23 +1698,25 @@ int MOCKABLE pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t 
     #ifdef PICO_SUPPORT_IPV4
         struct pico_ip4 *ip = (struct pico_ip4 *)local_addr;
         if (ip->addr != PICO_IPV4_INADDR_ANY) {
-            if (!pico_ipv4_link_find(s->stack, local_addr)) {
+            dev = pico_ipv4_link_find(s->stack, local_addr);
+            if (!dev) {
                 pico_err = PICO_ERR_EINVAL;
                 return -1;
             }
+            s->dev = dev;
         }
-
     #endif
     } else if (is_sock_ipv6(s)) {
     #ifdef PICO_SUPPORT_IPV6
         struct pico_ip6 *ip = (struct pico_ip6 *)local_addr;
         if (!pico_ipv6_is_unspecified(ip->addr)) {
-            if (!pico_ipv6_link_find(s->stack, local_addr)) {
+            dev = pico_ipv6_link_find(s->stack, local_addr);
+            if (!dev) {
                 pico_err = PICO_ERR_EINVAL;
                 return -1;
             }
+            s->dev = dev;
         }
-
     #endif
     } else {
         pico_err = PICO_ERR_EINVAL;
@@ -1676,25 +1725,28 @@ int MOCKABLE pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t 
 
     #ifdef PICO_SUPPORT_ICMP4
     if (PROTO(s) == PICO_PROTO_ICMP4) {
-        return pico_socket_icmp4_bind(s, local_addr, *port);
+        if (pico_socket_icmp4_bind(s, local_addr, *port) < 0)
+            return -1;
     }
     #endif
 
-    /* When given port = 0, get a random high port to bind to. */
-    if (*port == 0) {
-        *port = pico_socket_high_port(s->stack, PROTO(s));
+    /* Manage ports for transport protocols */
+    if ((PROTO(s) == PICO_PROTO_TCP) || (PROTO(s) == PICO_PROTO_UDP)) {
+        /* When given port = 0, get a random high port to bind to. */
         if (*port == 0) {
-            pico_err = PICO_ERR_EINVAL;
+            *port = pico_socket_high_port(s->stack, PROTO(s));
+            if (*port == 0) {
+                pico_err = PICO_ERR_EINVAL;
+                return -1;
+            }
+        }
+
+        if (pico_is_port_free(s->stack, PROTO(s), *port, local_addr, s->net) == 0) {
+            pico_err = PICO_ERR_EADDRINUSE;
             return -1;
         }
+        s->local_port = *port;
     }
-
-    if (pico_is_port_free(s->stack, PROTO(s), *port, local_addr, s->net) == 0) {
-        pico_err = PICO_ERR_EADDRINUSE;
-        return -1;
-    }
-
-    s->local_port = *port;
 
     if (is_sock_ipv4(s)) {
     #ifdef PICO_SUPPORT_IPV4
@@ -1721,6 +1773,12 @@ int pico_socket_connect(struct pico_socket *s, const void *remote_addr, uint16_t
     pico_err = PICO_ERR_EPROTONOSUPPORT;
     if (!s || remote_addr == NULL || remote_port == 0) {
         pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+
+    if (PROTO(s) == PICO_PROTO_IPV4)
+    {
+        pico_err = PICO_ERR_EOPNOTSUPP;
         return -1;
     }
 
@@ -1812,17 +1870,18 @@ int pico_socket_listen(struct pico_socket *s, int backlog)
             return -1;
         }
     }
-
+    if (PROTO(s) == PICO_PROTO_IPV4) {
+        pico_err = PICO_ERR_EOPNOTSUPP;
+        return -1;
+    }
     if (PROTO(s) == PICO_PROTO_UDP) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
-
     if ((s->state & PICO_SOCKET_STATE_BOUND) == 0) {
         pico_err = PICO_ERR_EISCONN;
         return -1;
     }
-
     if (PROTO(s) == PICO_PROTO_TCP)
         pico_socket_alter_state(s, PICO_SOCKET_STATE_TCP_SYN_SENT, 0, PICO_SOCKET_STATE_TCP_LISTEN);
 
@@ -1845,6 +1904,10 @@ struct pico_socket *pico_socket_accept(struct pico_socket *s, void *orig, uint16
     }
 
     if (PROTO(s) == PICO_PROTO_UDP) {
+        return NULL;
+    }
+    if (PROTO(s) == PICO_PROTO_IPV4) {
+        pico_err = PICO_ERR_EOPNOTSUPP;
         return NULL;
     }
 
@@ -1911,12 +1974,17 @@ int MOCKABLE pico_socket_setoption(struct pico_socket *s, int option, void *valu
         return -1;
     }
 
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    if (PROTO(s) == PICO_PROTO_IPV4)
+        return pico_setsockopt_ipv4(s, option, value);
+#endif
 
     if (PROTO(s) == PICO_PROTO_TCP)
         return pico_setsockopt_tcp(s, option, value);
 
     if (PROTO(s) == PICO_PROTO_UDP)
         return pico_setsockopt_udp(s, option, value);
+
 
     pico_err = PICO_ERR_EPROTONOSUPPORT;
     return -1;
@@ -1930,6 +1998,10 @@ int pico_socket_getoption(struct pico_socket *s, int option, void *value)
         return -1;
     }
 
+#ifdef PICO_SUPPORT_RAWSOCKETS
+    if (PROTO(s) == PICO_PROTO_IPV4)
+        return pico_getsockopt_ipv4(s, option, value);
+#endif
 
     if (PROTO(s) == PICO_PROTO_TCP)
         return pico_getsockopt_tcp(s, option, value);
