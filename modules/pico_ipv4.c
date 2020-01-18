@@ -76,6 +76,7 @@ int ipv4_route_compare(void *ka, void *kb);
 struct pico_frame *pico_ipv4_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size);
 static struct pico_ipv4_route *route_find(struct pico_stack *S, const struct pico_ip4 *addr);
 static int pico_ipv4_frame_sock_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f);
+static int pico_ipv4_frame_sock_push_ex(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f, uint8_t ip_proto_n);
 
 
 int pico_ipv4_compare(struct pico_ip4 *a, struct pico_ip4 *b)
@@ -519,9 +520,8 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void
     struct pico_frame *f;
     struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
     (void)dst;
-    if (!s4->hdr_included && (s4->proto = PICO_PROTO_IPV4)) {
+    if (!s4->hdr_included && (s4->proto == PICO_PROTO_IPV4)) {
        /* Raw socket: no send allowed withouth IP_HDRINCL, or if protocol is IPPROTO_IP */
-        /* Raw socket: no send allowed withouth IP_HDRINCL */
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
@@ -536,10 +536,12 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void
         if (!f)
             return -1;
         memcpy(f->transport_hdr, (const uint8_t *)buf, len);
-        f->transport_len = len;
-        if (dst)
+        f->transport_len = (uint16_t)len;
+        f->sock = s;
+        if (dst) {
             f->info = dst;
-        return pico_ipv4_frame_sock_push(s->stack, &pico_proto_ipv4, f);
+        }
+        return pico_ipv4_frame_sock_push_ex(s->stack, &pico_proto_ipv4, f, s4->proto);
     }
 
     /* Allocate packet and send */
@@ -1381,8 +1383,7 @@ drop:
     return -1;
 }
 
-
-static int pico_ipv4_frame_sock_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
+static int pico_ipv4_frame_sock_push_ex(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f, uint8_t ip_proto_n)
 {
     struct pico_ip4 *dst;
     struct pico_remote_endpoint *remote_endpoint = (struct pico_remote_endpoint *) f->info;
@@ -1399,7 +1400,12 @@ static int pico_ipv4_frame_sock_push(struct pico_stack *S, struct pico_protocol 
         dst = &f->sock->remote_addr.ip4;
     }
 
-    return pico_ipv4_frame_push(S, f, dst, (uint8_t)f->sock->proto->proto_number);
+    return pico_ipv4_frame_push(S, f, dst, ip_proto_n);
+}
+
+static int pico_ipv4_frame_sock_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
+{
+    return pico_ipv4_frame_sock_push_ex(S, self, f, (uint8_t)f->sock->proto->proto_number);
 }
 
 
