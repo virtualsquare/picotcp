@@ -54,6 +54,12 @@
 # define IS_SOCK_IPV6(s) (0)
 #endif
 
+#ifdef PICO_SUPPORT_SOCKET_PACKET
+# define IS_SOCK_PACKET(s) ((s->net == &pico_proto_ll))
+#else
+# define IS_SOCK_PACKET(s) (0)
+#endif
+
 
 struct pico_sockport
 {
