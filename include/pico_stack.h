@@ -131,6 +131,7 @@ struct pico_stack {
 #endif
 
 #ifdef PICO_SUPPORT_PACKET_SOCKETS
+    DECLARE_QUEUES(proto_ll);
     uint16_t PSocket_id;
     struct pico_tree PSockets;
 #endif

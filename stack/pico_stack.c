@@ -407,6 +407,9 @@ int pico_frame_dst_is_unicast(struct pico_stack *S, struct pico_frame *f)
 
 int pico_datalink_receive(struct pico_frame *f)
 {
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    pico_socket_ll_process_in(f->dev->stack, &pico_proto_ll, f);
+#endif
     if (f->dev->eth) {
         /* If device has stack with datalink-layer pass frame through it */
         switch (f->dev->mode) {
@@ -866,7 +869,8 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 
 #ifdef PICO_SUPPORT_PACKET_SOCKETS
     pico_protocol_init(*S, &pico_proto_ll);
-    EMPTY_TREE((*S)->IP4Sockets, pico_socket_ll_compare);
+    ATTACH_QUEUES(*S, proto_ll, pico_proto_ll);
+    EMPTY_TREE((*S)->PSockets, pico_socket_ll_compare);
 #endif
 
 #ifdef PICO_SUPPORT_IPV4
