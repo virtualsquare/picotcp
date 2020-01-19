@@ -161,7 +161,9 @@ int pico_socket_ll_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void
     f = pico_dequeue(&s->q_in);
     if (!f)
         return 0;
-    if (f->dev->eth || (lls->type == PICO_PACKET_TYPE_RAW)) {
+    f->datalink_hdr = f->buffer + f->dev->overhead;
+
+    if (f->dev->eth && (lls->type == PICO_PACKET_TYPE_DGRAM)) {
         data = f->datalink_hdr + sizeof(struct pico_eth_hdr);
         offset = sizeof(struct pico_eth_hdr);
     } else {
