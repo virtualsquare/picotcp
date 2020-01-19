@@ -31,15 +31,19 @@
 extern struct pico_protocol pico_proto_ll;
 
 #define LL_HWADDR_SIZE 8
-#define PICO_IDETH_ALL (0x0003)
+#define PICO_IDETH_ALL (0x0300)
 #define PICO_AF_PACKET (0xAF17)
+#define PICO_PACKET_TYPE_DGRAM  (0x0001)
+#define PICO_PACKET_TYPE_RAW    (0x0003)
 
 
 struct pico_ll_socket {
     struct pico_socket sock;
     uint16_t id;
+    uint8_t type;
 };
 
+void pico_socket_set_raw(struct pico_socket *s);
 int pico_socket_ll_compare(void *ka, void *kb);
 int pico_socket_ll_process_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f);
 struct pico_frame *pico_ll_frame_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size);

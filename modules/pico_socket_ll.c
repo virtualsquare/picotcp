@@ -47,6 +47,12 @@ int pico_socket_ll_compare(void *ka, void *kb)
     return (0);
 }
 
+void pico_socket_set_raw(struct pico_socket *s)
+{
+    struct pico_ll_socket *lls = (struct pico_ll_socket *)s;
+    lls->type = PICO_PACKET_TYPE_RAW;
+}
+
 struct pico_socket *pico_socket_ll_open(struct pico_stack *S, uint16_t proto) {
     struct pico_ll_socket *s;
     s = PICO_ZALLOC(sizeof(struct pico_ll_socket));
@@ -55,6 +61,7 @@ struct pico_socket *pico_socket_ll_open(struct pico_stack *S, uint16_t proto) {
         return NULL;
     }
     s->id = S->PSocket_id++;
+    s->type = PICO_PACKET_TYPE_DGRAM;
     s->sock.local_addr.ll.proto = proto;
     s->sock.proto = &pico_proto_ll;
     s->sock.net = &pico_proto_ll;
@@ -92,7 +99,7 @@ int pico_socket_ll_process_in(struct pico_stack *S, struct pico_protocol *self, 
         struct pico_ll_socket *s;
         struct pico_frame *cp;
         s = (struct pico_ll_socket *) node->keyValue;
-        if (s->sock.state | PICO_SOCKET_STATE_BOUND)
+        if (((s->sock.state | PICO_SOCKET_STATE_BOUND) == 0) && (s->sock.local_addr.ll.proto == 0))
             continue;
         if (s->sock.dev != f->dev)
             continue;
@@ -141,6 +148,7 @@ struct pico_protocol pico_proto_ll = {
 
 int pico_socket_ll_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void *orig)
 {
+    struct pico_ll_socket *lls = (struct pico_ll_socket *)s;
     struct pico_frame *f;
     uint8_t *data;
     uint32_t offset = 0;
@@ -151,7 +159,7 @@ int pico_socket_ll_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void
     f = pico_dequeue(&s->q_in);
     if (!f)
         return 0;
-    if (f->dev->eth) {
+    if (f->dev->eth || (lls->type == PICO_PACKET_TYPE_RAW)) {
         data = f->datalink_hdr + sizeof(struct pico_eth_hdr);
         offset = sizeof(struct pico_eth_hdr);
     } else {
@@ -165,7 +173,7 @@ int pico_socket_ll_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void
     }
     len = ((f->buffer_len - (offset + f->dev->overhead)));
 
-    if (f->dev->eth && orig) {
+    if (f->dev->eth && orig && (lls->type == PICO_PACKET_TYPE_DGRAM)) {
         struct pico_eth_hdr *ehdr = (struct pico_eth_hdr *)f->datalink_hdr;
         struct pico_ll *ll = (struct pico_ll *)orig;
         ll->proto = ehdr->proto;
@@ -183,8 +191,9 @@ int pico_socket_ll_sendto(struct pico_socket *s, void *buf, uint32_t len, void *
     struct pico_frame *f;
     struct pico_ll *dst = (struct pico_ll *)_dst;
     uint32_t overhead = 0;
+    struct pico_ll_socket *lls = (struct pico_ll_socket *)s;
 
-    if (!dst || !dst->dev || !dst->proto) {
+    if (!dst || !dst->dev || (!dst->proto && !s->local_addr.ll.proto)) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
@@ -201,7 +210,9 @@ int pico_socket_ll_sendto(struct pico_socket *s, void *buf, uint32_t len, void *
         return -1;
     }
     f->dev = dst->dev;
-    if (dst->dev->eth) {
+    if (dst->proto == 0)
+        dst->proto = s->local_addr.ll.proto;
+    if (dst->dev->eth && (lls->type == PICO_PACKET_TYPE_DGRAM)) {
         struct pico_eth_hdr *ehdr;
         ehdr = (struct pico_eth_hdr *)f->datalink_hdr;
         memcpy(ehdr->daddr, dst->hwaddr.addr, 6);
