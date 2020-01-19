@@ -26,6 +26,7 @@ make PTHREAD=1 TCP=1 UDP=1 VDE=1 \
 	POLARSSL=0 \
 	TICKLESS=0 \
 	RAW=1 \
+    PACKET_SOCKET=1 \
     6LOWPAN=0 \
     PLATFORM_CFLAGS="-fPIC -shared"
 

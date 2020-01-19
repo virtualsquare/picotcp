@@ -69,6 +69,7 @@ WOLFSSL?=0
 POLARSSL?=0
 TICKLESS?=0
 RAW=1
+PACKET_SOCKET=1
 
 #IPv6 related
 IPV6?=1
@@ -358,6 +359,9 @@ ifneq ($(TICKLESS),0)
 endif
 ifneq ($(RAW),0)
   include rules/rawsockets.mk
+endif
+ifneq ($(PACKET_SOCKET),0)
+  include rules/packetsockets.mk
 endif
 
 all: mod core lib

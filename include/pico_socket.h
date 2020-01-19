@@ -254,6 +254,12 @@ struct pico_device *get_sock_dev(struct pico_socket *s);
 # define is_sock_ipv6(x) (0)
 #endif
 
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+# define is_sock_ll(x) (x->net == &pico_proto_ll)
+#else
+# define is_sock_ll(x)  (0)
+#endif
+
 #ifdef PICO_SUPPORT_UDP
 # define is_sock_udp(x) (x->proto == &pico_proto_udp)
 #else

@@ -46,6 +46,10 @@
 #include "pico_dhcp_client.h"
 #endif
 
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+#include "pico_socket_ll.h"
+#endif
+
 
 struct arp_service_ipconflict {
     struct pico_eth mac;
@@ -124,6 +128,11 @@ struct pico_stack {
 
 #ifdef PICO_SUPPORT_ETH
     DECLARE_QUEUES(ethernet);
+#endif
+
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    uint16_t PSocket_id;
+    struct pico_tree PSockets;
 #endif
 
 #ifdef PICO_SUPPORT_6LOWPAN

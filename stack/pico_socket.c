@@ -42,9 +42,10 @@
 #include "pico_socket_tcp.h"
 #include "pico_socket_udp.h"
 #include "pico_ipv6_pmtu.h"
+#include "pico_socket_ll.h"
 
-#if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
-#if defined (PICO_SUPPORT_TCP) || defined (PICO_SUPPORT_UDP)
+#if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6) || defined(PICO_SUPPORT_PACKET_SOCKETS)
+#if defined (PICO_SUPPORT_TCP) || defined (PICO_SUPPORT_UDP) || defined(PICO_SUPPORT_PACKET_SOCKETS)
 
 
 #define PROTO(s) ((s)->proto->proto_number)
@@ -664,6 +665,12 @@ static struct pico_socket *pico_socket_transport_open(struct pico_stack *S, uint
         s = pico_socket_ipv6_open(S, proto);
     }
 #   endif
+#endif
+
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    if (family == PICO_AF_PACKET) {
+        s = pico_socket_ll_open(S, proto);
+    }
 #endif
     return s;
 }
@@ -1431,6 +1438,11 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
     if(len == 0)
         return 0;
 
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    if (PROTO(s) == PICO_AF_PACKET)
+        return pico_socket_ll_sendto(s, buf, (uint32_t)len, dst);
+#endif
+
     if (pico_socket_sendto_initial_checks(s, buf, len, dst, remote_port) < 0)
         return -1;
 
@@ -1505,6 +1517,10 @@ int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, voi
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    if (PROTO(s) == PICO_AF_PACKET)
+        return pico_socket_ll_recvfrom(s, buf, (uint16_t)len, orig);
+#endif
 
 #ifdef PICO_SUPPORT_RAWSOCKETS
     if ((PROTO(s) == PICO_PROTO_IPV4)) {
@@ -1721,6 +1737,14 @@ int MOCKABLE pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t 
             s->dev = dev;
         }
     #endif
+    } else if (is_sock_ll(s)) {
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+        struct pico_ll *ll = (struct pico_ll *)local_addr;
+        if ((!ll->dev) || (ll->dev != pico_get_device(s->stack, ll->dev->name))) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
+#endif
     } else {
         pico_err = PICO_ERR_EINVAL;
         return -1;
@@ -1760,6 +1784,11 @@ int MOCKABLE pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t 
     #ifdef PICO_SUPPORT_IPV6
         struct pico_ip6 *ip = (struct pico_ip6 *)local_addr;
         s->local_addr.ip6 = *ip;
+    #endif
+    } else if (is_sock_ll(s)) {
+    #ifdef PICO_SUPPORT_PACKET_SOCKETS
+        struct pico_ll *ll = (struct pico_ll *)local_addr;
+        s->local_addr.ll = *ll;
     #endif
     } else {
         pico_err = PICO_ERR_EINVAL;

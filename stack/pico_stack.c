@@ -864,6 +864,11 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
     EMPTY_TREE((*S)->LPReassemblyTree, lp_frag_cmp);
 #endif
 
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    pico_protocol_init(*S, &pico_proto_ll);
+    EMPTY_TREE((*S)->IP4Sockets, pico_socket_ll_compare);
+#endif
+
 #ifdef PICO_SUPPORT_IPV4
     pico_protocol_init(*S, &pico_proto_ipv4);
     ATTACH_QUEUES(*S, ipv4, pico_proto_ipv4);

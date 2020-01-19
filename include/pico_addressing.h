@@ -40,12 +40,6 @@ PACKED_STRUCT_DEF pico_ip6
     uint8_t addr[16];
 };
 
-union pico_address
-{
-    struct pico_ip4 ip4;
-    struct pico_ip6 ip6;
-};
-
 /******************************************************************************
  *  Ethernet Address Definitions
  ******************************************************************************/
@@ -73,6 +67,25 @@ PACKED_STRUCT_DEF pico_6lowpan_ext
 {
     uint8_t addr[8];
 };
+
+PACKED_STRUCT_DEF pico_ll {
+    uint16_t proto;
+    uint16_t hatype;
+    uint8_t  pktype;
+    uint8_t  halen;
+    struct   pico_eth hwaddr;
+    struct   pico_device *dev;
+};
+
+union pico_address
+{
+    struct pico_ip4 ip4;
+    struct pico_ip6 ip6;
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    struct pico_ll ll;
+#endif
+};
+
 
 /* Address memory as either a short 16-bit address or a 64-bit address */
 union pico_6lowpan_u
