@@ -101,7 +101,7 @@ int pico_socket_ll_process_in(struct pico_stack *S, struct pico_protocol *self, 
         s = (struct pico_ll_socket *) node->keyValue;
         if (((s->sock.state & PICO_SOCKET_STATE_BOUND) == 0) && (s->sock.local_addr.ll.proto == 0))
             continue;
-        if (s->sock.dev != f->dev)
+        if ((s->sock.dev != f->dev) && (s->sock.local_addr.ll.proto != PICO_IDETH_ALL))
             continue;
         if ((s->sock.local_addr.ll.proto != ehdr->proto) && (s->sock.local_addr.ll.proto != PICO_IDETH_ALL))
             continue;
@@ -114,7 +114,6 @@ int pico_socket_ll_process_in(struct pico_stack *S, struct pico_protocol *self, 
                 if (s->sock.wakeup)
                     s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
             }
-
         }
     }
     return 0;
