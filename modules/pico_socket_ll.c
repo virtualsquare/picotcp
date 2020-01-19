@@ -99,19 +99,22 @@ int pico_socket_ll_process_in(struct pico_stack *S, struct pico_protocol *self, 
         struct pico_ll_socket *s;
         struct pico_frame *cp;
         s = (struct pico_ll_socket *) node->keyValue;
-        if (((s->sock.state | PICO_SOCKET_STATE_BOUND) == 0) && (s->sock.local_addr.ll.proto == 0))
+        if (((s->sock.state & PICO_SOCKET_STATE_BOUND) == 0) && (s->sock.local_addr.ll.proto == 0))
             continue;
         if (s->sock.dev != f->dev)
             continue;
         if ((s->sock.local_addr.ll.proto != ehdr->proto) && (s->sock.local_addr.ll.proto != PICO_IDETH_ALL))
             continue;
-        if (memcmp(s->sock.local_addr.ll.hwaddr.addr, ehdr->daddr, 6) == 0) {
+        if ( ((s->sock.state & PICO_SOCKET_STATE_BOUND) == 0)  ||
+                (memcmp(s->sock.local_addr.ll.hwaddr.addr, ehdr->daddr, 6) == 0)  )
+        {
             cp = pico_frame_copy(f);
             if (cp) {
                 pico_enqueue(&s->sock.q_in, cp);
                 if (s->sock.wakeup)
                     s->sock.wakeup(PICO_SOCK_EV_RD, &s->sock);
             }
+
         }
     }
     return 0;
@@ -181,7 +184,7 @@ int pico_socket_ll_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void
         ll->halen = 6;
         ll->dev = f->dev;
     }
-    memcpy(buf, data, len); 
+    memcpy(buf, data, len);
     pico_frame_discard(f);
     return (int)len;
 }
@@ -227,6 +230,7 @@ int pico_socket_ll_sendto(struct pico_socket *s, void *buf, uint32_t len, void *
     f->start = f->datalink_hdr;
     f->len = len + overhead;
     pico_sendto_dev(f);
+    s->dev = f->dev;
     return (int)len;
 }
 
