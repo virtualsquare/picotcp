@@ -13,7 +13,7 @@ struct iperf_hdr {
     int32_t flags;          /* 0 */
     int32_t numThreads;     /* 1 */
     int32_t mPort;          /* 5001  */
-    int32_t bufferlen;      /* 0 */ 
+    int32_t bufferlen;      /* 0 */
     int32_t mWinBand;       /* 0 */
     int32_t mAmount;        /* 0xfffffc18 */
 };

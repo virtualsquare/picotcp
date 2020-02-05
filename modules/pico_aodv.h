@@ -1,10 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2015-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
-   Author: Daniele Lacamera <daniele.lacamera@altran.com>
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef PICO_AODV_H_
 #define PICO_AODV_H_
@@ -96,6 +114,7 @@ PACKED_STRUCT_DEF pico_aodv_rrep
 
 struct pico_aodv_node
 {
+    struct pico_stack *stack;
     union pico_address dest;
     pico_time last_seen;
     pico_time fwd_time;
@@ -128,8 +147,10 @@ PACKED_STRUCT_DEF pico_aodv_rack
     uint8_t reserved;
 };
 
-int pico_aodv_init(void);
-int pico_aodv_add(struct pico_device *dev);
-int pico_aodv_lookup(const union pico_address *addr);
-void pico_aodv_refresh(const union pico_address *addr);
+int aodv_dev_cmp(void *ka, void *kb);
+int aodv_node_compare(void *ka, void *kb);
+int pico_aodv_init(struct pico_stack *S);
+int pico_aodv_add(struct pico_stack *S, struct pico_device *dev);
+int pico_aodv_lookup(struct pico_stack *S, const union pico_address *addr);
+void pico_aodv_refresh(struct pico_stack *S, const union pico_address *addr);
 #endif

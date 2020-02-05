@@ -9,9 +9,8 @@
 
 /* This must stay global, its lifetime is the same as the dhcp negotiation */
 uint32_t dhcpclient_xid;
-
-
 static uint8_t dhcpclient_devices = 0;
+static struct pico_stack *stack = NULL;
 
 void ping_callback_dhcpclient(struct pico_icmp4_stats *s)
 {
@@ -46,7 +45,7 @@ void callback_dhcpclient(void *arg, int code)
         pico_ipv4_to_string(s_gateway, gateway.addr);
         printf("DHCP client: got IP %s assigned with cli %p\n", s_address, arg);
 #ifdef PICO_SUPPORT_PING
-        pico_icmp4_ping(s_gateway, 3, 1000, 5000, 32, ping_callback_dhcpclient);
+        pico_icmp4_ping(stack, s_gateway, 3, 1000, 5000, 32, ping_callback_dhcpclient);
         /* optional test to check routing when links get added and deleted */
         /* do {
            char *new_arg = NULL, *p = NULL;
@@ -60,11 +59,12 @@ void callback_dhcpclient(void *arg, int code)
     }
 }
 
-void app_dhcp_client(char *arg)
+void app_dhcp_client(struct pico_stack *S, char *arg)
 {
     char *sdev = NULL;
     char *nxt = arg;
     struct pico_device *dev = NULL;
+    stack = S;
 
     if (!nxt)
         goto out;
@@ -77,7 +77,7 @@ void app_dhcp_client(char *arg)
             }
         }
 
-        dev = pico_get_device(sdev);
+        dev = pico_get_device(S, sdev);
         if(dev == NULL) {
             if (sdev)
                 free(sdev);

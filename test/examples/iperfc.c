@@ -25,6 +25,7 @@ char *cpy_arg(char **dst, char *str);
 extern int IPV6_MODE;
 
 static pico_time deadline;
+static struct pico_stack *stack = NULL;
 
 static void panic(void)
 {
@@ -64,7 +65,7 @@ static void iperf_cb(uint16_t ev, struct pico_socket *s)
     if ((!end) && (ev & PICO_SOCK_EV_WR)) {
         if (PICO_TIME_MS() > deadline) {
             pico_socket_close(s);
-            if (!pico_timer_add(2000, deferred_exit, NULL)) {
+            if (!pico_timer_add(stack, 2000, deferred_exit, NULL)) {
                 printf("Failed to start exit timer, exiting now\n");
                 exit(1);
             }
@@ -75,7 +76,7 @@ static void iperf_cb(uint16_t ev, struct pico_socket *s)
     }
 
     if (!(end) && (ev & (PICO_SOCK_EV_FIN | PICO_SOCK_EV_CLOSE))) {
-        if (!pico_timer_add(2000, deferred_exit, NULL)) {
+        if (!pico_timer_add(stack, 2000, deferred_exit, NULL)) {
             printf("Failed to start exit timer, exiting now\n");
             exit(1);
         }
@@ -90,12 +91,12 @@ static void iperfc_socket_setup(union pico_address *addr, uint16_t family)
     struct pico_socket *s = NULL;
     uint32_t bufsize = SEND_BUF_SIZ;
     send_port = short_be(5001);
-    s = pico_socket_open(family, PICO_PROTO_TCP, &iperf_cb);
+    s = pico_socket_open(stack, family, PICO_PROTO_TCP, &iperf_cb);
     pico_socket_setoption(s, PICO_SOCKET_OPT_SNDBUF, &bufsize);
     pico_socket_connect(s, addr, send_port);
 }
 
-void app_iperfc(char *arg)
+void app_iperfc(struct pico_stack *S, char *arg)
 {
     struct pico_ip4 my_eth_addr, netmask;
     struct pico_device *pico_dev_eth;
@@ -111,6 +112,7 @@ void app_iperfc(char *arg)
     union pico_address inaddr_any = {
         .ip4 = {0}, .ip6 = {{0}}
     };
+    stack = S;
 
     /* start of argument parsing */
     if (nxt) {

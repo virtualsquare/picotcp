@@ -3,6 +3,9 @@
 #include "pico_mdns.h"
 #include "pico_ipv4.h"
 #include "pico_addressing.h"
+#include "pico_stack.h"
+
+static struct pico_stack *stack = NULL;
 
 /*** START MDNS ***/
 
@@ -21,12 +24,13 @@ void mdns_init_callback( pico_mdns_rtree *rtree,
     fully_initialized = 1;
 }
 
-void app_mdns(char *arg, struct pico_ip4 address)
+void app_mdns(struct pico_stack *S, char *arg, struct pico_ip4 address)
 {
     char *hostname, *peername;
     char *nxt = arg;
     uint64_t starttime = 0;
     int once = 0;
+    stack = S;
 
     if (!nxt)
         exit(255);
@@ -47,13 +51,13 @@ void app_mdns(char *arg, struct pico_ip4 address)
     }
 
     printf("\nStarting mDNS module...\n");
-    if (pico_mdns_init(hostname, address, &mdns_init_callback, NULL)) {
+    if (pico_mdns_init(stack, hostname, address, &mdns_init_callback, NULL)) {
         printf("Initialisation returned with Error!\n");
         exit(255);
     }
 
     printf("\nTry reinitialising mDNS\n");
-    if (pico_mdns_init(hostname, address, &mdns_init_callback, NULL)) {
+    if (pico_mdns_init(stack, hostname, address, &mdns_init_callback, NULL)) {
         printf("Initialisation returned with Error!\n");
         exit(255);
     }
@@ -64,12 +68,12 @@ void app_mdns(char *arg, struct pico_ip4 address)
     printf("Starting time: %d\n", starttime);
 
     while(1) {
-        pico_stack_tick();
+        pico_stack_tick(S);
         usleep(2000);
 
         if (((PICO_TIME_MS() - starttime) > SECONDS * 1000) && fully_initialized && !once) {
             printf("\nTry reinitialising mDNS (a second time)\n");
-            if (pico_mdns_init(hostname, address, &mdns_init_callback, NULL)) {
+            if (pico_mdns_init(stack, hostname, address, &mdns_init_callback, NULL)) {
                 printf("Initialisation returned with Error!\n");
                 exit(255);
             }

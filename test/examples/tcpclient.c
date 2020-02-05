@@ -5,6 +5,7 @@
 /*** START TCP CLIENT ***/
 static char *buffer1;
 static char *buffer0;
+static struct pico_stack *stack  = NULL;
 
 void compare_results(pico_time __attribute__((unused)) now, void __attribute__((unused)) *arg)
 {
@@ -56,7 +57,7 @@ void cb_tcpclient(uint16_t ev, struct pico_socket *s)
 
     if (ev & PICO_SOCK_EV_FIN) {
         printf("Socket closed. Exit normally. \n");
-        if (!pico_timer_add(2000, compare_results, NULL)) {
+        if (!pico_timer_add(s->stack, 2000, compare_results, NULL)) {
             printf("Failed to start exit timer, exiting now\n");
             exit(1);
         }
@@ -98,7 +99,7 @@ void cb_tcpclient(uint16_t ev, struct pico_socket *s)
     }
 }
 
-void app_tcpclient(char *arg)
+void app_tcpclient(struct pico_stack *S, char *arg)
 {
     char *daddr = NULL, *dport = NULL;
     char *nxt = arg;
@@ -111,6 +112,7 @@ void app_tcpclient(char *arg)
     union pico_address inaddr_any = {
         .ip4 = {0}, .ip6 = {{0}}
     };
+    stack = S;
 
     /* start of argument parsing */
     if (nxt) {
@@ -157,9 +159,9 @@ void app_tcpclient(char *arg)
     printf("Connecting to: %s:%d\n", daddr, short_be(send_port));
 
     if (!IPV6_MODE)
-        s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpclient);
+        s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpclient);
     else
-        s = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpclient);
+        s = pico_socket_open(stack, PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpclient);
 
     if (!s) {
         printf("%s: error opening socket: %s\n", __FUNCTION__, strerror(pico_err));

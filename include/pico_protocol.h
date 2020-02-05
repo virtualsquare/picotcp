@@ -1,15 +1,38 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_PROTOCOL
 #define INCLUDE_PICO_PROTOCOL
 #include "pico_config.h"
 #include "pico_queue.h"
+#include "pico_tree.h"
 
 #define PICO_LOOP_DIR_IN   1
 #define PICO_LOOP_DIR_OUT  2
+struct pico_stack;
 
 enum pico_layer {
     PICO_LAYER_DATALINK = 2, /* Ethernet only. */
@@ -72,6 +95,23 @@ extern volatile pico_err_t pico_err;
 
 #define MAX_PROTOCOL_NAME 16
 
+struct pico_proto_rr
+{
+    struct pico_tree *t;
+    struct pico_tree_node *node_in, *node_out;
+};
+
+struct pico_scheduler {
+    struct pico_tree Datalink_proto_tree,
+                     Network_proto_tree,
+                     Transport_proto_tree,
+                     Socket_proto_tree;
+    struct pico_proto_rr rr_datalink,
+                         rr_network,
+                         rr_transport,
+                         rr_socket;
+};
+
 struct pico_protocol {
     char name[MAX_PROTOCOL_NAME];
     uint32_t hash;
@@ -79,19 +119,20 @@ struct pico_protocol {
     uint16_t proto_number;
     struct pico_queue *q_in;
     struct pico_queue *q_out;
-    struct pico_frame *(*alloc)(struct pico_protocol *self, struct pico_device *dev, uint16_t size); /* Frame allocation. */
-    int (*push)(struct pico_protocol *self, struct pico_frame *p);    /* Push function, for active outgoing pkts from above */
-    int (*process_out)(struct pico_protocol *self, struct pico_frame *p);  /* Send loop. */
-    int (*process_in)(struct pico_protocol *self, struct pico_frame *p);  /* Recv loop. */
-    uint16_t (*get_mtu)(struct pico_protocol *self);
+    struct pico_frame *(*alloc)(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size); /* Frame allocation. */
+    int (*push)(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p);    /* Push function, for active outgoing pkts from above */
+    int (*process_out)(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p);  /* Send loop. */
+    int (*process_in)(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p);  /* Recv loop. */
+    uint16_t (*get_mtu)(struct pico_stack *S, struct pico_protocol *self);
 };
 
 int pico_protocols_loop(int loop_score);
-void pico_protocol_init(struct pico_protocol *p);
+int pico_protocol_scheduler_init(struct pico_stack *S);
+void pico_protocol_init(struct pico_stack *S, struct pico_protocol *p);
 
-int pico_protocol_datalink_loop(int loop_score, int direction);
-int pico_protocol_network_loop(int loop_score, int direction);
-int pico_protocol_transport_loop(int loop_score, int direction);
-int pico_protocol_socket_loop(int loop_score, int direction);
+int pico_protocol_datalink_loop(struct pico_stack *S, int loop_score, int direction);
+int pico_protocol_network_loop(struct pico_stack *S, int loop_score, int direction);
+int pico_protocol_transport_loop(struct pico_stack *S, int loop_score, int direction);
+int pico_protocol_socket_loop(struct pico_stack *S, int loop_score, int direction);
 
 #endif

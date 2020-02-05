@@ -1,0 +1,2 @@
+OPTIONS+=-DPICO_SUPPORT_PACKET_SOCKETS
+MOD_OBJ+=$(LIBBASE)modules/pico_socket_ll.o

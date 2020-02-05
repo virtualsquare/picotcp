@@ -46,11 +46,11 @@ DHCP_CLIENT?=1
 DHCP_SERVER?=1
 DNS_CLIENT?=1
 MDNS?=1
-DNS_SD?=1
+DNS_SD?=0
 SNTP_CLIENT?=1
 IPFILTER?=1
 CRC?=1
-OLSR?=0
+OLSR?=1
 SLAACV4?=1
 TFTP?=1
 AODV?=1
@@ -58,15 +58,18 @@ MEMORY_MANAGER?=0
 MEMORY_MANAGER_PROFILING?=0
 TUN?=0
 TAP?=0
+VDE?=0
 PCAP?=0
 PPP?=1
-6LOWPAN?=0
+6LOWPAN?=1
 IEEE802154?=0
 IPC?=0
 CYASSL?=0
 WOLFSSL?=0
 POLARSSL?=0
 TICKLESS?=0
+RAW=1
+PACKET_SOCKET=1
 
 #IPv6 related
 IPV6?=1
@@ -96,7 +99,7 @@ EXTRA_CFLAGS+=$(PLATFORM_CFLAGS)
 
 CFLAGS=-I$(PREFIX)/include -Iinclude -Imodules  $(EXTRA_CFLAGS)
 # options for adding warnings
-CFLAGS+= -Wall -W -Wextra -Wshadow -Wcast-qual -Wwrite-strings -Wundef -Wdeclaration-after-statement
+CFLAGS+= -Wall -W -Wextra -Wshadow -Wcast-qual -Wwrite-strings -Wundef -Wdeclaration-after-statement -Wno-address-of-packed-member
 CFLAGS+= -Wconversion -Wcast-align -Wmissing-prototypes
 # options for supressing warnings
 CFLAGS+= -Wno-missing-field-initializers
@@ -146,7 +149,8 @@ ifeq ($(GENERIC),1)
 endif
 
 ifeq ($(PTHREAD),1)
-  CFLAGS+=-DPICO_SUPPORT_PTHREAD
+  MOD_OBJ+=$(LIBBASE)modules/pico_posix.o
+  OPTIONS+=-DPICO_SUPPORT_PTHREAD -DPICO_SUPPORT_THREADING
 endif
 
 
@@ -326,6 +330,9 @@ endif
 ifneq ($(TAP),0)
   include rules/tap.mk
 endif
+ifneq ($(VDE),0)
+  include rules/vde.mk
+endif
 ifneq ($(PCAP),0)
   include rules/pcap.mk
 endif
@@ -349,6 +356,12 @@ ifneq ($(POLARSSL),0)
 endif
 ifneq ($(TICKLESS),0)
   include rules/tickless.mk
+endif
+ifneq ($(RAW),0)
+  include rules/rawsockets.mk
+endif
+ifneq ($(PACKET_SOCKET),0)
+  include rules/packetsockets.mk
 endif
 
 all: mod core lib
@@ -384,6 +397,18 @@ test: posix
 	@install $(PREFIX)/$(TEST_ELF) $(PREFIX)/$(TEST6_ELF)
 
 tst: test
+
+
+gnulib: FORCE
+	@make clean
+	@./make-gnu.sh
+
+gnulib-install: gnulib
+	cp build/lib/libpicotcp.so /usr/lib/
+	mkdir -p /usr/include/picotcp
+	cp build/include/*.h /usr/include/picotcp/
+	cp -r build/include/arch /usr/include/picotcp/
+
 
 $(PREFIX)/include/pico_defines.h:
 	@mkdir -p $(PREFIX)/lib
@@ -509,4 +534,4 @@ ppptest: test/ppp.c lib
 	rm -f ppp.o
 
 
-FORCE:
+.PHONY: FORCE

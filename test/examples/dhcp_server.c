@@ -2,6 +2,7 @@
 #include <pico_ipv4.h>
 #include <pico_device.h>
 #include <pico_dhcp_server.h>
+static struct pico_stack *stack = NULL;
 
 /*** START DHCP Server ***/
 #ifdef PICO_SUPPORT_DHCPD
@@ -9,7 +10,7 @@
  * ./build/test/picoapp.elf --vde pic0:/tmp/pic0.ctl:10.40.0.10:255.255.255.0: --vde pic1:/tmp/pic1.ctl:10.50.0.10:255.255.255.0: \
  * -a dhcpserver:pic0:10.40.0.10:255.255.255.0:64:128:pic1:10.50.0.10:255.255.255.0:64:128
  */
-void app_dhcp_server(char *arg)
+void app_dhcp_server(struct pico_stack *S, char *arg)
 {
     struct pico_device *dev = NULL;
     struct pico_dhcp_server_setting s = {
@@ -18,6 +19,7 @@ void app_dhcp_server(char *arg)
     int pool_start = 0, pool_end = 0;
     char *s_name = NULL, *s_addr = NULL, *s_netm = NULL, *s_pool_start = NULL, *s_pool_end = NULL;
     char *nxt = arg;
+    stack = S;
 
     if (!nxt)
         goto out;
@@ -76,7 +78,7 @@ void app_dhcp_server(char *arg)
             goto out;
         }
 
-        dev = (struct pico_device *)pico_get_device(s_name);
+        dev = (struct pico_device *)pico_get_device(stack, s_name);
         if (dev == NULL) {
             fprintf(stderr, "No device with name %s found\n", s_name);
             exit(255);

@@ -4,6 +4,7 @@
 #include <pico_dns_client.h>
 #include "utils.h"
 extern int IPV6_MODE;
+static struct pico_stack *stack = NULL;
 
 /*** START UDP DNS CLIENT ***/
 /*
@@ -42,7 +43,7 @@ void cb_udpdnsclient_getname(char *name, void *arg)
         PICO_FREE(arg);
 }
 
-void app_udpdnsclient(char *arg)
+void app_udpdnsclient(struct pico_stack *S, char *arg)
 {
     struct pico_ip4 nameserver;
     char *dname, *daddr;
@@ -50,6 +51,7 @@ void app_udpdnsclient(char *arg)
     char *ipver;
     int v = 4;
     uint8_t *getaddr_id, *getname_id, *getaddr6_id, *getname6_id;
+    stack = S;
 
     nxt = cpy_arg(&dname, arg);
     if (!dname || !nxt) {
@@ -73,31 +75,31 @@ void app_udpdnsclient(char *arg)
 
     picoapp_dbg("----- Deleting non existant nameserver -----\n");
     pico_string_to_ipv4("127.0.0.1", &nameserver.addr);
-    pico_dns_client_nameserver(&nameserver, PICO_DNS_NS_DEL);
+    pico_dns_client_nameserver(stack, &nameserver, PICO_DNS_NS_DEL);
     picoapp_dbg("----- Adding 8.8.8.8 nameserver -----\n");
     pico_string_to_ipv4("8.8.8.8", &nameserver.addr);
-    pico_dns_client_nameserver(&nameserver, PICO_DNS_NS_ADD);
+    pico_dns_client_nameserver(stack, &nameserver, PICO_DNS_NS_ADD);
     picoapp_dbg("----- Deleting 8.8.8.8 nameserver -----\n");
     pico_string_to_ipv4("8.8.8.8", &nameserver.addr);
-    pico_dns_client_nameserver(&nameserver, PICO_DNS_NS_DEL);
+    pico_dns_client_nameserver(stack, &nameserver, PICO_DNS_NS_DEL);
     picoapp_dbg("----- Adding 8.8.8.8 nameserver -----\n");
     pico_string_to_ipv4("8.8.8.8", &nameserver.addr);
-    pico_dns_client_nameserver(&nameserver, PICO_DNS_NS_ADD);
+    pico_dns_client_nameserver(stack, &nameserver, PICO_DNS_NS_ADD);
     picoapp_dbg("----- Adding 8.8.4.4 nameserver -----\n");
     pico_string_to_ipv4("8.8.4.4", &nameserver.addr);
-    pico_dns_client_nameserver(&nameserver, PICO_DNS_NS_ADD);
+    pico_dns_client_nameserver(stack, &nameserver, PICO_DNS_NS_ADD);
     if (!IPV6_MODE) {
         if (v == 4) {
             picoapp_dbg("Mode: IPv4\n");
             getaddr_id = calloc(1, sizeof(uint8_t));
             *getaddr_id = 1;
             picoapp_dbg(">>>>> DNS GET ADDR OF %s\n", dname);
-            pico_dns_client_getaddr(dname, &cb_udpdnsclient_getaddr, getaddr_id);
+            pico_dns_client_getaddr(stack, dname, &cb_udpdnsclient_getaddr, getaddr_id);
 
             getname_id = calloc(1, sizeof(uint8_t));
             *getname_id = 2;
             picoapp_dbg(">>>>> DNS GET NAME OF %s\n", daddr);
-            pico_dns_client_getname(daddr, &cb_udpdnsclient_getname, getname_id);
+            pico_dns_client_getname(stack, daddr, &cb_udpdnsclient_getname, getname_id);
             return;
         }
 
@@ -107,11 +109,11 @@ void app_udpdnsclient(char *arg)
         getaddr6_id = calloc(1, sizeof(uint8_t));
         *getaddr6_id = 3;
         picoapp_dbg(">>>>> DNS GET ADDR6 OF %s\n", dname);
-        pico_dns_client_getaddr6(dname, &cb_udpdnsclient_getaddr, getaddr6_id);
+        pico_dns_client_getaddr6(stack, dname, &cb_udpdnsclient_getaddr, getaddr6_id);
         getname6_id = calloc(1, sizeof(uint8_t));
         *getname6_id = 4;
         picoapp_dbg(">>>>> DNS GET NAME OF ipv6 addr 2a00:1450:400c:c06::64\n");
-        pico_dns_client_getname6("2a00:1450:400c:c06::64", &cb_udpdnsclient_getname, getname6_id);
+        pico_dns_client_getname6(stack, "2a00:1450:400c:c06::64", &cb_udpdnsclient_getname, getname6_id);
 #endif
     }
 

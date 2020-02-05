@@ -1,11 +1,34 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2014-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Maxime Vincent
+ *          Based on the OpenVPN tun.c driver, under GPL
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
+ *********************************************************************/
 
-   Authors: Maxime Vincent
-            Based on the OpenVPN tun.c driver, under GPL
-
-   NOTES: This is the Windows-only driver, a Linux-equivalent is available, too
+/* 
+ * NOTES: This is the Windows-only driver, a Linux-equivalent is available, too
           You need to have an OpenVPN TUN/TAP network adapter installed, first
           This driver is barely working:
  * Only TAP-mode is supported (TUN is not)
@@ -1063,7 +1086,7 @@ void init_tun_post (struct tuntap *tt)
  * TODO: pico_tap_destroy
  */
 
-struct pico_device *pico_tap_create(char *name, uint8_t *mac)
+struct pico_device *pico_tap_create(struct pico_stack *S, char *name, uint8_t *mac)
 {
     struct pico_device_tap *tap = PICO_ZALLOC(sizeof(struct pico_device_tap));
     struct tuntap *tt = PICO_ZALLOC(sizeof(struct tuntap), 1);
@@ -1089,7 +1112,7 @@ struct pico_device *pico_tap_create(char *name, uint8_t *mac)
 
     tap->tt = tt;
 
-    if( 0 != pico_device_init((struct pico_device *)tap, name, mac)) {
+    if( 0 != pico_device_init(S, (struct pico_device *)tap, name, mac)) {
         return NULL;
     }
 

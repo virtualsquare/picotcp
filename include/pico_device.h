@@ -1,7 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_DEVICE
 #define INCLUDE_PICO_DEVICE
@@ -11,6 +32,7 @@
 #include "pico_tree.h"
 extern struct pico_tree Device_tree;
 #include "pico_ipv6_nd.h"
+#include "pico_stack.h"
 #define MAX_DEVICE_NAME 16
 
 
@@ -41,14 +63,16 @@ struct pico_device {
   #ifdef PICO_SUPPORT_IPV6
     struct pico_nd_hostvars hostvars;
   #endif
+    struct pico_stack *stack;
 };
 
 
-int pico_device_init(struct pico_device *dev, const char *name, const uint8_t *mac);
+int pico_dev_cmp(void *ka, void *kb);
+int pico_device_init(struct pico_stack *S, struct pico_device *dev, const char *name, const uint8_t *mac);
 void pico_device_destroy(struct pico_device *dev);
-int pico_devices_loop(int loop_score, int direction);
-struct pico_device*pico_get_device(const char*name);
-int32_t pico_device_broadcast(struct pico_frame *f);
+int pico_devices_loop(struct pico_stack *S, int loop_score, int direction);
+struct pico_device*pico_get_device(struct pico_stack *S, const char*name);
+int32_t pico_device_broadcast(struct pico_stack *S, struct pico_frame *f);
 int pico_device_link_state(struct pico_device *dev);
 int pico_device_ipv6_random_ll(struct pico_device *dev);
 #ifdef PICO_SUPPORT_IPV6

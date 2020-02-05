@@ -82,7 +82,7 @@ void cb_tcpecho(uint16_t ev, struct pico_socket *s)
 
     if (ev & PICO_SOCK_EV_FIN) {
         printf("Socket closed. Exit normally. \n");
-        if (!pico_timer_add(2000, deferred_exit, NULL)) {
+        if (!pico_timer_add(s->stack, 2000, deferred_exit, NULL)) {
             printf("Failed to start exit timer, exiting now\n");
             exit(1);
         }
@@ -110,7 +110,7 @@ void cb_tcpecho(uint16_t ev, struct pico_socket *s)
     }
 }
 
-void app_tcpecho(char *arg)
+void app_tcpecho(struct pico_stack *S, char *arg)
 {
     char *nxt = arg;
     char *lport = NULL;
@@ -140,9 +140,9 @@ void app_tcpecho(char *arg)
     /* end of argument parsing */
 
     if (!IPV6_MODE)
-        s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpecho);
+        s = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_TCP, &cb_tcpecho);
     else
-        s = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpecho);
+        s = pico_socket_open(S, PICO_PROTO_IPV6, PICO_PROTO_TCP, &cb_tcpecho);
 
     if (!s) {
         printf("%s: error opening socket: %s\n", __FUNCTION__, strerror(pico_err));

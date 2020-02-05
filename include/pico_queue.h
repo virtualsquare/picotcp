@@ -1,13 +1,33 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_QUEUE
 #define INCLUDE_PICO_QUEUE
 #include "pico_config.h"
 #include "pico_frame.h"
-#include "pico_jobs.h"
 
 #define Q_LIMIT 0
 
@@ -22,6 +42,7 @@ int pico_mutex_lock_timeout(void *mutex, int timeout);
 void pico_mutex_unlock(void *mutex);
 void pico_mutex_unlock_ISR(void *mutex);
 
+struct pico_stack;
 struct pico_queue {
     uint32_t frames;
     uint32_t size;
@@ -33,8 +54,9 @@ struct pico_queue {
     void *mutex;
 #endif
 #ifdef PICO_SUPPORT_TICKLESS
-    void (*listener)(void *arg);
+    void (*listener)(struct pico_stack *, void *);
     void *listener_arg;
+    void *listener_stack;
 #endif
     uint8_t shared;
     uint16_t overhead;
@@ -56,20 +78,24 @@ struct pico_queue {
 #endif
 
 #ifdef PICO_SUPPORT_TICKLESS
-static inline void pico_queue_register_listener(struct pico_queue *q, void (*fn)(void *), void *arg)
+
+static inline void pico_queue_register_listener(struct pico_stack *S, struct pico_queue *q, void (*fn)(struct pico_stack *, void *), void *arg)
 {
     q->listener = fn;
     q->listener_arg = arg;
-} 
+    q->listener_stack = S;
+}
+
+void pico_schedule_job(struct pico_stack *S, void (*exe)(struct pico_stack *, void*), void *arg);
 
 static inline void pico_queue_wakeup(struct pico_queue *q)
 {
     if (q->listener)
-        pico_schedule_job(q->listener, q->listener_arg);
+        pico_schedule_job(q->listener_stack, q->listener, q->listener_arg);
 }
 
 #else
-#define pico_queue_register_listener(q, fn, arg) do{}while(0)
+#define pico_queue_register_listener(S, q, fn, arg) do{}while(0)
 #define pico_queue_wakeup(q) do{}while(0)
 #endif
 

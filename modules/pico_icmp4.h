@@ -1,9 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_ICMP4
 #define INCLUDE_PICO_ICMP4
@@ -136,25 +155,27 @@ struct pico_icmp4_stats
     int err;
 };
 
-int pico_icmp4_port_unreachable(struct pico_frame *f);
-int pico_icmp4_proto_unreachable(struct pico_frame *f);
-int pico_icmp4_dest_unreachable(struct pico_frame *f);
-int pico_icmp4_mtu_exceeded(struct pico_frame *f);
-int pico_icmp4_ttl_expired(struct pico_frame *f);
-int pico_icmp4_frag_expired(struct pico_frame *f);
-int pico_icmp4_ping(char *dst, int count, int interval, int timeout, int size, void (*cb)(struct pico_icmp4_stats *));
-int pico_icmp4_ping_abort(int id);
+int icmp4_socket_cmp(void *ka, void *kb);
+int pico_icmp4_port_unreachable(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp4_proto_unreachable(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp4_dest_unreachable(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp4_mtu_exceeded(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp4_ttl_expired(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp4_frag_expired(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp4_ping(struct pico_stack *S, char *dst, int count, int interval, int timeout, int size, void (*cb)(struct pico_icmp4_stats *));
+int pico_icmp4_ping_abort(struct pico_stack *S, int id);
 
 
-struct pico_socket *pico_socket_icmp4_open(void);
+struct pico_socket *pico_socket_icmp4_open(struct pico_stack *S);
 int pico_socket_icmp4_close(struct pico_socket *arg);
-int pico_socket_icmp4_sendto_check(struct pico_socket *s, const void *buf, int len, void *dst, uint16_t remote_port);
+int pico_socket_icmp4_sendto_check(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port);
 int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port);
 int pico_socket_icmp4_bind(struct pico_socket *s, void *addr, uint16_t port);
 
 #ifdef PICO_SUPPORT_ICMP4
-int pico_icmp4_packet_filtered(struct pico_frame *f);
-int pico_icmp4_param_problem(struct pico_frame *f, uint8_t code);
+int pico_icmp4_packet_filtered(struct pico_stack *S, struct pico_frame *f);
+int pico_icmp4_param_problem(struct pico_stack *S, struct pico_frame *f, uint8_t code);
+int pico_icmp4_cookie_compare(void *ka, void *kb);
 #else
 # define pico_icmp4_packet_filtered(f) (-1)
 # define pico_icmp4_param_problem(f, c) (-1)

@@ -59,7 +59,7 @@ static inline void pico_free(void *x)
 extern int32_t prescale_time;
 #endif
 
-#if defined(PICO_SUPPORT_RTOS) || defined (PICO_SUPPORT_PTHREAD)
+#if defined(PICO_SUPPORT_RTOS)
 /* pico_ms_tick must be defined */
 extern volatile uint32_t pico_ms_tick;
 
@@ -115,6 +115,7 @@ static inline uint32_t PICO_TIME_MS(void)
 extern void *pico_mutex_init(void);
 extern void pico_mutex_lock(void *mux);
 extern void pico_mutex_unlock(void *mux);
+extern void pico_mutex_deinit(void *mux);
 
 /* semaphore implementations (only used in wrapper code) */
 extern void *pico_sem_init(void);

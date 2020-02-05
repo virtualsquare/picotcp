@@ -1,13 +1,29 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include "pico_udp.h"
 #include "pico_config.h"
 #include "pico_eth.h"
@@ -21,14 +37,6 @@
 #endif
 
 #define UDP_FRAME_OVERHEAD (sizeof(struct pico_frame))
-
-/* Queues */
-static struct pico_queue udp_in = {
-    0
-};
-static struct pico_queue udp_out = {
-    0
-};
 
 
 /* Functions */
@@ -94,16 +102,20 @@ uint16_t pico_udp_checksum_ipv6(struct pico_frame *f)
 
 
 
-static int pico_udp_process_out(struct pico_protocol *self, struct pico_frame *f)
+static int pico_udp_process_out(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
+    if (!f->sock || (f->sock->stack != S))
+        return PICO_ERR_EPERM;
+
     IGNORE_PARAMETER(self);
     return (int)pico_network_send(f);
 }
 
-static int pico_udp_push(struct pico_protocol *self, struct pico_frame *f)
+static int pico_udp_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     struct pico_udp_hdr *hdr = (struct pico_udp_hdr *) f->transport_hdr;
     struct pico_remote_endpoint *remote_endpoint = (struct pico_remote_endpoint *) f->info;
+    IGNORE_PARAMETER(self);
 
     /* this (fragmented) frame should contain a transport header */
     if (f->transport_hdr != f->payload) {
@@ -123,7 +135,7 @@ static int pico_udp_push(struct pico_protocol *self, struct pico_frame *f)
         hdr->crc = 0;
     }
 
-    if (pico_enqueue(self->q_out, f) > 0) {
+    if (pico_enqueue(&S->q_udp.out, f) > 0) {
         return f->payload_len;
     } else {
         return 0;
@@ -138,8 +150,6 @@ struct pico_protocol pico_proto_udp = {
     .process_in = pico_transport_process_in,
     .process_out = pico_udp_process_out,
     .push = pico_udp_push,
-    .q_in = &udp_in,
-    .q_out = &udp_out,
 };
 
 

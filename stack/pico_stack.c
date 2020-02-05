@@ -1,13 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
-
 #include "pico_config.h"
 #include "pico_frame.h"
 #include "pico_device.h"
@@ -15,6 +32,9 @@
 #include "pico_stack.h"
 #include "pico_addressing.h"
 #include "pico_dns_client.h"
+#include "pico_mdns.h"
+#include "pico_fragments.h"
+#include "pico_ipfilter.h"
 
 #include "pico_6lowpan_ll.h"
 #include "pico_ethernet.h"
@@ -24,6 +44,7 @@
 #include "pico_eth.h"
 #include "pico_arp.h"
 #include "pico_ipv4.h"
+#include "pico_nat.h"
 #include "pico_ipv6.h"
 #include "pico_ipv6_pmtu.h"
 #include "pico_icmp4.h"
@@ -32,9 +53,13 @@
 #include "pico_udp.h"
 #include "pico_tcp.h"
 #include "pico_socket.h"
+#include "pico_socket_multicast.h"
 #include "pico_ethernet.h"
+#include "pico_dhcp_server.h"
+#include "pico_hotplug_detection.h"
 #include "heap.h"
 #include "pico_jobs.h"
+
 
 /* Mockables */
 #if defined UNIT_TEST
@@ -44,9 +69,9 @@
 #endif
 
 
+/* Globals across multiple instances */
 volatile pico_time pico_tick;
 volatile pico_err_t pico_err;
-
 static uint32_t _rand_seed;
 
 void WEAK pico_rand_feed(uint32_t feed)
@@ -82,104 +107,104 @@ void pico_to_lowercase(char *str)
 /* NOTIFICATIONS: distributed notifications for stack internal errors.
  */
 
-int pico_notify_socket_unreachable(struct pico_frame *f)
+int pico_notify_socket_unreachable(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) {}
 
 #ifdef PICO_SUPPORT_ICMP4
     else if (IS_IPV4(f)) {
-        pico_icmp4_port_unreachable(f);
+        pico_icmp4_port_unreachable(S, f);
     }
 #endif
 #ifdef PICO_SUPPORT_ICMP6
     else if (IS_IPV6(f)) {
-        pico_icmp6_port_unreachable(f);
+        pico_icmp6_port_unreachable(S, f);
     }
 #endif
 
     return 0;
 }
 
-int pico_notify_proto_unreachable(struct pico_frame *f)
+int pico_notify_proto_unreachable(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) {}
 
 #ifdef PICO_SUPPORT_ICMP4
     else if (IS_IPV4(f)) {
-        pico_icmp4_proto_unreachable(f);
+        pico_icmp4_proto_unreachable(S, f);
     }
 #endif
 #ifdef PICO_SUPPORT_ICMP6
     else if (IS_IPV6(f)) {
-        pico_icmp6_proto_unreachable(f);
+        pico_icmp6_proto_unreachable(S, f);
     }
 #endif
     return 0;
 }
 
-int pico_notify_dest_unreachable(struct pico_frame *f)
+int pico_notify_dest_unreachable(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) {}
 
 #ifdef PICO_SUPPORT_ICMP4
     else if (IS_IPV4(f)) {
-        pico_icmp4_dest_unreachable(f);
+        pico_icmp4_dest_unreachable(S, f);
     }
 #endif
 #ifdef PICO_SUPPORT_ICMP6
     else if (IS_IPV6(f)) {
-        pico_icmp6_dest_unreachable(f);
+        pico_icmp6_dest_unreachable(S, f);
     }
 #endif
     return 0;
 }
 
-int pico_notify_ttl_expired(struct pico_frame *f)
+int pico_notify_ttl_expired(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) {}
 
 #ifdef PICO_SUPPORT_ICMP4
     else if (IS_IPV4(f)) {
-        pico_icmp4_ttl_expired(f);
+        pico_icmp4_ttl_expired(S, f);
     }
 #endif
 #ifdef PICO_SUPPORT_ICMP6
     else if (IS_IPV6(f)) {
-        pico_icmp6_ttl_expired(f);
+        pico_icmp6_ttl_expired(S, f);
     }
 #endif
     return 0;
 }
 
-int pico_notify_frag_expired(struct pico_frame *f)
+int pico_notify_frag_expired(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) {}
 
 #ifdef PICO_SUPPORT_ICMP4
     else if (IS_IPV4(f)) {
-        pico_icmp4_frag_expired(f);
+        pico_icmp4_frag_expired(S, f);
     }
 #endif
 #ifdef PICO_SUPPORT_ICMP6
     else if (IS_IPV6(f)) {
-        pico_icmp6_frag_expired(f);
+        pico_icmp6_frag_expired(S, f);
     }
 #endif
     return 0;
 }
 
-int pico_notify_pkt_too_big(struct pico_frame *f)
+int pico_notify_pkt_too_big(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) {}
 
 #ifdef PICO_SUPPORT_ICMP4
     else if (IS_IPV4(f)) {
-        pico_icmp4_mtu_exceeded(f);
+        pico_icmp4_mtu_exceeded(S, f);
     }
 #endif
 #ifdef PICO_SUPPORT_ICMP6
     else if (IS_IPV6(f)) {
-        pico_icmp6_pkt_too_big(f);
+        pico_icmp6_pkt_too_big(S, f);
     }
 #endif
     return 0;
@@ -229,7 +254,7 @@ MOCKABLE int32_t pico_transport_receive(struct pico_frame *f, uint8_t proto)
     default:
         /* Protocol not available */
         dbg("pkt: no such protocol (%d)\n", proto);
-        pico_notify_proto_unreachable(f);
+        pico_notify_proto_unreachable(f->dev->stack, f);
         pico_frame_discard(f);
         ret = -1;
     }
@@ -270,10 +295,10 @@ int32_t pico_network_send(struct pico_frame *f)
         return -1;
     }
 
-    return f->sock->net->push(f->sock->net, f);
+    return f->sock->net->push(f->sock->stack, f->sock->net, f);
 }
 
-int pico_source_is_local(struct pico_frame *f)
+int pico_source_is_local(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) { }
 
@@ -283,14 +308,14 @@ int pico_source_is_local(struct pico_frame *f)
         if (hdr->src.addr == PICO_IPV4_INADDR_ANY)
             return 1;
 
-        if (pico_ipv4_link_find(&hdr->src))
+        if (pico_ipv4_link_find(S, &hdr->src))
             return 1;
     }
 #endif
 #ifdef PICO_SUPPORT_IPV6
     else if (IS_IPV6(f)) {
         struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
-        if (pico_ipv6_is_unspecified(hdr->src.addr) || pico_ipv6_link_find(&hdr->src))
+        if (pico_ipv6_is_unspecified(hdr->src.addr) || pico_ipv6_link_find(S, &hdr->src))
             return 1;
     }
 #endif
@@ -346,7 +371,7 @@ int pico_address_compare(union pico_address *a, union pico_address *b, uint16_t 
 
 }
 
-int pico_frame_dst_is_unicast(struct pico_frame *f)
+int pico_frame_dst_is_unicast(struct pico_stack *S, struct pico_frame *f)
 {
     if (0) {
         return 0;
@@ -355,7 +380,7 @@ int pico_frame_dst_is_unicast(struct pico_frame *f)
 #ifdef PICO_SUPPORT_IPV4
     if (IS_IPV4(f)) {
         struct pico_ipv4_hdr *hdr = (struct pico_ipv4_hdr *)f->net_hdr;
-        if (pico_ipv4_is_multicast(hdr->dst.addr) || pico_ipv4_is_broadcast(hdr->dst.addr))
+        if (pico_ipv4_is_multicast(hdr->dst.addr) || pico_ipv4_is_broadcast(S, hdr->dst.addr))
             return 0;
 
         return 1;
@@ -382,6 +407,9 @@ int pico_frame_dst_is_unicast(struct pico_frame *f)
 
 int pico_datalink_receive(struct pico_frame *f)
 {
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    pico_socket_ll_process_in(f->dev->stack, &pico_proto_ll, f);
+#endif
     if (f->dev->eth) {
         /* If device has stack with datalink-layer pass frame through it */
         switch (f->dev->mode) {
@@ -548,28 +576,6 @@ int32_t pico_sendto_dev(struct pico_frame *f)
     }
 }
 
-struct pico_timer
-{
-    void *arg;
-    void (*timer)(pico_time timestamp, void *arg);
-};
-
-
-static uint32_t tmr_id = 0u;
-struct pico_timer_ref
-{
-    pico_time expire;
-    uint32_t id;
-    uint32_t hash;
-    struct pico_timer *tmr;
-};
-
-typedef struct pico_timer_ref pico_timer_ref;
-
-DECLARE_HEAP(pico_timer_ref, expire);
-
-static heap_pico_timer_ref *Timers;
-
 int32_t pico_seq_compare(uint32_t a, uint32_t b)
 {
     uint32_t thresh = ((uint32_t)(-1)) >> 1;
@@ -595,10 +601,10 @@ int32_t pico_seq_compare(uint32_t a, uint32_t b)
     return 0;
 }
 
-static void pico_check_timers(void)
+static void pico_check_timers(struct pico_stack *S)
 {
     struct pico_timer *t;
-    struct pico_timer_ref tref_unused, *tref = heap_first(Timers);
+    struct pico_timer_ref tref_unused, *tref = heap_first(S->Timers);
     pico_tick = PICO_TIME_MS();
     while((tref) && (tref->expire <= pico_tick)) {
         t = tref->tmr;
@@ -610,35 +616,35 @@ static void pico_check_timers(void)
             PICO_FREE(t);
         }
 
-        heap_peek(Timers, &tref_unused);
-        tref = heap_first(Timers);
+        heap_peek(S->Timers, &tref_unused);
+        tref = heap_first(S->Timers);
     }
 }
 
 #ifdef PICO_SUPPORT_TICKLESS
-long long int pico_stack_go(void)
+long long int pico_stack_go(struct pico_stack *S)
 {
-    struct pico_timer_ref *tref; 
-    pico_execute_pending_jobs();
-    pico_check_timers();
-    tref = heap_first(Timers);
+    struct pico_timer_ref *tref;
+    pico_execute_pending_jobs(S);
+    pico_check_timers(S);
+    tref = heap_first(S->Timers);
     if (!tref)
         return -1;
     /* Execute jobs again, in case they were scheduled in timer execution */
-    pico_execute_pending_jobs();
-    return(long long int)((tref->expire - pico_tick) + 1); 
+    pico_execute_pending_jobs(S);
+    return(long long int)((tref->expire - pico_tick) + 1);
 }
 #endif
 
-void MOCKABLE pico_timer_cancel(uint32_t id)
+void MOCKABLE pico_timer_cancel(struct pico_stack *S, uint32_t id)
 {
     uint32_t i;
     struct pico_timer_ref *tref;
     if (id == 0u)
         return;
 
-    for (i = 1; i <= Timers->n; i++) {
-        tref = heap_get_element(Timers, i);
+    for (i = 1; i <= S->Timers->n; i++) {
+        tref = heap_get_element(S->Timers, i);
         if (tref->id == id) {
             if (tref->tmr)
             {
@@ -651,15 +657,15 @@ void MOCKABLE pico_timer_cancel(uint32_t id)
     }
 }
 
-void pico_timer_cancel_hashed(uint32_t hash)
+void pico_timer_cancel_hashed(struct pico_stack *S, uint32_t hash)
 {
     uint32_t i;
     struct pico_timer_ref *tref;
     if (hash == 0u)
         return;
 
-    for (i = 1; i <= Timers->n; i++) {
-        tref = heap_get_element(Timers, i);
+    for (i = 1; i <= S->Timers->n; i++) {
+        tref = heap_get_element(S->Timers, i);
         if (tref->hash == hash) {
             if (tref->tmr)
             {
@@ -671,15 +677,8 @@ void pico_timer_cancel_hashed(uint32_t hash)
     }
 }
 
-#define PROTO_DEF_NR      11
-#define PROTO_DEF_AVG_NR  4
-#define PROTO_DEF_SCORE   32
-#define PROTO_MIN_SCORE   32
-#define PROTO_MAX_SCORE   128
-#define PROTO_LAT_IND     3   /* latency indication 0-3 (lower is better latency performance), x1, x2, x4, x8 */
-#define PROTO_MAX_LOOP    (PROTO_MAX_SCORE << PROTO_LAT_IND) /* max global loop score, so per tick */
-
-static int calc_score(int *score, int *index, int avg[][PROTO_DEF_AVG_NR], int *ret)
+#ifndef PICO_SUPPORT_TICKLESS
+static int calc_score(struct pico_stack *S)
 {
     int temp, i, j, sum;
     int max_total = PROTO_MAX_LOOP, total = 0;
@@ -688,73 +687,73 @@ static int calc_score(int *score, int *index, int avg[][PROTO_DEF_AVG_NR], int *
 
     for (i = 0; i < PROTO_DEF_NR; i++) {
 
-        /* if used looped score */
-        if (ret[i] < score[i]) {
-            temp = score[i] - ret[i]; /* remaining loop score */
+        /* if used looped S->score */
+        if (S->ret[i] < S->score[i]) {
+            temp = S->score[i] - S->ret[i]; /* remaining loop S->score */
 
             /* dbg("%3d - ",temp); */
 
-            if (index[i] >= PROTO_DEF_AVG_NR)
-                index[i] = 0;   /* reset index */
+            if (S->index[i] >= PROTO_DEF_AVG_NR)
+                S->index[i] = 0;   /* reset S->index */
 
-            j = index[i];
-            avg[i][j] = temp;
+            j = S->index[i];
+            S->avg[i][j] = temp;
 
-            index[i]++;
+            S->index[i]++;
 
-            if (ret[i] == 0 && ((score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (score[i] * 2)) < max_total)) { /* used all loop score -> increase next score directly */
-                score[i] *= 2;
-                total += score[i];
+            if (S->ret[i] == 0 && ((S->score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (S->score[i] * 2)) < max_total)) { /* used all loop S->score -> increase next S->score directly */
+                S->score[i] *= 2;
+                total += S->score[i];
                 continue;
             }
 
             sum = 0;
             for (j = 0; j < PROTO_DEF_AVG_NR; j++)
-                sum += avg[i][j]; /* calculate sum */
+                sum += S->avg[i][j]; /* calculate sum */
 
-            sum /= 4;           /* divide by 4 to get average used score */
+            sum /= 4;           /* divide by 4 to get average used S->score */
 
-            /* criterion to increase next loop score */
-            if (sum > (score[i] - (score[i] / 4))  && ((score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (score[i] / 2)) < max_total)) { /* > 3/4 */
-                score[i] *= 2; /* double loop score */
-                total += score[i];
+            /* criterion to increase next loop S->score */
+            if (sum > (S->score[i] - (S->score[i] / 4))  && ((S->score[i] * 2) <= PROTO_MAX_SCORE) && ((total + (S->score[i] / 2)) < max_total)) { /* > 3/4 */
+                S->score[i] *= 2; /* double loop S->score */
+                total += S->score[i];
                 continue;
             }
 
-            /* criterion to decrease next loop score */
-            if ((sum < (score[i] / 4)) && ((score[i] / 2) >= PROTO_MIN_SCORE)) { /* < 1/4 */
-                score[i] /= 2; /* half loop score */
-                total += score[i];
+            /* criterion to decrease next loop S->score */
+            if ((sum < (S->score[i] / 4)) && ((S->score[i] / 2) >= PROTO_MIN_SCORE)) { /* < 1/4 */
+                S->score[i] /= 2; /* half loop S->score */
+                total += S->score[i];
                 continue;
             }
 
-            /* also add non-changed scores */
-            total += score[i];
+            /* also add non-changed S->scores */
+            total += S->score[i];
         }
-        else if (ret[i] == score[i]) {
-            /* no used loop score - gradually decrease */
+        else if (S->ret[i] == S->score[i]) {
+            /* no used loop S->score - gradually decrease */
 
             /*  dbg("%3d - ",0); */
 
-            if (index[i] >= PROTO_DEF_AVG_NR)
-                index[i] = 0;   /* reset index */
+            if (S->index[i] >= PROTO_DEF_AVG_NR)
+                S->index[i] = 0;   /* reset S->index */
 
-            j = index[i];
-            avg[i][j] = 0;
+            j = S->index[i];
+            S->avg[i][j] = 0;
 
-            index[i]++;
+            S->index[i]++;
 
             sum = 0;
             for (j = 0; j < PROTO_DEF_AVG_NR; j++)
-                sum += avg[i][j]; /* calculate sum */
+                sum += S->avg[i][j]; /* calculate sum */
 
-            sum /= 2;          /* divide by 4 to get average used score */
+            sum /= 2;          /* divide by 4 to get average used S->score */
 
-            if ((sum == 0) && ((score[i] / 2) >= PROTO_MIN_SCORE)) {
-                score[i] /= 2; /* half loop score */
-                total += score[i];
+            if ((sum == 0) && ((S->score[i] / 2) >= PROTO_MIN_SCORE)) {
+                S->score[i] /= 2; /* half loop S->score */
+                total += S->score[i];
                 for (j = 0; j < PROTO_DEF_AVG_NR; j++)
-                    avg[i][j] = score[i];
+                    S->avg[i][j] = S->score[i];
             }
 
         }
@@ -763,81 +762,11 @@ static int calc_score(int *score, int *index, int avg[][PROTO_DEF_AVG_NR], int *
 
     return 0;
 }
-
-static void legacy_pico_stack_tick(void)
-{
-    static int score[PROTO_DEF_NR] = {
-        PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE, PROTO_DEF_SCORE
-    };
-    static int index[PROTO_DEF_NR] = {
-        0, 0, 0, 0, 0, 0
-    };
-    static int avg[PROTO_DEF_NR][PROTO_DEF_AVG_NR];
-    static int ret[PROTO_DEF_NR] = {
-        0
-    };
-
-    pico_check_timers();
-
-    /* dbg("LOOP_SCORES> %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d - %3d\n",score[0],score[1],score[2],score[3],score[4],score[5],score[6],score[7],score[8],score[9],score[10]); */
-
-    /* score = pico_protocols_loop(100); */
-
-    ret[0] = pico_devices_loop(score[0], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[0]);
-
-    ret[1] = pico_protocol_datalink_loop(score[1], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[1]);
-
-    ret[2] = pico_protocol_network_loop(score[2], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[2]);
-
-    ret[3] = pico_protocol_transport_loop(score[3], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[3]);
-
-
-    ret[5] = score[5];
-#if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
-#if defined (PICO_SUPPORT_TCP) || defined (PICO_SUPPORT_UDP)
-    ret[5] = pico_sockets_loop(score[5]); /* swapped */
-    pico_rand_feed((uint32_t)ret[5]);
-#endif
 #endif
 
-    ret[4] = pico_protocol_socket_loop(score[4], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)ret[4]);
-
-
-    ret[6] = pico_protocol_socket_loop(score[6], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[6]);
-
-    ret[7] = pico_protocol_transport_loop(score[7], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[7]);
-
-    ret[8] = pico_protocol_network_loop(score[8], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[8]);
-
-    ret[9] = pico_protocol_datalink_loop(score[9], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[9]);
-
-    ret[10] = pico_devices_loop(score[10], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)ret[10]);
-
-    /* calculate new loop scores for next iteration */
-    calc_score(score, index, (int (*)[])avg, ret);
-}
-
-
-void pico_stack_loop(void)
-{
-    while(1) {
-        pico_stack_tick();
-        PICO_IDLE();
-    }
-}
 
 static uint32_t
-pico_timer_ref_add(pico_time expire, struct pico_timer *t, uint32_t id, uint32_t hash)
+pico_timer_ref_add(struct pico_stack *S, pico_time expire, struct pico_timer *t, uint32_t id, uint32_t hash)
 {
     struct pico_timer_ref tref;
 
@@ -846,14 +775,14 @@ pico_timer_ref_add(pico_time expire, struct pico_timer *t, uint32_t id, uint32_t
     tref.id = id;
     tref.hash = hash;
 
-    if (heap_insert(Timers, &tref) < 0) {
+    if (heap_insert(S->Timers, &tref) < 0) {
         dbg("Error: failed to insert timer(ID %u) into heap\n", id);
         PICO_FREE(t);
         pico_err = PICO_ERR_ENOMEM;
         return 0;
     }
-    if (Timers->n > PICO_MAX_TIMERS) {
-        dbg("Warning: I have %d timers\n", (int)Timers->n);
+    if (S->Timers->n > PICO_MAX_TIMERS) {
+        dbg("Warning: I have %d timers\n", (int)S->Timers->n);
     }
 
     return tref.id;
@@ -875,123 +804,375 @@ pico_timer_create(void (*timer)(pico_time, void *), void *arg)
     return t;
 }
 
-MOCKABLE uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void *arg)
+MOCKABLE uint32_t pico_timer_add(struct pico_stack *S, pico_time expire, void (*timer)(pico_time, void *), void *arg)
 {
     struct pico_timer *t = pico_timer_create(timer, arg);
 
     /* zero is guard for timers */
-    if (tmr_id == 0u) {
-        tmr_id++;
+    if (S->timer_id == 0u) {
+        S->timer_id++;
     }
 
     if (!t)
         return 0;
 
-    return pico_timer_ref_add(expire, t, tmr_id++, 0);
+    return pico_timer_ref_add(S, expire, t, S->timer_id++, 0);
 }
 
-uint32_t pico_timer_add_hashed(pico_time expire, void (*timer)(pico_time, void *), void *arg, uint32_t hash)
+uint32_t pico_timer_add_hashed(struct pico_stack *S, pico_time expire, void (*timer)(pico_time, void *), void *arg, uint32_t hash)
 {
     struct pico_timer *t = pico_timer_create(timer, arg);
 
     /* zero is guard for timers */
-    if (tmr_id == 0u) {
-        tmr_id++;
+    if (S->timer_id == 0u) {
+        S->timer_id++;
     }
 
     if (!t)
         return 0;
 
-    return pico_timer_ref_add(expire, t, tmr_id++, hash);
+    return pico_timer_ref_add(S, expire, t, S->timer_id++, hash);
 } /* Static path count: 4 */
 
-int MOCKABLE pico_stack_init(void)
+
+
+int MOCKABLE pico_stack_init(struct pico_stack **S)
 {
+    int i;
+    if (!S) {
+        return PICO_ERR_EINVAL;
+    } else {
+        *S = PICO_ZALLOC(sizeof(struct pico_stack));
+        if (!*S)
+            return PICO_ERR_ENOMEM;
+    }
+
+    /* Initialize stack scheduler */
+    pico_protocol_scheduler_init(*S);
+
+    EMPTY_TREE((*S)->Device_tree, pico_dev_cmp);
+
 #ifdef PICO_SUPPORT_ETH
-    pico_protocol_init(&pico_proto_ethernet);
+    pico_protocol_init(*S, &pico_proto_ethernet);
+    ATTACH_QUEUES(*S, ethernet, pico_proto_ethernet);
 #endif
 
 #ifdef PICO_SUPPORT_6LOWPAN
-    pico_protocol_init(&pico_proto_6lowpan);
-    pico_protocol_init(&pico_proto_6lowpan_ll);
+    pico_protocol_init(*S, &pico_proto_6lowpan);
+    pico_protocol_init(*S, &pico_proto_6lowpan_ll);
+    ATTACH_QUEUES(*S, sixlowpan, pico_proto_6lowpan);
+    ATTACH_QUEUES(*S, sixlowpan_ll, pico_proto_6lowpan_ll);
+    EMPTY_TREE((*S)->SixLowPanCTXTree, compare_6lowpan_ctx);
+    EMPTY_TREE((*S)->LPFragTree, lp_frag_ctx_cmp);
+    EMPTY_TREE((*S)->LPReassemblyTree, lp_frag_cmp);
+#endif
+
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    pico_protocol_init(*S, &pico_proto_ll);
+    ATTACH_QUEUES(*S, proto_ll, pico_proto_ll);
+    EMPTY_TREE((*S)->PSockets, pico_socket_ll_compare);
 #endif
 
 #ifdef PICO_SUPPORT_IPV4
-    pico_protocol_init(&pico_proto_ipv4);
+    pico_protocol_init(*S, &pico_proto_ipv4);
+    ATTACH_QUEUES(*S, ipv4, pico_proto_ipv4);
+    /* Initialize "link" tree */
+    EMPTY_TREE((*S)->Tree_dev_link, ipv4_link_compare);
+    EMPTY_TREE((*S)->Routes, ipv4_route_compare);
+    /* Set default broadcast route */
+    (*S)->default_bcast_route = &initial_default_bcast_route;
+#   ifdef PICO_SUPPORT_RAWSOCKETS
+    EMPTY_TREE((*S)->IP4Sockets, pico_ipv4_rawsocket_cmp);
+#   endif
+#   ifdef PICO_SUPPORT_NAT
+    EMPTY_TREE((*S)->NATOutbound, nat_cmp_outbound);
+    EMPTY_TREE((*S)->NATInbound, nat_cmp_inbound);
+#   endif
+#   ifdef PICO_SUPPORT_IPV4FRAG
+    EMPTY_TREE((*S)->ipv4_fragments, pico_ipv4_frag_compare);
+#   endif
+#   ifdef PICO_SUPPORT_SLAACV4
+    EMPTY_TREE((*S)->Hotplug_device_tree, pico_hotplug_dev_cmp);
+#endif
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
-    pico_protocol_init(&pico_proto_ipv6);
+    pico_protocol_init(*S, &pico_proto_ipv6);
+    ATTACH_QUEUES(*S, ipv6, pico_proto_ipv6);
+	EMPTY_TREE((*S)->Tree_dev_ip6_link, ipv6_link_compare);
+	EMPTY_TREE((*S)->IPV6Routes, ipv6_route_compare);
+	EMPTY_TREE((*S)->IPV6Links, ipv6_link_compare);
+	EMPTY_TREE((*S)->IPV6NQueue, pico_ipv6_nd_qcompare);
+	EMPTY_TREE((*S)->IPV6NCache, pico_ipv6_neighbor_compare);
+	EMPTY_TREE((*S)->IPV6RCache, pico_ipv6_router_compare);
+#   ifdef PICO_SUPPORT_IPV6FRAG
+    EMPTY_TREE((*S)->ipv6_fragments, pico_ipv6_frag_compare);
+#   endif
+#endif
+
+#ifdef PICO_SUPPORT_IPFILTER
+    EMPTY_TREE((*S)->ipfilter_tree, filter_compare);
 #endif
 
 #ifdef PICO_SUPPORT_ICMP4
-    pico_protocol_init(&pico_proto_icmp4);
+    pico_protocol_init(*S, &pico_proto_icmp4);
+    ATTACH_QUEUES(*S, icmp4, pico_proto_icmp4);
+    EMPTY_TREE((*S)->Pings, pico_icmp4_cookie_compare);
+    EMPTY_TREE((*S)->ICMP4Sockets, icmp4_socket_cmp);
 #endif
 
 #ifdef PICO_SUPPORT_ICMP6
-    pico_protocol_init(&pico_proto_icmp6);
+    pico_protocol_init(*S, &pico_proto_icmp6);
+    ATTACH_QUEUES(*S, icmp6, pico_proto_icmp6);
+    EMPTY_TREE((*S)->IPV6Pings, icmp6_cookie_compare); 
 #endif
 
 #if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
-    pico_protocol_init(&pico_proto_igmp);
+    pico_protocol_init(*S, &pico_proto_igmp);
+    ATTACH_QUEUES(*S, igmp, pico_proto_igmp);
+    EMPTY_TREE((*S)->IGMPParameters, igmp_parameters_cmp);
+    EMPTY_TREE((*S)->IGMPTimers, igmp_timer_cmp);
+    EMPTY_TREE((*S)->IGMPAllow, igmp_sources_cmp);
+    EMPTY_TREE((*S)->IGMPBlock, igmp_sources_cmp);
+    EMPTY_TREE((*S)->MCASTSockets, mcast_socket_cmp);
+    EMPTY_TREE((*S)->MCASTFilter, mcast_filter_cmp);
+    EMPTY_TREE((*S)->MCASTFilter_ipv6, mcast_filter_cmp_ipv6);
 #endif
 
 #ifdef PICO_SUPPORT_UDP
-    pico_protocol_init(&pico_proto_udp);
+    pico_protocol_init(*S, &pico_proto_udp);
+    ATTACH_QUEUES(*S, udp, pico_proto_udp);
+    EMPTY_TREE((*S)->UDPTable, pico_socket_table_compare);
 #endif
 
 #ifdef PICO_SUPPORT_TCP
-    pico_protocol_init(&pico_proto_tcp);
+    pico_protocol_init(*S, &pico_proto_tcp);
+    ATTACH_QUEUES(*S, tcp, pico_proto_tcp);
+    EMPTY_TREE((*S)->TCPTable, pico_socket_table_compare);
+#endif
+
+#ifdef PICO_SUPPORT_DHCPC
+    EMPTY_TREE((*S)->DHCPCookies, dhcp_cookies_cmp);
+#endif
+
+#ifdef PICO_SUPPORT_DHCPD
+    EMPTY_TREE((*S)->DHCPSettings, dhcp_settings_cmp);
+    EMPTY_TREE((*S)->DHCPNegotiations, dhcp_negotiations_cmp);
 #endif
 
 #ifdef PICO_SUPPORT_DNS_CLIENT
-    pico_dns_client_init();
+    EMPTY_TREE((*S)->DNSTable, dns_query_cmp);
+    EMPTY_TREE((*S)->NSTable, dns_nameserver_cmp);
+    pico_dns_client_init((*S));
 #endif
+    
 
+#ifdef PICO_SUPPORT_MDNS
+#   if PICO_MDNS_ALLOW_CACHING == 1
+    EMPTY_TREE((*S)->MDNSCache, &pico_mdns_record_cmp);
+#   endif
+    EMPTY_TREE((*S)->MDNSOwnRecords, &pico_mdns_record_cmp_name_type);
+    EMPTY_TREE((*S)->MDNSCookies, &pico_mdns_cookie_cmp);
+#endif
     pico_rand_feed(123456);
 
     /* Initialize timer heap */
-    Timers = heap_init();
-    if (!Timers)
+    (*S)->Timers = heap_init();
+    if (!(*S)->Timers)
         return -1;
 
 #if ((defined PICO_SUPPORT_IPV4) && (defined PICO_SUPPORT_ETH))
     /* Initialize ARP module */
-    pico_arp_init();
+    pico_arp_init(*S);
+    EMPTY_TREE((*S)->arp_tree, arp_compare);
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
     /* Initialize Neighbor discovery module */
-    pico_ipv6_nd_init();
+    pico_ipv6_nd_init(*S);
 #endif
 
 #ifdef PICO_SUPPORT_IPV6PMTU
-    pico_ipv6_path_init(PICO_PMTU_CACHE_CLEANUP_INTERVAL);
+    pico_ipv6_path_init((*S), PICO_PMTU_CACHE_CLEANUP_INTERVAL);
+    EMPTY_TREE((*S)->IPV6PathCache, pico_ipv6_path_compare); 
+    (*S)->ipv6_path_cache_gc_timer.interval = PICO_PMTU_CACHE_CLEANUP_INTERVAL;
 #endif
 
+#ifdef PICO_SUPPORT_MLD
+    EMPTY_TREE((*S)->MLDTimers, mld_timer_cmp);
+    EMPTY_TREE((*S)->MLDParameters, mcast_parameters_cmp);
+    EMPTY_TREE((*S)->MLDAllow, mld_sources_cmp);
+    EMPTY_TREE((*S)->MLDBlock, mld_sources_cmp);
+#endif
+
+
 #ifdef PICO_SUPPORT_OLSR
-    pico_olsr_init();
+    pico_olsr_init(*S);
 #endif
 #ifdef PICO_SUPPORT_AODV
-    pico_aodv_init();
+    pico_aodv_init(*S);
+    EMPTY_TREE((*S)->aodv_nodes, aodv_node_compare);
+    EMPTY_TREE((*S)->aodv_nodes, aodv_dev_cmp);
 #endif
 #ifdef PICO_SUPPORT_6LOWPAN
-    if (pico_6lowpan_init())
+    if (pico_6lowpan_init(*S))
        return -1;
 #endif
-    pico_stack_tick();
-    pico_stack_tick();
-    pico_stack_tick();
+#ifdef PICO_SUPPORT_SNTP_CLIENT
+    (*S)->sntp_port = 123u;
+#endif
+    for (i = 0; i < PROTO_DEF_NR; i++)
+        (*S)->score[i] = PROTO_DEF_SCORE;
+    pico_stack_tick((*S));
+    pico_stack_tick((*S));
+    pico_stack_tick((*S));
     return 0;
 }
 
-void pico_stack_tick(void)
+#ifndef PICO_SUPPORT_TICKLESS
+static void legacy_pico_stack_tick(struct pico_stack *S)
+{
+    pico_check_timers(S);
+    S->ret[0] = pico_devices_loop(S, S->score[0], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[0]);
+
+    S->ret[1] = pico_protocol_datalink_loop(S, S->score[1], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[1]);
+
+    S->ret[2] = pico_protocol_network_loop(S, S->score[2], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[2]);
+
+    S->ret[3] = pico_protocol_transport_loop(S, S->score[3], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[3]);
+
+
+    S->ret[5] = S->score[5];
+#if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
+#if defined (PICO_SUPPORT_TCP) || defined (PICO_SUPPORT_UDP)
+    S->ret[5] = pico_sockets_loop(S, S->score[5]); /* swapped */
+    pico_rand_feed((uint32_t)S->ret[5]);
+#endif
+#endif
+
+    S->ret[4] = pico_protocol_socket_loop(S, S->score[4], PICO_LOOP_DIR_IN);
+    pico_rand_feed((uint32_t)S->ret[4]);
+
+    S->ret[6] = pico_protocol_socket_loop(S, S->score[6], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[6]);
+
+    S->ret[7] = pico_protocol_transport_loop(S, S->score[7], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[7]);
+
+    S->ret[8] = pico_protocol_network_loop(S, S->score[8], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[8]);
+
+    S->ret[9] = pico_protocol_datalink_loop(S, S->score[9], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[9]);
+
+    S->ret[10] = pico_devices_loop(S, S->score[10], PICO_LOOP_DIR_OUT);
+    pico_rand_feed((uint32_t)S->ret[10]);
+
+    /* calculate new loop S->scores for next iteration */
+    calc_score(S);
+}
+#endif
+
+void pico_stack_tick(struct pico_stack *S)
 {
 #ifdef PICO_SUPPORT_TICKLESS
-    int interval = 
-        pico_stack_go();
+    long long int interval;
+    interval = pico_stack_go(S);
+    (void)interval;
 #else
-    legacy_pico_stack_tick();
+    legacy_pico_stack_tick(S);
+#endif
+}
+
+static void pico_terminate_timers(struct pico_stack *S)
+{
+    struct pico_timer *t;
+    struct pico_timer_ref tref_unused, *tref = heap_first(S->Timers);
+    pico_tick = PICO_TIME_MS();
+    while(tref) {
+        t = tref->tmr;
+        if (t)
+        {
+            PICO_FREE(t);
+        }
+
+        heap_peek(S->Timers, &tref_unused);
+        tref = heap_first(S->Timers);
+    }
+}
+
+static void cleanup_queue(struct pico_queue *q)
+{
+    struct pico_frame *f = pico_dequeue(q);
+    while (f) {
+        pico_frame_discard(f);
+        f = pico_dequeue(q);
+    }
+}
+
+
+#define DETACH_QUEUES(St, pname) \
+    do { \
+       cleanup_queue(&(St)->q_ ## pname.in); \
+       cleanup_queue(&(St)->q_ ## pname.out); \
+    } while(0)
+
+
+void pico_stack_deinit(struct pico_stack *S)
+{
+    struct pico_tree_node *node, *safe;
+    struct pico_device *dev;
+    /* Cleanup: timers */
+    pico_terminate_timers(S);
+    /* Cleanup: devices */
+    pico_tree_foreach_safe(node, &S->Device_tree, safe) {
+        dev = node->keyValue;
+        pico_device_destroy(dev);
+    }
+    /* Cleanup: sockets */
+    pico_socket_destroy_all(S);
+
+    /* Cleanup: queues */
+    
+#ifdef PICO_SUPPORT_ETH
+    DETACH_QUEUES(S, ethernet);
+#endif
+
+#ifdef PICO_SUPPORT_6LOWPAN
+    DETACH_QUEUES(S, sixlowpan);
+    DETACH_QUEUES(S, sixlowpan_ll);
+#endif
+
+#ifdef PICO_SUPPORT_IPV4
+    DETACH_QUEUES(S, ipv4);
+#endif
+
+#ifdef PICO_SUPPORT_IPV6
+    DETACH_QUEUES(S, ipv6);
+#endif
+
+#ifdef PICO_SUPPORT_ICMP4
+    DETACH_QUEUES(S, icmp4);
+#endif
+
+#ifdef PICO_SUPPORT_ICMP6
+    DETACH_QUEUES(S, icmp6);
+#endif
+
+#if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
+    DETACH_QUEUES(S, igmp);
+#endif
+
+#ifdef PICO_SUPPORT_UDP
+    DETACH_QUEUES(S, udp);
+#endif
+
+#ifdef PICO_SUPPORT_TCP
+    DETACH_QUEUES(S, tcp);
 #endif
 
 }

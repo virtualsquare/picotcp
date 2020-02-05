@@ -2,7 +2,7 @@
 #include <pico_ipv4.h>
 #include <pico_socket.h>
 
-extern void app_udpecho(char *arg);
+extern void app_udpecho(struct pico_stack *S, char *arg);
 
 /*** START Multicast RECEIVE + ECHO ***/
 /*
@@ -17,7 +17,7 @@ extern void app_udpecho(char *arg);
 extern struct udpclient_pas *udpclient_pas;
 extern struct udpecho_pas *udpecho_pas;
 #ifdef PICO_SUPPORT_MCAST
-void app_mcastreceive(char *arg)
+void app_mcastreceive(struct pico_stack *S, char *arg)
 {
     char *new_arg = NULL, *p = NULL, *nxt = arg;
     char *laddr = NULL, *maddr = NULL, *lport = NULL, *sport = NULL;
@@ -95,7 +95,7 @@ void app_mcastreceive(char *arg)
     p = strcat(p + 1, sport);
     p = strcat(p + strlen(sport), ":64:");
 
-    app_udpecho(new_arg);
+    app_udpecho(S, new_arg);
 
     mreq.mcast_group_addr = mreq_source.mcast_group_addr = inaddr_mcast;
     mreq.mcast_link_addr = mreq_source.mcast_link_addr = inaddr_link;
@@ -162,7 +162,7 @@ out:
     exit(255);
 }
 #else
-void app_mcastreceive(char *arg)
+void app_mcastreceive(struct pico_stack *S, char *arg)
 {
     printf("ERROR: PICO_SUPPORT_MCAST disabled\n");
     return;

@@ -1,10 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #ifndef UNIT_TEST
 #include <libvdeplug.h>
 #endif
@@ -113,7 +133,7 @@ void pico_vde_set_packetloss(struct pico_device *dev, uint32_t in_pct, uint32_t 
 
 
 
-struct pico_device *MOCKABLE pico_vde_create(char *sock, char *name, uint8_t *mac)
+struct pico_device *MOCKABLE pico_vde_create(struct pico_stack *S, char *sock, char *name, uint8_t *mac)
 {
     struct pico_device_vde *vde = PICO_ZALLOC(sizeof(struct pico_device_vde));
     struct vde_open_args open_args = {
@@ -124,7 +144,7 @@ struct pico_device *MOCKABLE pico_vde_create(char *sock, char *name, uint8_t *ma
     if (!vde)
         return NULL;
 
-    if( 0 != pico_device_init((struct pico_device *)vde, name, mac)) {
+    if( 0 != pico_device_init(S, (struct pico_device *)vde, name, mac)) {
         dbg ("Vde init failed.\n");
         pico_vde_destroy((struct pico_device *)vde);
         return NULL;

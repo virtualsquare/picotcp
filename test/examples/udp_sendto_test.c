@@ -14,13 +14,14 @@
  *
  * f.e.: ./build/test/picoapp.elf --vde pic0:/tmp/pic0.ctl:10.40.0.3:255.255.255.0: -a udpecho:10.40.0.3:6667:6667:1400
  */
+static struct pico_stack *stack = NULL;
 
 void dummy_cb(uint16_t __attribute__((unused)) ev, struct pico_socket __attribute__((unused)) *s)
 {
 
 }
 
-void app_sendto_test(char *arg)
+void app_sendto_test(struct pico_stack *S, char *arg)
 {
     char *nxt = arg;
     char *dstaddr = NULL;
@@ -30,6 +31,7 @@ void app_sendto_test(char *arg)
     uint16_t dport;
     struct pico_socket *sock;
     int ret;
+    stack = S;
 
     /* start of argument parsing */
     if (nxt) {
@@ -63,9 +65,9 @@ void app_sendto_test(char *arg)
     }
 
     if (!IPV6_MODE)
-        sock = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &dummy_cb);
+        sock = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &dummy_cb);
     else
-        sock = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_UDP, &dummy_cb);
+        sock = pico_socket_open(stack, PICO_PROTO_IPV6, PICO_PROTO_UDP, &dummy_cb);
 
     ret = pico_socket_sendto(sock, "Testing", 7u, ((IPV6_MODE) ? (void *)(&inaddr_dst6) : (void *)(&inaddr_dst)), dport);
     if (ret < 0)

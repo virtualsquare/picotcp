@@ -1,11 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-
-   Authors: Frederik Van Slycken, Kristof Roelants
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Frederik Van Slycken, Kristof Roelants
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #include "pico_dhcp_server.h"
 #include "pico_config.h"
 #include "pico_addressing.h"
@@ -63,7 +82,7 @@ static inline int ip_address_is_in_dhcp_range(struct pico_dhcp_server_negotiatio
 
 static void pico_dhcpd_wakeup(uint16_t ev, struct pico_socket *s);
 
-static int dhcp_settings_cmp(void *ka, void *kb)
+int dhcp_settings_cmp(void *ka, void *kb)
 {
     struct pico_dhcp_server_setting *a = ka, *b = kb;
     if (a->dev == b->dev)
@@ -71,9 +90,8 @@ static int dhcp_settings_cmp(void *ka, void *kb)
 
     return (a->dev < b->dev) ? (-1) : (1);
 }
-static PICO_TREE_DECLARE(DHCPSettings, dhcp_settings_cmp);
 
-static int dhcp_negotiations_cmp(void *ka, void *kb)
+int dhcp_negotiations_cmp(void *ka, void *kb)
 {
     struct pico_dhcp_server_negotiation *a = ka, *b = kb;
     if (a->xid == b->xid)
@@ -81,8 +99,6 @@ static int dhcp_negotiations_cmp(void *ka, void *kb)
 
     return (a->xid < b->xid) ? (-1) : (1);
 }
-static PICO_TREE_DECLARE(DHCPNegotiations, dhcp_negotiations_cmp);
-
 
 static inline void dhcps_set_default_pool_start_if_not_provided(struct pico_dhcp_server_setting *dhcps)
 {
@@ -104,7 +120,11 @@ static inline void dhcps_set_default_lease_time_if_not_provided(struct pico_dhcp
 static inline struct pico_dhcp_server_setting *dhcps_try_open_socket(struct pico_dhcp_server_setting *dhcps)
 {
     uint16_t port = PICO_DHCPD_PORT;
-    dhcps->s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcpd_wakeup);
+    if (!dhcps || !dhcps->dev) {
+        pico_err = PICO_ERR_EINVAL;
+        return NULL;
+    }
+    dhcps->s = pico_socket_open(dhcps->dev->stack, PICO_PROTO_IPV4, PICO_PROTO_UDP, &pico_dhcpd_wakeup);
     if (!dhcps->s) {
         dhcps_dbg("DHCP server ERROR: failure opening socket (%s)\n", strerror(pico_err));
         PICO_FREE(dhcps);
@@ -117,7 +137,7 @@ static inline struct pico_dhcp_server_setting *dhcps_try_open_socket(struct pico
         return NULL;
     }
 
-    if (pico_tree_insert(&DHCPSettings, dhcps)) {
+    if (pico_tree_insert(&dhcps->dev->stack->DHCPSettings, dhcps)) {
     	dhcps_dbg("DHCP server ERROR: could not insert settings in tree\n");
 		PICO_FREE(dhcps);
 		return NULL;
@@ -133,14 +153,14 @@ static struct pico_dhcp_server_setting *pico_dhcp_server_add_setting(struct pico
     };
     struct pico_ipv4_link *link = NULL;
 
-    link = pico_ipv4_link_get(&setting->server_ip);
+    link = pico_ipv4_link_get(setting->dev->stack, &setting->server_ip);
     if (!link) {
         pico_err = PICO_ERR_EINVAL;
         return NULL;
     }
 
     test.dev = setting->dev;
-    found = pico_tree_findKey(&DHCPSettings, &test);
+    found = pico_tree_findKey(&setting->dev->stack->DHCPSettings, &test);
     if (found) {
         pico_err = PICO_ERR_EINVAL;
         return NULL;
@@ -171,14 +191,14 @@ static struct pico_dhcp_server_setting *pico_dhcp_server_add_setting(struct pico
 
 }
 
-static struct pico_dhcp_server_negotiation *pico_dhcp_server_find_negotiation(uint32_t xid)
+static struct pico_dhcp_server_negotiation *pico_dhcp_server_find_negotiation(struct pico_stack *S, uint32_t xid)
 {
     struct pico_dhcp_server_negotiation test = {
         0
     }, *found = NULL;
 
     test.xid = xid;
-    found = pico_tree_findKey(&DHCPNegotiations, &test);
+    found = pico_tree_findKey(&S->DHCPNegotiations, &test);
     if (found)
         return found;
     else
@@ -188,7 +208,7 @@ static struct pico_dhcp_server_negotiation *pico_dhcp_server_find_negotiation(ui
 static inline void dhcp_negotiation_set_ciaddr(struct pico_dhcp_server_negotiation *dhcpn)
 {
     struct pico_ip4 *ciaddr = NULL;
-    ciaddr = pico_arp_reverse_lookup(&dhcpn->hwaddr);
+    ciaddr = pico_arp_reverse_lookup(dhcpn->dhcps->dev->stack, &dhcpn->hwaddr);
     if (!ciaddr) {
         dhcpn->ciaddr.addr = dhcpn->dhcps->pool_next;
         dhcpn->dhcps->pool_next = long_be(long_be(dhcpn->dhcps->pool_next) + 1);
@@ -205,7 +225,7 @@ static struct pico_dhcp_server_negotiation *pico_dhcp_server_add_negotiation(str
         0
     };
 
-    if (pico_dhcp_server_find_negotiation(hdr->xid))
+    if (pico_dhcp_server_find_negotiation(dev->stack, hdr->xid))
         return NULL;
 
     dhcpn = PICO_ZALLOC(sizeof(struct pico_dhcp_server_negotiation));
@@ -220,7 +240,7 @@ static struct pico_dhcp_server_negotiation *pico_dhcp_server_add_negotiation(str
     memcpy(dhcpn->hwaddr.addr, hdr->hwaddr, PICO_SIZE_ETH);
 
     test.dev = dev;
-    dhcpn->dhcps = pico_tree_findKey(&DHCPSettings, &test);
+    dhcpn->dhcps = pico_tree_findKey(&dev->stack->DHCPSettings, &test);
     if (!dhcpn->dhcps) {
         dhcps_dbg("DHCP server WARNING: received DHCP message on unconfigured link %s\n", dev->name);
         PICO_FREE(dhcpn);
@@ -228,7 +248,7 @@ static struct pico_dhcp_server_negotiation *pico_dhcp_server_add_negotiation(str
     }
 
     dhcp_negotiation_set_ciaddr(dhcpn);
-    if (pico_tree_insert(&DHCPNegotiations, dhcpn)) {
+    if (pico_tree_insert(&dev->stack->DHCPNegotiations, dhcpn)) {
 		dhcps_dbg("DHCP server ERROR: could not insert negotiations in tree\n");
 		PICO_FREE(dhcpn);
 		return NULL;
@@ -363,8 +383,8 @@ static void pico_dhcp_server_recv(struct pico_socket *s, uint8_t *buf, uint32_t 
     if (!pico_dhcp_are_options_valid(DHCP_OPT(hdr, 0), optlen))
         return;
 
-    dev = pico_ipv4_link_find(&s->local_addr.ip4);
-    dhcpn = pico_dhcp_server_find_negotiation(hdr->xid);
+    dev = pico_ipv4_link_find(s->stack, &s->local_addr.ip4);
+    dhcpn = pico_dhcp_server_find_negotiation(s->stack, hdr->xid);
     if (!dhcpn)
         dhcpn = pico_dhcp_server_add_negotiation(dev, hdr);
 
@@ -412,13 +432,13 @@ int pico_dhcp_server_destroy(struct pico_device *dev)
         0
     };
     test.dev = dev;
-    found = pico_tree_findKey(&DHCPSettings, &test);
+    found = pico_tree_findKey(&dev->stack->DHCPSettings, &test);
     if (!found) {
         pico_err = PICO_ERR_ENOENT;
         return -1;
     }
 
-    pico_tree_delete(&DHCPSettings, found);
+    pico_tree_delete(&dev->stack->DHCPSettings, found);
     PICO_FREE(found);
     return 0;
 }

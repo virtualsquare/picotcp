@@ -13,6 +13,7 @@
 
 static int fully_initialized = 0;
 static char *service_name = NULL;
+static pico_stack *stack = NULL;
 
 void dns_sd_claimed_callback( pico_mdns_rtree *tree,
                               char *str,
@@ -49,12 +50,13 @@ void dns_sd_init_callback( pico_mdns_rtree *tree,
     fully_initialized = 1;
 }
 
-void app_dns_sd(char *arg, struct pico_ip4 address)
+void app_dns_sd(struct pico_stack *S, char *arg, struct pico_ip4 address)
 {
     char *hostname;
     char *nxt = arg;
     uint64_t starttime = 0;
     int once = 0;
+    stack = S;
 
     if (!nxt) {
         exit(255);
@@ -76,13 +78,13 @@ void app_dns_sd(char *arg, struct pico_ip4 address)
     }
 
     printf("\nStarting DNS Service Discovery module...\n");
-    if (pico_dns_sd_init(hostname, address, &dns_sd_init_callback, NULL) != 0) {
+    if (pico_dns_sd_init(stack, hostname, address, &dns_sd_init_callback, NULL) != 0) {
         printf("Initialisation returned with Error!\n");
         exit(255);
     }
 
     printf("\nTry reinitialising DNS-SD\n");
-    if (pico_dns_sd_init(hostname, address, &dns_sd_init_callback, NULL)) {
+    if (pico_dns_sd_init(stack, hostname, address, &dns_sd_init_callback, NULL)) {
         printf("Initialisation returned with Error!\n");
         exit(255);
     }
@@ -93,12 +95,12 @@ void app_dns_sd(char *arg, struct pico_ip4 address)
     printf("Starting time: %d\n", starttime);
 
     while(1) {
-        pico_stack_tick();
+        pico_stack_tick(stack);
         usleep(2000);
 
         if (((PICO_TIME_MS() - starttime) > SECONDS * 1000) && fully_initialized && !once) {
             printf("\nTry reinitialising DNS-SD (a second time)\n");
-            if (pico_dns_sd_init(hostname, address, &dns_sd_init_callback, NULL)) {
+            if (pico_dns_sd_init(stack, hostname, address, &dns_sd_init_callback, NULL)) {
                 printf("Initialisation returned with Error!\n");
                 exit(255);
             }

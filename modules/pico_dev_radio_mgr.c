@@ -1,10 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See LICENSE and COPYING for usage.
-
-   Authors: Jelle De Vleeschouwer
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Jelle De Vleeschouwer
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 /*
  * For testing purposes. pico_dev_radio_manager allows simulating a mesh
  * network for smoke tests. I previously used geomess, but that's another
@@ -58,7 +78,13 @@ pico_radio_mgr_sock_cmp(void *a, void *b)
     return (int)(sa->id - sb->id);
 }
 
-PICO_TREE_DECLARE(Sockets, pico_radio_mgr_sock_cmp);
+#define SOCK_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
+SOCK_TREE_DECLARE(Sockets, pico_radio_mgr_sock_cmp);
 
 /* Insert a new socket in the tree */
 static int
@@ -147,7 +173,7 @@ pico_radio_mgr_socket_hup(int socket)
 static int
 pico_radio_mgr_welcome(int socket)
 {
-    int ret_len = sizeof(uint8_t);
+    long int ret_len = sizeof(uint8_t);
     uint8_t id = 0, area0, area1;
 
     errno = 0;

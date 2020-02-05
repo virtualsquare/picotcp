@@ -1,7 +1,28 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
+ * PicoTCP-NG
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ *
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
 #ifndef INCLUDE_PICO_ADDRESSING
 #define INCLUDE_PICO_ADDRESSING
@@ -17,12 +38,6 @@ PACKED_STRUCT_DEF pico_ip4
 PACKED_STRUCT_DEF pico_ip6
 {
     uint8_t addr[16];
-};
-
-union pico_address
-{
-    struct pico_ip4 ip4;
-    struct pico_ip6 ip6;
 };
 
 /******************************************************************************
@@ -52,6 +67,25 @@ PACKED_STRUCT_DEF pico_6lowpan_ext
 {
     uint8_t addr[8];
 };
+
+PACKED_STRUCT_DEF pico_ll {
+    uint16_t proto;
+    uint16_t hatype;
+    uint8_t  pktype;
+    uint8_t  halen;
+    struct   pico_eth hwaddr;
+    struct   pico_device *dev;
+};
+
+union pico_address
+{
+    struct pico_ip4 ip4;
+    struct pico_ip6 ip6;
+#ifdef PICO_SUPPORT_PACKET_SOCKETS
+    struct pico_ll ll;
+#endif
+};
+
 
 /* Address memory as either a short 16-bit address or a 64-bit address */
 union pico_6lowpan_u
@@ -123,5 +157,9 @@ PACKED_STRUCT_DEF pico_trans
 #define PICO_PROTO_UDP    17
 #define PICO_PROTO_IPV6   41
 #define PICO_PROTO_ICMP6  58
+
+/* And some special values used for raw sockets */
+#define PICO_PROTO_RAWSOCKET (3 << 8)
+#define PICO_RAWSOCKET_RAW 255
 
 #endif

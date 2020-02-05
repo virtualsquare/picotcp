@@ -1,12 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   .
-
-   Authors: Daniele Lacamera
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Daniele Lacamera
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #include "pico_config.h"
 #include "pico_device.h"
 #include "pico_stack.h"
@@ -14,6 +32,7 @@
 #include "pico_tree.h"
 #include "pico_ipv6.h"
 #include "pico_ipv4.h"
+#include "pico_nat.h"
 #include "pico_icmp6.h"
 #include "pico_eth.h"
 #include "pico_802154.h"
@@ -22,15 +41,7 @@
 #include "pico_addressing.h"
 #define PICO_DEVICE_DEFAULT_MTU (1500)
 
-struct pico_devices_rr_info {
-    struct pico_tree_node *node_in, *node_out;
-};
-
-static struct pico_devices_rr_info Devices_rr_info = {
-    NULL, NULL
-};
-
-static int pico_dev_cmp(void *ka, void *kb)
+int pico_dev_cmp(void *ka, void *kb)
 {
     struct pico_device *a = ka, *b = kb;
     if (a->hash < b->hash)
@@ -43,7 +54,6 @@ static int pico_dev_cmp(void *ka, void *kb)
     return 0;
 }
 
-PICO_TREE_DECLARE(Device_tree, pico_dev_cmp);
 
 #ifdef PICO_SUPPORT_6LOWPAN
 static struct pico_ipv6_link * pico_6lowpan_link_add(struct pico_device *dev, const struct pico_ip6 *prefix)
@@ -178,7 +188,7 @@ int pico_device_ipv6_random_ll(struct pico_device *dev)
             linklocal.addr[14] = (uint8_t)(len >> 16);
             linklocal.addr[15] = (uint8_t)(len >> 24);
             pico_rand_feed(dev->hash);
-        } while (pico_ipv6_link_get(&linklocal));
+        } while (pico_ipv6_link_get(dev->stack, &linklocal));
 
         if (pico_ipv6_link_add(dev, linklocal, netmask6) == NULL) {
             return -1;
@@ -206,11 +216,12 @@ static int device_init_nomac(struct pico_device *dev)
                             pico_ipv6_to_string(ipstr, (ip).addr); \
                             dbg("IPv6 (%s)\n", ipstr); \
                         }
+#ifdef PICO_SUPPORT_TICKLESS
+static void devloop_all_in(struct pico_stack *S, void *arg);
+static void devloop_all_out(struct pico_stack *S, void *arg);
+#endif
 
-static void devloop_all_in(void *arg);
-static void devloop_all_out(void *arg);
-
-int pico_device_init(struct pico_device *dev, const char *name, const uint8_t *mac)
+int pico_device_init(struct pico_stack *S, struct pico_device *dev, const char *name, const uint8_t *mac)
 {
     uint32_t len = (uint32_t)strlen(name);
     int ret = 0;
@@ -219,10 +230,13 @@ int pico_device_init(struct pico_device *dev, const char *name, const uint8_t *m
         len = MAX_DEVICE_NAME;
 
     memcpy(dev->name, name, len);
-    dev->hash = pico_hash(dev->name, len);
 
-    Devices_rr_info.node_in  = NULL;
-    Devices_rr_info.node_out = NULL;
+    /* Associate to TCP/IP Stack */
+    dev->stack = S;
+
+    dev->hash = pico_hash(dev->name, len);
+    S->Devices_rr_info.node_in  = NULL;
+    S->Devices_rr_info.node_out = NULL;
     dev->q_in = PICO_ZALLOC(sizeof(struct pico_queue));
     if (!dev->q_in)
         return -1;
@@ -232,10 +246,10 @@ int pico_device_init(struct pico_device *dev, const char *name, const uint8_t *m
         PICO_FREE(dev->q_in);
         return -1;
     }
-    pico_queue_register_listener(dev->q_in, devloop_all_in, dev);
-    pico_queue_register_listener(dev->q_out, devloop_all_out, dev);
+    pico_queue_register_listener(dev->stack, dev->q_in, devloop_all_in, dev);
+    pico_queue_register_listener(dev->stack, dev->q_out, devloop_all_out, dev);
 
-    if (pico_tree_insert(&Device_tree, dev)) {
+    if (pico_tree_insert(&S->Device_tree, dev)) {
 		PICO_FREE(dev->q_in);
 		PICO_FREE(dev->q_out);
 		return -1;
@@ -283,18 +297,19 @@ void pico_device_destroy(struct pico_device *dev)
         PICO_FREE(dev->eth);
 
 #ifdef PICO_SUPPORT_IPV4
-    pico_ipv4_cleanup_links(dev);
+    pico_ipv4_cleanup_links(dev->stack, dev);
 #endif
 #ifdef PICO_SUPPORT_IPV6
-    pico_ipv6_cleanup_links(dev);
+    pico_ipv6_cleanup_links(dev->stack, dev);
 #endif
-    pico_tree_delete(&Device_tree, dev);
+    pico_tree_delete(&dev->stack->Device_tree, dev);
+    
+    dev->stack->Devices_rr_info.node_in  = NULL;
+    dev->stack->Devices_rr_info.node_out = NULL;
 
     if (dev->destroy)
         dev->destroy(dev);
 
-    Devices_rr_info.node_in  = NULL;
-    Devices_rr_info.node_out = NULL;
     PICO_FREE(dev);
 }
 
@@ -369,10 +384,11 @@ static int devloop_out(struct pico_device *dev, int loop_score)
 
 #ifdef PICO_SUPPORT_TICKLESS
 
-static void devloop_all_out(void *arg)
+static void devloop_all_out(struct pico_stack *S, void *arg)
 {
     struct pico_device *dev = (struct pico_device *)arg;
     struct pico_frame *f;
+    (void)S;
     while(1) {
         if (dev->q_out->frames <= 0)
             break;
@@ -386,16 +402,17 @@ static void devloop_all_out(void *arg)
             f = pico_dequeue(dev->q_out);
             pico_frame_discard(f); /* SINGLE POINT OF DISCARD for OUTGOING FRAMES */
         } else {
-            pico_schedule_job(devloop_all_out, dev);
+            pico_schedule_job(dev->stack, devloop_all_out, dev);
             break; /* Don't discard */
         }
     }
 }
 
-static void devloop_all_in(void *arg)
+static void devloop_all_in(struct pico_stack *S, void *arg)
 {
     struct pico_device *dev = (struct pico_device *)arg;
     struct pico_frame *f;
+    (void)S;
     while(1) {
         if (dev->q_in->frames <= 0)
             break;
@@ -405,7 +422,7 @@ static void devloop_all_in(void *arg)
         if (f) {
             if (dev->eth) {
                 f->datalink_hdr = f->buffer;
-                (void)pico_ethernet_receive(f);
+                (void)pico_ethernet_receive(dev->stack, f);
             } else {
                 f->net_hdr = f->buffer;
                 pico_network_receive(f);
@@ -433,34 +450,34 @@ static int devloop(struct pico_device *dev, int loop_score, int direction)
 }
 
 
-static struct pico_tree_node *pico_dev_roundrobin_start(int direction)
+static struct pico_tree_node *pico_dev_roundrobin_start(struct pico_stack *S, int direction)
 {
-    if (Devices_rr_info.node_in == NULL)
-        Devices_rr_info.node_in = pico_tree_firstNode(Device_tree.root);
+    if (S->Devices_rr_info.node_in == NULL)
+        S->Devices_rr_info.node_in = pico_tree_firstNode(S->Device_tree.root);
 
-    if (Devices_rr_info.node_out == NULL)
-        Devices_rr_info.node_out = pico_tree_firstNode(Device_tree.root);
+    if (S->Devices_rr_info.node_out == NULL)
+        S->Devices_rr_info.node_out = pico_tree_firstNode(S->Device_tree.root);
 
     if (direction == PICO_LOOP_DIR_IN)
-        return Devices_rr_info.node_in;
+        return S->Devices_rr_info.node_in;
     else
-        return Devices_rr_info.node_out;
+        return S->Devices_rr_info.node_out;
 }
 
-static void pico_dev_roundrobin_end(int direction, struct pico_tree_node *last)
+static void pico_dev_roundrobin_end(struct pico_stack *S, int direction, struct pico_tree_node *last)
 {
     if (direction == PICO_LOOP_DIR_IN)
-        Devices_rr_info.node_in = last;
+        S->Devices_rr_info.node_in = last;
     else
-        Devices_rr_info.node_out = last;
+        S->Devices_rr_info.node_out = last;
 }
 
 #define DEV_LOOP_MIN  16
 
-int pico_devices_loop(int loop_score, int direction)
+int pico_devices_loop(struct pico_stack *S, int loop_score, int direction)
 {
     struct pico_device *start, *next;
-    struct pico_tree_node *next_node  = pico_dev_roundrobin_start(direction);
+    struct pico_tree_node *next_node  = pico_dev_roundrobin_start(S, direction);
 
     if (!next_node)
         return loop_score;
@@ -475,22 +492,22 @@ int pico_devices_loop(int loop_score, int direction)
         next = next_node->keyValue;
         if (next == NULL)
         {
-            next_node = pico_tree_firstNode(Device_tree.root);
+            next_node = pico_tree_firstNode(S->Device_tree.root);
             next = next_node->keyValue;
         }
 
         if (next == start)
             break;
     }
-    pico_dev_roundrobin_end(direction, next_node);
+    pico_dev_roundrobin_end(S, direction, next_node);
     return loop_score;
 }
 
-struct pico_device *pico_get_device(const char*name)
+struct pico_device *pico_get_device(struct pico_stack *S, const char*name)
 {
     struct pico_device *dev;
     struct pico_tree_node *index;
-    pico_tree_foreach(index, &Device_tree){
+    pico_tree_foreach(index, &S->Device_tree){
         dev = index->keyValue;
         if(strcmp(name, dev->name) == 0)
             return dev;
@@ -498,12 +515,12 @@ struct pico_device *pico_get_device(const char*name)
     return NULL;
 }
 
-int32_t pico_device_broadcast(struct pico_frame *f)
+int32_t pico_device_broadcast(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_tree_node *index;
     int32_t ret = -1;
 
-    pico_tree_foreach(index, &Device_tree)
+    pico_tree_foreach(index, &S->Device_tree)
     {
         struct pico_device *dev = index->keyValue;
         if(dev != f->dev)

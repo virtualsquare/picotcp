@@ -1,11 +1,30 @@
 /*********************************************************************
-   PicoTCP. Copyright (c) 2012-2017 Altran Intelligent Systems. Some rights reserved.
-   See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
-
-   Authors: Andrei Carp
-         Simon  Maes
+ * PicoTCP-NG 
+ * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
+ *
+ * This file also includes code from:
+ * PicoTCP
+ * Copyright (c) 2012-2017 Altran Intelligent Systems
+ * Authors: Andrei Carp, Simon Maes
+ * 
+ * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
+ *
+ * PicoTCP-NG is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) version 3.
+ *
+ * PicoTCP-NG is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1335, USA
+ *
+ *
  *********************************************************************/
-
 #include "pico_ipv4.h"
 #include "pico_config.h"
 #include "pico_icmp4.h"
@@ -30,8 +49,6 @@
 
 /**************** LOCAL DECLARATIONS ****************/
 struct filter_node;
-static int filter_compare(void *filterA, void *filterB);
-
 /**************** FILTER TREE ****************/
 
 struct filter_node {
@@ -53,7 +70,6 @@ struct filter_node {
     int (*function_ptr)(struct filter_node *filter, struct pico_frame *f);
 };
 
-static PICO_TREE_DECLARE(filter_tree, &filter_compare);
 
 static inline int ipfilter_uint32_cmp(uint32_t a, uint32_t b)
 {
@@ -319,7 +335,7 @@ static int fp_reject(struct filter_node *filter, struct pico_frame *f)
 /* TODO check first if sender is pico itself or not */
     IGNORE_PARAMETER(filter);
     ipf_dbg("ipfilter> reject\n");
-    (void)pico_icmp4_packet_filtered(f);
+    (void)pico_icmp4_packet_filtered(f->dev->stack, f);
     pico_frame_discard(f);
     return 1;
 }
@@ -392,7 +408,7 @@ uint32_t pico_ipv4_filter_add(struct pico_device *dev, uint8_t proto,
     new_filter->filter_id = filter_id++;
     new_filter->function_ptr = fp_function[action].fn;
 
-    if(pico_tree_insert(&filter_tree, new_filter))
+    if(pico_tree_insert(&dev->stack->ipfilter_tree, new_filter))
     {
         PICO_FREE(new_filter);
         filter_id--;
@@ -402,7 +418,7 @@ uint32_t pico_ipv4_filter_add(struct pico_device *dev, uint8_t proto,
     return new_filter->filter_id;
 }
 
-int pico_ipv4_filter_del(uint32_t filter_id)
+int pico_ipv4_filter_del(struct pico_stack *S, uint32_t filter_id)
 {
     struct filter_node *node = NULL;
     struct filter_node dummy = {
@@ -410,7 +426,7 @@ int pico_ipv4_filter_del(uint32_t filter_id)
     };
 
     dummy.filter_id = filter_id;
-    if((node = pico_tree_delete(&filter_tree, &dummy)) == NULL)
+    if((node = pico_tree_delete(&S->ipfilter_tree, &dummy)) == NULL)
     {
         ipf_dbg("ipfilter> failed to delete filter :%d\n", filter_id);
         return -1;
@@ -423,7 +439,7 @@ int pico_ipv4_filter_del(uint32_t filter_id)
 static int ipfilter_apply_filter(struct pico_frame *f, struct filter_node *pkt)
 {
     struct filter_node *filter_frame = NULL;
-    filter_frame = pico_tree_findKey(&filter_tree, pkt);
+    filter_frame = pico_tree_findKey(&f->dev->stack->ipfilter_tree, pkt);
     if(filter_frame)
     {
         filter_frame->function_ptr(filter_frame, f);
