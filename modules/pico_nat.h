@@ -47,7 +47,7 @@ int pico_ipv4_nat_is_enabled(struct pico_ip4 *link_addr);
 #else
 
 #define pico_ipv4_nat_print_table() do {} while(0)
-static inline int pico_ipv4_nat_inbound(struct pico_frame *f, struct pico_ip4 *link_addr)
+static inline int pico_ipv4_nat_inbound(struct pico_stack *S, struct pico_frame *f, struct pico_ip4 *link_addr)
 {
     (void)f;
     (void)link_addr;
@@ -55,7 +55,7 @@ static inline int pico_ipv4_nat_inbound(struct pico_frame *f, struct pico_ip4 *l
     return -1;
 }
 
-static inline int pico_ipv4_nat_outbound(struct pico_frame *f, struct pico_ip4 *link_addr)
+static inline int pico_ipv4_nat_outbound(struct pico_stack *S, struct pico_frame *f, struct pico_ip4 *link_addr)
 {
     (void)f;
     (void)link_addr;

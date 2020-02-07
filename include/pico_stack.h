@@ -162,7 +162,7 @@ struct pico_stack {
 #   ifdef PICO_SUPPORT_IPV4FRAG
     uint32_t ipv4_cur_frag_id;
     uint32_t ipv4_fragments_timer;
-    struct pico_tree ipv6_fragments;
+    struct pico_tree ipv4_fragments;
 #   endif
     uint16_t ipv4_pre_forward_last_id;
     uint16_t ipv4_pre_forward_last_proto;

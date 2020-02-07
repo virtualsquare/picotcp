@@ -1175,7 +1175,7 @@ static int pico_ipv4_mcast_filter(struct pico_stack *S, struct pico_frame *f)
 
 #else
 
-int pico_ipv4_mcast_join(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter)
+int pico_ipv4_mcast_join(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter)
 {
     IGNORE_PARAMETER(mcast_link);
     IGNORE_PARAMETER(mcast_group);
@@ -1186,7 +1186,7 @@ int pico_ipv4_mcast_join(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_gro
     return -1;
 }
 
-int pico_ipv4_mcast_leave(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter)
+int pico_ipv4_mcast_leave(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter)
 {
     IGNORE_PARAMETER(mcast_link);
     IGNORE_PARAMETER(mcast_group);
@@ -1870,11 +1870,12 @@ static int pico_ipv4_forward(struct pico_stack *S, struct pico_frame *f)
 
     if (pico_ipv4_forward_check_dev(S, f) < 0)
         return -1;
-
+#ifdef PICO_SUPPORT_IPFILTER
     if (ipfilter(f)) {
         /*pico_frame is discarded as result of the filtering*/
         return -1;
     }
+#endif
     return pico_datalink_send(f);
 }
 
