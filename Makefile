@@ -1,6 +1,12 @@
 -include ../../config.mk
 -include ../../tools/kconfig/.config
 
+export SONAME
+VERSION:=2.0.0
+SONAME:=2
+GNULIB_INSTALL_PREFIX?=/usr
+GNULIB_TARGET_MULTIARCH?=
+
 OS:=$(shell uname)
 CC:=$(CROSS_COMPILE)gcc
 LD:=$(CROSS_COMPILE)ld
@@ -403,12 +409,12 @@ gnulib: FORCE
 	@make clean
 	@./make-gnu.sh
 
-gnulib-install: gnulib
-	cp build/lib/libpicotcp.so /usr/lib/
-	mkdir -p /usr/include/picotcp
-	cp build/include/*.h /usr/include/picotcp/
-	cp -r build/include/arch /usr/include/picotcp/
-
+gnulib-install:
+	install -D build/lib/libpicotcp.so ${GNULIB_INSTALL_PREFIX}/lib/${GNULIB_TARGET_MULTIARCH}/libpicotcp.so.${VERSION}
+	ln -sf ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so.${VERSION} ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so.${SONAME}
+	ln -sf ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so.${VERSION} ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so
+	install -D build/include/*.h -t ${GNULIB_INSTALL_PREFIX}/include/picotcp
+	install -D build/include/arch/*.h -t ${GNULIB_INSTALL_PREFIX}/include/picotcp/arch
 
 $(PREFIX)/include/pico_defines.h:
 	@mkdir -p $(PREFIX)/lib

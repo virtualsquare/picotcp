@@ -1,4 +1,5 @@
 #!/bin/bash
+
 make PTHREAD=1 TCP=1 UDP=1 VDE=1 \
 	RTOS=0 \
 	DHCP_CLIENT=0 \
@@ -30,4 +31,4 @@ make PTHREAD=1 TCP=1 UDP=1 VDE=1 \
     6LOWPAN=0 \
     PLATFORM_CFLAGS="-fPIC -shared"
 
-gcc -shared -o build/lib/libpicotcp.so build/modules/*.o build/lib/*.o -lvdeplug -pthread
+gcc -shared -Wl,-soname,libpicotcp.so.${SONAME} -o build/lib/libpicotcp.so build/modules/*.o build/lib/*.o -lvdeplug -pthread
