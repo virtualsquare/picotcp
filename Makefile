@@ -168,6 +168,10 @@ ifneq ($(RTOS),0)
   OPTIONS+=-DPICO_SUPPORT_RTOS
 endif
 
+ifeq ($(IEEE802154),1)
+  OPTIONS+= -DPICO_SUPPORT_802154
+endif
+
 ifeq ($(ARCH),cortexm4-hardfloat)
   CFLAGS+=-DCORTEX_M4_HARDFLOAT -mcpu=cortex-m4 -mthumb -mlittle-endian -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb-interwork -fsingle-precision-constant
 endif
