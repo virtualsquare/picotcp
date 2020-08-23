@@ -179,7 +179,7 @@ struct pico_stack {
 #   ifdef PICO_SUPPORT_IPV6FRAG
     uint32_t ipv6_cur_frag_id;
     uint32_t ipv6_fragments_timer;
-    struct pico_tree ipv4_fragments;
+    struct pico_tree ipv6_fragments;
 #   endif
 #   ifdef PICO_SUPPORT_IPV6PMTU
     struct pico_tree IPV6PathCache;
