@@ -415,8 +415,8 @@ gnulib: FORCE
 
 gnulib-install:
 	install -D build/lib/libpicotcp.so ${GNULIB_INSTALL_PREFIX}/lib/${GNULIB_TARGET_MULTIARCH}/libpicotcp.so.${VERSION}
-	ln -sf ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so.${VERSION} ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so.${SONAME}
-	ln -sf ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so.${VERSION} ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so
+	ln -sf libpicotcp.so.${VERSION} ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so.${SONAME}
+	ln -sf libpicotcp.so.${VERSION} ${GNULIB_INSTALL_PREFIX}/lib/$(GNULIB_TARGET_MULTIARCH)/libpicotcp.so
 	install -D build/include/*.h -t ${GNULIB_INSTALL_PREFIX}/include/picotcp
 	install -D build/include/arch/*.h -t ${GNULIB_INSTALL_PREFIX}/include/picotcp/arch
 
