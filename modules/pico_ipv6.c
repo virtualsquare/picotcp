@@ -678,6 +678,8 @@ static int pico_ipv6_check_headers_sequence(struct pico_frame *f)
     uint8_t nxthdr = hdr->nxthdr;
     for (;; ) {
         uint8_t optlen = *(f->net_hdr + ptr + 1);
+        if (optlen == 0)
+            return 0;
         switch (nxthdr) {
         case PICO_IPV6_EXTHDR_DESTOPT:
         case PICO_IPV6_EXTHDR_ROUTING:
@@ -685,6 +687,8 @@ static int pico_ipv6_check_headers_sequence(struct pico_frame *f)
         case PICO_IPV6_EXTHDR_ESP:
         case PICO_IPV6_EXTHDR_AUTH:
             optlen = (uint8_t)IPV6_OPTLEN(optlen);
+            if (optlen == 0)
+                return -1;
             break;
         case PICO_IPV6_EXTHDR_FRAG:
             optlen = 8;
@@ -703,6 +707,8 @@ static int pico_ipv6_check_headers_sequence(struct pico_frame *f)
         }
         cur_nexthdr = ptr;
         nxthdr = *(f->net_hdr + ptr);
+        if (optlen == 0)
+            return -1;
         ptr += optlen;
     }
 }
