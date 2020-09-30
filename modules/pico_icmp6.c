@@ -85,6 +85,12 @@ static int pico_icmp6_send_echoreply_not_frag(struct pico_frame *echo)
     struct pico_ip6 src;
     struct pico_ip6 dst;
 
+    if (echo->transport_len < PICO_ICMP6HDR_ECHO_REQUEST_SIZE) {
+        /* echo request too small, silently discard. */
+        return 0;
+
+    }
+
     reply = pico_proto_ipv6.alloc(echo->dev->stack, &pico_proto_ipv6, echo->dev, (uint16_t)(echo->transport_len));
     if (!reply) {
         pico_err = PICO_ERR_ENOMEM;
