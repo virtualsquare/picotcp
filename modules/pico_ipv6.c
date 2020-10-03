@@ -558,6 +558,8 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
 
         case PICO_IPV6_EXTHDR_OPT_PADN:
             optlen = (uint8_t)((*(option + 1)) + 2); /* plus type and len byte */
+            if (optlen == 0)
+                return -1;
             option += optlen;
             len = (uint8_t)(len - optlen);
             break;
@@ -566,7 +568,8 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
             /* MLD package */
             if(*(option + 1) == 2)
                 must_align = 0;
-
+            if (optlen == 0)
+                return -1;
             option += optlen;
             len = (uint8_t)(len - optlen);
             break;
@@ -589,6 +592,8 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
             }
             ipv6_dbg("IPv6: option with type %u and length %u\n", *option, optlen);
             option += optlen;
+            if (optlen == 0)
+                return -1;
             len = (uint8_t)(len - optlen);
         }
     }
