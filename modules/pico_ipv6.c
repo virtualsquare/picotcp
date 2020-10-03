@@ -632,6 +632,8 @@ static int pico_ipv6_process_destopt(struct pico_ipv6_exthdr *destopt, struct pi
     ipv6_dbg("IPv6: destination option extension header length %u\n", len + 2);
     while (len) {
         optlen = (uint8_t)(*(option + 1) + 2);
+        if ((optlen > len) || (optlen == 0))
+            return -1;
         switch (*option)
         {
         case PICO_IPV6_EXTHDR_OPT_PAD1:
