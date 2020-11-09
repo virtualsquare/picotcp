@@ -1690,6 +1690,21 @@ void pico_ipv6_router_down(struct pico_stack *S, const struct pico_ip6 *address)
 }
 
 #ifndef UNIT_TEST
+static void pico_ipv6_nd_dad(pico_time now, void *arg);
+
+static int pico_ipv6_link_schedule_dad(struct pico_ipv6_link *l,
+                                       pico_time timeout)
+{
+    l->dad_timer = pico_timer_add(l->dev->stack, timeout, pico_ipv6_nd_dad, l);
+
+    if (!l->dad_timer) {
+        dbg("IPv6: Failed to start nd_dad timer\n");
+        return -1;
+    }
+
+    return 0;
+}
+
 static void pico_ipv6_nd_dad(pico_time now, void *arg)
 {
     struct pico_ipv6_link *l, *info = (struct pico_ipv6_link *)arg;
@@ -1704,9 +1719,7 @@ static void pico_ipv6_nd_dad(pico_time now, void *arg)
         return;
 
     if (pico_device_link_state(l->dev) == 0) {
-        l->dad_timer = pico_timer_add(l->dev->stack, 100, pico_ipv6_nd_dad, &l);
-        if (!l->dad_timer) {
-            dbg("IPv6: Failed to start nd_dad timer\n");
+        if (pico_ipv6_link_schedule_dad(l, 100)) {
             /* TODO does this have disastrous consequences? */
         }
         return;
@@ -1737,9 +1750,7 @@ static void pico_ipv6_nd_dad(pico_time now, void *arg)
         } else {
             /* Duplicate Address Detection */
             pico_icmp6_neighbor_solicitation(l->dev, &l->address, PICO_ICMP6_ND_DAD, NULL);
-            l->dad_timer = pico_timer_add(l->dev->stack, PICO_ICMP6_MAX_RTR_SOL_DELAY, pico_ipv6_nd_dad, l);
-            if (!l->dad_timer) {
-                dbg("IPv6: Failed to start nd_dad timer\n");
+            if (pico_ipv6_link_schedule_dad(l, PICO_ICMP6_MAX_RTR_SOL_DELAY)) {
                 /* TODO does this have disastrous consequences? */
             }
         }
@@ -1866,7 +1877,7 @@ struct pico_ipv6_link *pico_ipv6_link_add(struct pico_device *dev, struct pico_i
     struct pico_ipv6_link *new;
     if (!dev)
         return NULL;
-    
+
     new = pico_ipv6_do_link_add(dev, address, netmask);
     if (!new)
         return NULL;
@@ -1875,9 +1886,8 @@ struct pico_ipv6_link *pico_ipv6_link_add(struct pico_device *dev, struct pico_i
     new->dup_detect_retrans = PICO_IPV6_DEFAULT_DAD_RETRANS;
 #ifndef UNIT_TEST
     /* Duplicate Address Detection */
-    new->dad_timer = pico_timer_add(dev->stack, 100, pico_ipv6_nd_dad, new);
-    if (!new->dad_timer) {
-        dbg("IPv6: Failed to start nd_dad timer\n");
+    if (pico_ipv6_link_schedule_dad(new, 100))
+    {
         pico_ipv6_link_del(dev->stack, dev, address);
         return NULL;
     }
