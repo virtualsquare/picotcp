@@ -908,7 +908,6 @@ static int tcp_parse_options(struct pico_frame *f)
             break;
 
         if (len == 0) {
-            pico_frame_discard(f);
             return -1;
         }
 
