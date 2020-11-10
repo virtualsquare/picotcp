@@ -55,8 +55,6 @@
 #endif
 
 # define PICO_MCAST_ALL_HOSTS long_be(0xE0000001) /* 224.0.0.1 */
-/* Default network interface for multicast transmission */
-static struct pico_ipv4_link *mcast_default_link = NULL;
 #endif
 
 #ifdef PICO_SUPPORT_RAWSOCKETS
@@ -1022,7 +1020,7 @@ int pico_ipv4_mcast_join(struct pico_stack *S, struct pico_ip4 *mcast_link, stru
         link = pico_ipv4_link_get(S, mcast_link);
 
     if (!link)
-        link = mcast_default_link;
+        link = S->ipv4_mcast_default_link;
 
     test.mcast_addr.ip4 = *mcast_group;
     g = pico_tree_findKey(link->MCASTGroups, &test);
@@ -1080,7 +1078,7 @@ int pico_ipv4_mcast_leave(struct pico_stack *S, struct pico_ip4 *mcast_link, str
         link = pico_ipv4_link_get(S, mcast_link);
 
     if (!link)
-        link = mcast_default_link;
+        link = S->ipv4_mcast_default_link;
 
     if (!link)
         return -1;
@@ -1116,9 +1114,9 @@ int pico_ipv4_mcast_leave(struct pico_stack *S, struct pico_ip4 *mcast_link, str
     return 0;
 }
 
-struct pico_ipv4_link *pico_ipv4_get_default_mcastlink(void)
+struct pico_ipv4_link *pico_ipv4_get_default_mcastlink(struct pico_stack *S)
 {
-    return mcast_default_link;
+    return S->ipv4_mcast_default_link;
 }
 
 static int pico_ipv4_mcast_filter(struct pico_stack *S, struct pico_frame *f)
@@ -1177,6 +1175,7 @@ static int pico_ipv4_mcast_filter(struct pico_stack *S, struct pico_frame *f)
 
 int pico_ipv4_mcast_join(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(mcast_link);
     IGNORE_PARAMETER(mcast_group);
     IGNORE_PARAMETER(reference_count);
@@ -1188,6 +1187,7 @@ int pico_ipv4_mcast_join(struct pico_stack *S, struct pico_ip4 *mcast_link, stru
 
 int pico_ipv4_mcast_leave(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(mcast_link);
     IGNORE_PARAMETER(mcast_group);
     IGNORE_PARAMETER(reference_count);
@@ -1197,8 +1197,9 @@ int pico_ipv4_mcast_leave(struct pico_stack *S, struct pico_ip4 *mcast_link, str
     return -1;
 }
 
-struct pico_ipv4_link *pico_ipv4_get_default_mcastlink(void)
+struct pico_ipv4_link *pico_ipv4_get_default_mcastlink(struct pico_stack *S)
 {
+    IGNORE_PARAMETER(S);
     pico_err = PICO_ERR_EPROTONOSUPPORT;
     return NULL;
 }
@@ -1565,11 +1566,11 @@ int pico_ipv4_link_add(struct pico_stack *S, struct pico_device *dev, struct pic
 #ifdef PICO_SUPPORT_MCAST
     do {
         struct pico_ip4 mcast_all_hosts, mcast_addr, mcast_nm, mcast_gw;
-        if (!mcast_default_link) {
+        if (!S->ipv4_mcast_default_link) {
             mcast_addr.addr = long_be(0xE0000000); /* 224.0.0.0 */
             mcast_nm.addr = long_be(0xF0000000); /* 15.0.0.0 */
             mcast_gw.addr = long_be(0x00000000);
-            mcast_default_link = new;
+            S->ipv4_mcast_default_link = new;
             pico_ipv4_route_add(S, mcast_addr, mcast_nm, mcast_gw, 1, new);
         }
 
@@ -1631,10 +1632,10 @@ int pico_ipv4_link_del(struct pico_stack *S, struct pico_device *dev, struct pic
         struct pico_ip4 mcast_all_hosts, mcast_addr, mcast_nm;
         struct pico_mcast_group *g = NULL;
         struct pico_tree_node *index, *_tmp;
-        if (found == mcast_default_link) {
+        if (found == S->ipv4_mcast_default_link) {
             mcast_addr.addr = long_be(0xE0000000); /* 224.0.0.0 */
             mcast_nm.addr = long_be(0xF0000000); /* 15.0.0.0 */
-            mcast_default_link = NULL;
+            S->ipv4_mcast_default_link = NULL;
             pico_ipv4_route_del(S, mcast_addr, mcast_nm, 1);
         }
 

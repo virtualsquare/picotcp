@@ -154,7 +154,7 @@ void pico_ipv4_unreachable(struct pico_stack *S, struct pico_frame *f, int err);
 
 int pico_ipv4_mcast_join(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter);
 int pico_ipv4_mcast_leave(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *MCASTFilter);
-struct pico_ipv4_link *pico_ipv4_get_default_mcastlink(void);
+struct pico_ipv4_link *pico_ipv4_get_default_mcastlink(struct pico_stack *S);
 int pico_ipv4_cleanup_links(struct pico_stack *S, struct pico_device *dev);
 
 /* Raw socket support (GPLv2/v3 only) */
