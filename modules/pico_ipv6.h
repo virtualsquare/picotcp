@@ -202,7 +202,7 @@ void pico_ipv6_router_down(struct pico_stack *S, const struct pico_ip6 *address)
 int pico_ipv6_mcast_join(struct pico_stack *S, struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *_MCASTFilter);
 int pico_ipv6_mcast_leave(struct pico_stack *S, struct pico_ip6 *mcast_link, struct pico_ip6 *mcast_group, uint8_t reference_count, uint8_t filter_mode, struct pico_tree *_MCASTFilter);
 
-struct pico_ipv6_link *pico_ipv6_get_default_mcastlink(void);
+struct pico_ipv6_link *pico_ipv6_get_default_mcastlink(struct pico_stack *S);
 
 int pico_ipv6_is_null_address(struct pico_ip6 *ip6);
 #endif

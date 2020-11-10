@@ -571,7 +571,7 @@ static void *pico_socket_mcast_filter_link_get(struct pico_socket *s)
 
     if( IS_SOCK_IPV4(s)) {
         if (!s->local_addr.ip4.addr)
-            return pico_ipv4_get_default_mcastlink();
+            return pico_ipv4_get_default_mcastlink(s->stack);
 
         return pico_ipv4_link_get(s->stack, &s->local_addr.ip4);
     }
@@ -579,7 +579,7 @@ static void *pico_socket_mcast_filter_link_get(struct pico_socket *s)
 #ifdef PICO_SUPPORT_IPV6
     else if( IS_SOCK_IPV6(s)) {
         if (pico_ipv6_is_null_address(&s->local_addr.ip6))
-            return pico_ipv6_get_default_mcastlink();
+            return pico_ipv6_get_default_mcastlink(s->stack);
 
         return pico_ipv6_link_get(s->stack, &s->local_addr.ip6);
     }
@@ -612,7 +612,7 @@ int pico_socket_mcast_filter(struct pico_socket *s, union pico_address *mcast_gr
 static struct pico_ipv4_link *get_mcast_link(struct pico_stack *S, union pico_address *a)
 {
     if (!a->ip4.addr)
-        return pico_ipv4_get_default_mcastlink();
+        return pico_ipv4_get_default_mcastlink(S);
 
     return pico_ipv4_link_get(S, &a->ip4);
 }
@@ -621,7 +621,7 @@ static struct pico_ipv6_link *get_mcast_link_ipv6(struct pico_stack *S, union pi
 {
 
     if (pico_ipv6_is_null_address(&a->ip6)) {
-        return pico_ipv6_get_default_mcastlink();
+        return pico_ipv6_get_default_mcastlink(S);
     }
 
     return pico_ipv6_link_get(S, &a->ip6);

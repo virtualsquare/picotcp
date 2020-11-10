@@ -168,6 +168,10 @@ struct pico_stack {
     uint16_t ipv4_pre_forward_last_proto;
     struct pico_ip4 ipv4_pre_forward_last_src;
     struct pico_ip4 ipv4_pre_forward_last_dst;
+#   ifdef PICO_SUPPORT_MCAST
+    /* Default network interface for multicast transmission */
+    struct pico_ipv4_link *ipv4_mcast_default_link;
+#   endif
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
@@ -184,6 +188,10 @@ struct pico_stack {
 #   ifdef PICO_SUPPORT_IPV6PMTU
     struct pico_tree IPV6PathCache;
     struct pico_ipv6_path_timer ipv6_path_cache_gc_timer;
+#   endif
+#   ifdef PICO_SUPPORT_MCAST
+    /* Default network interface for multicast transmission */
+    struct pico_ipv6_link *ipv6_mcast_default_link;
 #   endif
 #endif
 
