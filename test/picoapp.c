@@ -78,8 +78,6 @@ void app_udpecho(struct pico_stack *S, char *args);
 void app_sendto_test(struct pico_stack *S, char *args);
 void app_noop(struct pico_stack *S);
 
-volatile pico_time pico_tick;
-volatile pico_err_t pico_err;
 static uint32_t _rand_seed = 0;
 
 static void pico_rand_feed(uint32_t feed)
