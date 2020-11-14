@@ -187,7 +187,6 @@ int pico_device_ipv6_random_ll(struct pico_device *dev)
             linklocal.addr[13] = (uint8_t)(len >> 8);
             linklocal.addr[14] = (uint8_t)(len >> 16);
             linklocal.addr[15] = (uint8_t)(len >> 24);
-            pico_rand_feed(dev->hash);
         } while (pico_ipv6_link_get(dev->stack, &linklocal));
 
         if (pico_ipv6_link_add(dev, linklocal, netmask6) == NULL) {

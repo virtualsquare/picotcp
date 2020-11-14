@@ -60,6 +60,9 @@
 #include "heap.h"
 #include "pico_jobs.h"
 
+/* Globals (common to all instances) */
+volatile pico_time pico_tick;
+volatile pico_err_t pico_err;
 
 /* Mockables */
 #if defined UNIT_TEST
@@ -68,27 +71,6 @@
 #   define MOCKABLE
 #endif
 
-
-/* Globals across multiple instances */
-volatile pico_time pico_tick;
-volatile pico_err_t pico_err;
-static uint32_t _rand_seed;
-
-void WEAK pico_rand_feed(uint32_t feed)
-{
-    if (!feed)
-        return;
-
-    _rand_seed *= 1664525;
-    _rand_seed += 1013904223;
-    _rand_seed ^= ~(feed);
-}
-
-uint32_t WEAK pico_rand(void)
-{
-    pico_rand_feed((uint32_t)pico_tick);
-    return _rand_seed;
-}
 
 void pico_to_lowercase(char *str)
 {
@@ -483,7 +465,6 @@ struct pico_frame *pico_stack_recv_new_frame(struct pico_device *dev, uint8_t *b
         uint32_t rand, mid_frame = (f->buffer_len >> 2) << 1;
         mid_frame -= (mid_frame % 4);
         memcpy(&rand, f->buffer + mid_frame, sizeof(uint32_t));
-        pico_rand_feed(rand);
     }
 
     memcpy(f->buffer, buffer, len);
@@ -569,7 +550,6 @@ int32_t pico_sendto_dev(struct pico_frame *f)
             uint32_t rand, mid_frame = (f->buffer_len >> 2) << 1;
             mid_frame -= (mid_frame % 4);
             memcpy(&rand, f->buffer + mid_frame, sizeof(uint32_t));
-            pico_rand_feed(rand);
         }
 
         return pico_enqueue(f->dev->q_out, f);
@@ -974,7 +954,6 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
     EMPTY_TREE((*S)->MDNSOwnRecords, &pico_mdns_record_cmp_name_type);
     EMPTY_TREE((*S)->MDNSCookies, &pico_mdns_cookie_cmp);
 #endif
-    pico_rand_feed(123456);
 
     /* Initialize timer heap */
     (*S)->Timers = heap_init();
@@ -1034,43 +1013,32 @@ static void legacy_pico_stack_tick(struct pico_stack *S)
 {
     pico_check_timers(S);
     S->ret[0] = pico_devices_loop(S, S->score[0], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)S->ret[0]);
 
     S->ret[1] = pico_protocol_datalink_loop(S, S->score[1], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)S->ret[1]);
 
     S->ret[2] = pico_protocol_network_loop(S, S->score[2], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)S->ret[2]);
 
     S->ret[3] = pico_protocol_transport_loop(S, S->score[3], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)S->ret[3]);
 
 
     S->ret[5] = S->score[5];
 #if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
 #if defined (PICO_SUPPORT_TCP) || defined (PICO_SUPPORT_UDP)
     S->ret[5] = pico_sockets_loop(S, S->score[5]); /* swapped */
-    pico_rand_feed((uint32_t)S->ret[5]);
 #endif
 #endif
 
     S->ret[4] = pico_protocol_socket_loop(S, S->score[4], PICO_LOOP_DIR_IN);
-    pico_rand_feed((uint32_t)S->ret[4]);
 
     S->ret[6] = pico_protocol_socket_loop(S, S->score[6], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)S->ret[6]);
 
     S->ret[7] = pico_protocol_transport_loop(S, S->score[7], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)S->ret[7]);
 
     S->ret[8] = pico_protocol_network_loop(S, S->score[8], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)S->ret[8]);
 
     S->ret[9] = pico_protocol_datalink_loop(S, S->score[9], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)S->ret[9]);
 
     S->ret[10] = pico_devices_loop(S, S->score[10], PICO_LOOP_DIR_OUT);
-    pico_rand_feed((uint32_t)S->ret[10]);
 
     /* calculate new loop S->scores for next iteration */
     calc_score(S);

@@ -78,6 +78,27 @@ void app_udpecho(struct pico_stack *S, char *args);
 void app_sendto_test(struct pico_stack *S, char *args);
 void app_noop(struct pico_stack *S);
 
+static uint32_t _rand_seed = 0;
+
+static void pico_rand_feed(uint32_t feed)
+{
+    if (_rand_seed == 0) {
+        _rand_seed = getpid();
+    }
+    if (!feed)
+        return;
+
+    _rand_seed *= 1664525;
+    _rand_seed += 1013904223;
+    _rand_seed ^= ~(feed);
+}
+
+uint32_t pico_rand(void)
+{
+    pico_rand_feed((uint32_t)pico_tick);
+    return _rand_seed;
+}
+
 struct pico_ip4 ZERO_IP4 = {
     0
 };

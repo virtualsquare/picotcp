@@ -151,6 +151,8 @@ int main(void){
 
 ```
 
+Your code must include a target-specific definition of `uint32_t pico_rand(void)` to generate 32bit random words.
+
 [//]: # (code extractor stop)
 
 ### Building and running
