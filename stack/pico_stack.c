@@ -61,7 +61,7 @@
 #include "pico_jobs.h"
 
 /* Globals (common to all instances) */
-volatile pico_err_t pico_err;
+PICO_THREAD_LOCAL volatile pico_err_t pico_err;
 
 /* Mockables */
 #if defined UNIT_TEST

@@ -271,4 +271,10 @@ static inline uint32_t be_to_host_long(uint32_t be)
 #define PICO_FREE(x) pico_free(x)
 #endif  /* PICO_SUPPORT_MM */
 
+#ifdef PICO_SUPPORT_THREADING
+#    define PICO_THREAD_LOCAL  __thread
+#else
+#    define PICO_THREAD_LOCAL
+#endif
+
 #endif
