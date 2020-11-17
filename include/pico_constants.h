@@ -40,8 +40,6 @@
 
 /** Endian-dependant constants **/
 typedef uint64_t pico_time;
-extern volatile uint64_t pico_tick;
-
 
 /*** *** *** *** *** *** ***
  ***     ARP CONFIG      ***

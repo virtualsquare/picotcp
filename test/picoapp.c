@@ -79,6 +79,7 @@ void app_sendto_test(struct pico_stack *S, char *args);
 void app_noop(struct pico_stack *S);
 
 static uint32_t _rand_seed = 0;
+static pico_time global_pico_tick = 0;
 
 static void pico_rand_feed(uint32_t feed)
 {
@@ -95,7 +96,7 @@ static void pico_rand_feed(uint32_t feed)
 
 uint32_t pico_rand(void)
 {
-    pico_rand_feed((uint32_t)pico_tick);
+    pico_rand_feed((uint32_t)global_pico_tick);
     return _rand_seed;
 }
 
@@ -859,6 +860,7 @@ check:      if (!name || !area0 || !area1) {
     printf("-~-~-~-~-~-~-~-~-~ %s: launching PicoTCP loop -~-~-~-~-~-~-~-~-~\n", __FUNCTION__);
     while(1) {
         pico_stack_tick(stack);
+        global_pico_tick = stack->pico_tick;
         usleep(2000);
     }
 }

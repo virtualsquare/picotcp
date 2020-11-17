@@ -125,6 +125,7 @@ struct pico_stack {
     struct pico_tree Device_tree;
     struct pico_tree Hotplug_device_tree;
     uint32_t hotplug_timer_id;
+    volatile pico_time pico_tick;
 
 #ifdef PICO_SUPPORT_ETH
     DECLARE_QUEUES(ethernet);
