@@ -100,7 +100,7 @@ static int pico_icmp6_send_echoreply_not_frag(struct pico_frame *echo)
     echo->payload = echo->transport_hdr + PICO_ICMP6HDR_ECHO_REQUEST_SIZE;
     reply->payload = reply->transport_hdr + PICO_ICMP6HDR_ECHO_REQUEST_SIZE;
     reply->payload_len = echo->transport_len;
-    reply->timestamp = pico_tick;
+    reply->timestamp = echo->dev->stack->pico_tick;
 
     ehdr = (struct pico_icmp6_hdr *)echo->transport_hdr;
     rhdr = (struct pico_icmp6_hdr *)reply->transport_hdr;
@@ -824,7 +824,7 @@ static int pico_icmp6_send_echo(struct pico_icmp6_ping_cookie *cookie)
 
     echo->payload = echo->transport_hdr + PICO_ICMP6HDR_ECHO_REQUEST_SIZE;
     echo->payload_len = cookie->size;
-    echo->timestamp = pico_tick;
+    echo->timestamp = cookie->stack->pico_tick;
 
     hdr = (struct pico_icmp6_hdr *)echo->transport_hdr;
     hdr->type = PICO_ICMP6_ECHO_REQUEST;
@@ -872,7 +872,7 @@ static int pico_icmp6_send_ping(struct pico_icmp6_ping_cookie *cookie)
     uint32_t interval_timer = 0;
     struct pico_icmp6_stats stats;
     pico_icmp6_send_echo(cookie);
-    cookie->timestamp = pico_tick;
+    cookie->timestamp = cookie->stack->pico_tick;
     interval_timer = pico_timer_add(cookie->stack, (pico_time)(cookie->interval), pico_icmp6_next_ping, cookie);
     if (!interval_timer) {
         goto fail;
@@ -950,7 +950,7 @@ static void pico_icmp6_ping_recv_reply(struct pico_frame *f)
         stats.dst = cookie->dst;
         stats.seq = cookie->seq;
         stats.size = cookie->size;
-        stats.time = pico_tick - cookie->timestamp;
+        stats.time = f->dev->stack->pico_tick - cookie->timestamp;
         stats.err = cookie->err;
         stats.ttl = ((struct pico_ipv6_hdr *)f->net_hdr)->hop;
         if(cookie->cb)

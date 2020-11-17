@@ -61,7 +61,6 @@
 #include "pico_jobs.h"
 
 /* Globals (common to all instances) */
-volatile pico_time pico_tick;
 volatile pico_err_t pico_err;
 
 /* Mockables */
@@ -585,11 +584,11 @@ static void pico_check_timers(struct pico_stack *S)
 {
     struct pico_timer *t;
     struct pico_timer_ref tref_unused, *tref = heap_first(S->Timers);
-    pico_tick = PICO_TIME_MS();
-    while((tref) && (tref->expire <= pico_tick)) {
+    S->pico_tick = PICO_TIME_MS();
+    while((tref) && (tref->expire <= S->pico_tick)) {
         t = tref->tmr;
         if (t && t->timer)
-            t->timer(pico_tick, t->arg);
+            t->timer(S->pico_tick, t->arg);
 
         if (t)
         {
@@ -612,7 +611,7 @@ long long int pico_stack_go(struct pico_stack *S)
         return -1;
     /* Execute jobs again, in case they were scheduled in timer execution */
     pico_execute_pending_jobs(S);
-    return(long long int)((tref->expire - pico_tick) + 1);
+    return(long long int)((tref->expire - S->pico_tick) + 1);
 }
 #endif
 
@@ -1060,7 +1059,7 @@ static void pico_terminate_timers(struct pico_stack *S)
 {
     struct pico_timer *t;
     struct pico_timer_ref tref_unused, *tref = heap_first(S->Timers);
-    pico_tick = PICO_TIME_MS();
+    S->pico_tick = PICO_TIME_MS();
     while(tref) {
         t = tref->tmr;
         if (t)

@@ -150,7 +150,7 @@ static int pico_sntp_parse(char *buf, struct sntp_server_ns_cookie *ck)
     sntp_dbg("Received mode: %u, version: %u, stratum: %u\n", hp->mode, hp->vn, hp->stratum);
     S = ck->sock->stack;
 
-    S->sntp_tick_stamp = pico_tick;
+    S->sntp_tick_stamp = S->pico_tick;
     /* S->sntp_tick_stamp - ck->stamp is the delay between sending and receiving the ntp packet */
     ret = timestamp_convert(&(hp->trs_ts), &S->sntp_server_time, (S->sntp_tick_stamp - ck->stamp) / 2);
     if(ret != 0) {
@@ -251,7 +251,7 @@ static void pico_sntp_send(struct pico_socket *sock, union pico_address *dst)
     header.vn = SNTP_VERSION;
     header.mode = SNTP_MODE_CLIENT;
     /* header.trs_ts.frac = long_be(0ul); */
-    ck->stamp = pico_tick;
+    ck->stamp = sock->stack->pico_tick;
     pico_socket_sendto(sock, &header, sizeof(header), dst, short_be(sock->stack->sntp_port));
 }
 
@@ -563,7 +563,7 @@ int pico_sntp_gettimeofday(struct pico_stack *S, struct pico_timeval *tv)
         return ret;
     }
 
-    diff = pico_tick - S->sntp_tick_stamp;
+    diff = S->pico_tick - S->sntp_tick_stamp;
     diffL = ((uint32_t) (diff & SNTP_BITMASK)) / 1000;
     diffH = ((uint32_t) (diff >> 32)) / 1000;
 

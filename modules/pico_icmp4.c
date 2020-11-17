@@ -428,7 +428,7 @@ static int send_ping(struct pico_stack *S, struct pico_icmp4_ping_cookie *cookie
     uint32_t timeout_timer = 0;
     struct pico_icmp4_stats stats;
     pico_icmp4_send_echo(S, cookie);
-    cookie->timestamp = pico_tick;
+    cookie->timestamp = S->pico_tick;
     timeout_timer = pico_timer_add(S, (uint32_t)cookie->timeout, ping_timeout, cookie);
     if (!timeout_timer) {
         goto fail;
@@ -500,7 +500,7 @@ static void ping_recv_reply(struct pico_stack *S, struct pico_frame *f)
         stats.dst = ((struct pico_ipv4_hdr *)f->net_hdr)->src;
         stats.seq = cookie->seq;
         stats.size = cookie->size;
-        stats.time = pico_tick - cookie->timestamp;
+        stats.time = S->pico_tick - cookie->timestamp;
         stats.err = cookie->err;
         stats.ttl = ((struct pico_ipv4_hdr *)f->net_hdr)->ttl;
         if(cookie->cb != NULL)
