@@ -144,17 +144,17 @@ struct pico_device *MOCKABLE pico_vde_create(struct pico_stack *S, char *sock, c
     if (!vde)
         return NULL;
 
-    if( 0 != pico_device_init(S, (struct pico_device *)vde, name, mac)) {
-        dbg ("Vde init failed.\n");
-        pico_vde_destroy((struct pico_device *)vde);
-        return NULL;
-    }
-
     vde->dev.overhead = 0;
     vde->sock = PICO_ZALLOC(strlen(sock) + 1);
     memcpy(vde->sock, sock, strlen(sock));
     vde->conn = vde_open(sock, vdename, &open_args);
     if (!vde->conn) {
+        pico_vde_destroy((struct pico_device *)vde);
+        return NULL;
+    }
+
+    if( 0 != pico_device_init(S, (struct pico_device *)vde, name, mac)) {
+        dbg ("Vde init failed.\n");
         pico_vde_destroy((struct pico_device *)vde);
         return NULL;
     }
