@@ -18,6 +18,8 @@ Vulnerabilities that can be found in picoTCP-NG v.2.1:
 * ❗ Improper checks in the process of DNS response handling which may lead to memory corruption (CVE-2020-24340)
   * Triaged. Awaiting assignment.
 
+Vulnerabilities fixed in this version:
+
 * Improper checks against the payload length field of IPv6 extension headers which may lead to an information leak or denial of service (CVE-2020-17441)
   *  **Fixed in v2.1** :heavy_check_mark:
 
