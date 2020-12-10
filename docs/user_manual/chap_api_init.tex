@@ -7,8 +7,13 @@ Initializes the picoTCP stack and must be called before any other function.
 
 \subsubsection*{Function prototype}
 \begin{verbatim}
-int pico_stack_init(void);
+int pico_stack_init(struct pico_stack **S);
 \end{verbatim}
+
+\subsubsection*{Parameters}
+\begin{itemize}[noitemsep]
+\item \texttt{S} - Pointer to a pointer to store a reference to the picoTCP stack context being created.
+\end{itemize}
 
 \subsubsection*{Return value}
 On success, this call returns 0.
@@ -17,7 +22,8 @@ On error, -1 is returned (\texttt{pico$\_$err} is \textbf{not} set).
 \subsubsection*{Example}
 \begin{verbatim}
 int main(int argc, char* argv[]) {
-    pico_stack_init();
+    struct pico_stack *S;
+    pico_stack_init(&S);
     /* Code using picoTCP */
 }
 \end{verbatim}
