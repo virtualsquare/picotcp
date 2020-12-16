@@ -459,6 +459,7 @@ static int pico_igmp_compatibility_mode(struct pico_frame *f)
     if (!f  || !f->dev)
         return -1;
     S = f->dev->stack;
+    t.stack = S;
     link = pico_ipv4_link_by_dev(S, f->dev);
     if (!link)
         return -1;
@@ -897,6 +898,7 @@ static int srsfst(struct mcast_parameters *p)
     if (pico_igmp_send_report(p, copy_frame) < 0)
         return -1;
 
+    t.stack = p->stack;
     t.type = IGMP_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip4;
     t.mcast_group = p->mcast_group.ip4;
@@ -983,6 +985,7 @@ static int srst(struct mcast_parameters *p)
     if (pico_igmp_send_report(p, copy_frame) < 0)
         return -1;
 
+    t.stack = p->stack;
     t.type = IGMP_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip4;
     t.mcast_group = p->mcast_group.ip4;
@@ -1032,6 +1035,7 @@ static int st(struct mcast_parameters *p)
         return -1;
     }
 
+    t.stack = p->stack;
     t.type = IGMP_TIMER_GROUP_REPORT;
     t.mcast_link = p->mcast_link.ip4;
     t.mcast_group = p->mcast_group.ip4;

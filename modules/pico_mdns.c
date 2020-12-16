@@ -503,6 +503,7 @@ pico_mdns_record_copy( struct pico_mdns_record *record )
     copy->current_ttl = record->current_ttl;
     copy->flags = record->flags;
     copy->claim_id = record->claim_id;
+    copy->stack = record->stack;
 
     return copy;
 }
@@ -2130,13 +2131,14 @@ pico_mdns_handle_single_additional(struct pico_stack *S,  struct pico_mdns_recor
  *  @return Tree with possible responses on the questions.
  * ****************************************************************************/
 static pico_mdns_rtree
-pico_mdns_handle_data_as_questions ( uint8_t **ptr,
+pico_mdns_handle_data_as_questions ( struct pico_stack *S,
+                                     uint8_t **ptr,
                                      uint16_t qdcount,
                                      pico_dns_packet *packet )
 {
     PICO_MDNS_RTREE_DECLARE(antree);
     PICO_MDNS_RTREE_DECLARE(rtree);
-    struct pico_dns_question question;
+    struct pico_dns_question question = { 0 };
     uint16_t i = 0;
 
     /* Check params */
@@ -2152,6 +2154,8 @@ pico_mdns_handle_data_as_questions ( uint8_t **ptr,
         /* Set qsuffix of the question to the correct location */
         question.qsuffix = (struct pico_dns_question_suffix *)
                            (question.qname + pico_dns_namelen_comp(question.qname) + 1);
+
+        question.stack = S;
 
         /* Handle a single question and merge the returned tree */
         rtree = pico_mdns_handle_single_question(&question, packet);
@@ -2730,7 +2734,7 @@ pico_mdns_handle_query_packet(struct pico_stack *S, pico_dns_packet *packet, str
 
     /* Generate a list of answers */
     qdcount = short_be(packet->qdcount);
-    antree = pico_mdns_handle_data_as_questions(&data, qdcount, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet);
     if (pico_tree_count(&antree) == 0) {
         mdns_dbg("No records found that correspond with this query!\n");
         return 0;
@@ -2770,7 +2774,7 @@ pico_mdns_handle_probe_packet(struct pico_stack *S,  pico_dns_packet *packet, st
 
     /* Generate a list of answers */
     qdcount = short_be(packet->qdcount);
-    antree = pico_mdns_handle_data_as_questions(&data, qdcount, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet);
 
     /* Check for Simultaneous Probe Tiebreaking */
     nscount = short_be(packet->nscount);
