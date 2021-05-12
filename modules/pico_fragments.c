@@ -359,13 +359,9 @@ static int pico_fragments_reassemble(struct pico_tree *tree, unsigned int len, u
             pico_tree_delete(tree, f);
             pico_frame_discard(f);
         }
-        if (pico_transport_receive(full, proto) == -1)
-        {
-            pico_frame_discard(full);
-        }
+        pico_transport_receive(full, proto);
         return 0;
     }
-
     return 1;
 }
 
