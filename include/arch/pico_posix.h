@@ -16,7 +16,12 @@
    #define TIME_PRESCALE
    #define PICO_SUPPORT_THREADING
  */
-#define dbg printf
+
+/* uncomment for debugging */
+/* #define dbg printf */
+#ifndef dbg
+#define dbg(...) do {} while(0)
+#endif
 
 #define stack_fill_pattern(...) do {} while(0)
 #define stack_count_free_words(...) do {} while(0)
