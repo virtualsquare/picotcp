@@ -13,7 +13,7 @@ picoTCP is a small-footprint, modular TCP/IP stack designed for embedded systems
 
 This code is released under the terms of GNU GPL v2 and GNU GPL v3.
 
-Learn how to use picoTCP in your project by going through the **Getting Started guide** on our [GitLab wiki](https://gitlab.com/picotcp/picotcp/wikis).
+Learn how to use picoTCP in your project by going through the **Getting Started guide** on our [GitHub wiki](https://github.com/virtualsquare/picotcp/wiki).
 
 Contributions are welcome.
 
