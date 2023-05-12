@@ -1085,7 +1085,11 @@ struct pico_socket *pico_tcp_open(struct pico_stack *S, uint16_t family)
     t->sock.stack = S;
     t->sock.timestamp = TCP_TIME;
     pico_socket_set_family(&t->sock, family);
-    t->mss = (uint16_t)(pico_socket_get_mss(&t->sock) - PICO_SIZE_TCPHDR);
+    t->mss = (uint16_t)(pico_socket_get_mss(&t->sock));
+    if (t->mss > PICO_SIZE_TCPHDR + PICO_TCP_MIN_MSS)
+        t->mss -= (uint16_t)PICO_SIZE_TCPHDR;
+    else
+        t->mss = PICO_TCP_MIN_MSS;
     t->tcpq_in.pool.root = t->tcpq_hold.pool.root = t->tcpq_out.pool.root = &LEAF;
     t->tcpq_hold.pool.compare = t->tcpq_out.pool.compare = segment_compare;
     t->tcpq_in.pool.compare = input_segment_compare;
@@ -1254,7 +1258,10 @@ int pico_tcp_initconn(struct pico_socket *s)
     ts->snd_last = ts->snd_nxt;
     ts->cwnd = PICO_TCP_IW;
     mtu = (uint16_t)pico_socket_get_mss(s);
-    ts->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    if (mtu > PICO_SIZE_TCPHDR + PICO_TCP_MIN_MSS)
+        ts->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    else
+        ts->mss = PICO_TCP_MIN_MSS;
     ts->ssthresh = (uint16_t)((uint16_t)(PICO_DEFAULT_SOCKETQ / ts->mss) -  (((uint16_t)(PICO_DEFAULT_SOCKETQ / ts->mss)) >> 3u));
     syn->sock = s;
     hdr->seq = long_be(ts->snd_nxt);
@@ -2446,7 +2453,10 @@ static int tcp_syn(struct pico_socket *s, struct pico_frame *f)
 #endif
     f->sock = &new->sock;
     mtu = (uint16_t)pico_socket_get_mss(&new->sock);
-    new->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    if (mtu > PICO_SIZE_TCPHDR + PICO_TCP_MIN_MSS)
+        new->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    else
+        new->mss = PICO_TCP_MIN_MSS;
     if (tcp_parse_options(f) < 0)
         return -1;
     new->sock.stack = s->stack;
