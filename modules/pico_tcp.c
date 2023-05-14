@@ -868,6 +868,9 @@ static inline void tcp_parse_option_mss(struct pico_socket_tcp *t, uint8_t len, 
     if (tcpopt_len_check(idx, len, PICO_TCPOPTLEN_MSS) < 0)
         return;
 
+    if ((*idx + PICO_TCPOPTLEN_MSS) > len)
+        return;
+
     t->mss_ok = 1;
     mss = short_from(opt + *idx);
     *idx += (uint32_t)sizeof(uint16_t);
@@ -896,6 +899,10 @@ static int tcp_parse_options(struct pico_frame *f)
     uint8_t *opt = f->transport_hdr + PICO_SIZE_TCPHDR;
     uint32_t i = 0;
     f->timestamp = 0;
+
+    if (f->buffer + f->buffer_len > f->transport_hdr + f->transport_len)
+        return -1;
+
     while (i < (f->transport_len - PICO_SIZE_TCPHDR)) {
         uint8_t type =  opt[i++];
         uint8_t len;
@@ -1085,7 +1092,11 @@ struct pico_socket *pico_tcp_open(struct pico_stack *S, uint16_t family)
     t->sock.stack = S;
     t->sock.timestamp = TCP_TIME;
     pico_socket_set_family(&t->sock, family);
-    t->mss = (uint16_t)(pico_socket_get_mss(&t->sock) - PICO_SIZE_TCPHDR);
+    t->mss = (uint16_t)(pico_socket_get_mss(&t->sock));
+    if (t->mss > PICO_SIZE_TCPHDR + PICO_TCP_MIN_MSS)
+        t->mss -= (uint16_t)PICO_SIZE_TCPHDR;
+    else
+        t->mss = PICO_TCP_MIN_MSS;
     t->tcpq_in.pool.root = t->tcpq_hold.pool.root = t->tcpq_out.pool.root = &LEAF;
     t->tcpq_hold.pool.compare = t->tcpq_out.pool.compare = segment_compare;
     t->tcpq_in.pool.compare = input_segment_compare;
@@ -1254,7 +1265,10 @@ int pico_tcp_initconn(struct pico_socket *s)
     ts->snd_last = ts->snd_nxt;
     ts->cwnd = PICO_TCP_IW;
     mtu = (uint16_t)pico_socket_get_mss(s);
-    ts->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    if (mtu > PICO_SIZE_TCPHDR + PICO_TCP_MIN_MSS)
+        ts->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    else
+        ts->mss = PICO_TCP_MIN_MSS;
     ts->ssthresh = (uint16_t)((uint16_t)(PICO_DEFAULT_SOCKETQ / ts->mss) -  (((uint16_t)(PICO_DEFAULT_SOCKETQ / ts->mss)) >> 3u));
     syn->sock = s;
     hdr->seq = long_be(ts->snd_nxt);
@@ -2446,7 +2460,10 @@ static int tcp_syn(struct pico_socket *s, struct pico_frame *f)
 #endif
     f->sock = &new->sock;
     mtu = (uint16_t)pico_socket_get_mss(&new->sock);
-    new->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    if (mtu > PICO_SIZE_TCPHDR + PICO_TCP_MIN_MSS)
+        new->mss = (uint16_t)(mtu - PICO_SIZE_TCPHDR);
+    else
+        new->mss = PICO_TCP_MIN_MSS;
     if (tcp_parse_options(f) < 0)
         return -1;
     new->sock.stack = s->stack;
