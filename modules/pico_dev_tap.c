@@ -147,7 +147,7 @@ static int tap_open(char *name)
 
     memset(&ifr, 0, sizeof(ifr));
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-    strncpy(ifr.ifr_name, name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, name, IFNAMSIZ-1);
     if(ioctl(tap_fd, TUNSETIFF, &ifr) < 0) {
         return -1;
     }

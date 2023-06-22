@@ -543,7 +543,7 @@ static void pico_6lp_nd_provide_aro(struct pico_icmp6_opt_aro *aro, struct pico_
         aro->lifetime = 0;
     else
         aro->lifetime = short_be(PICO_6LP_ND_DEFAULT_LIFETIME);
-    memcpy(aro->eui64.addr, info->addr_ext.addr, SIZE_6LOWPAN_EXT);
+    memcpy(aro->eui64.addr, info->addr_ext.addr, SIZE_6LOWPAN_EXT-1);
 }
 
 /* Send an ICMP6 neighbor solicitation according to RFC6775 */

@@ -84,7 +84,7 @@ static pico_time global_pico_tick = 0;
 static void pico_rand_feed(uint32_t feed)
 {
     if (_rand_seed == 0) {
-        _rand_seed = getpid();
+        _rand_seed = (uint32_t) getpid();
     }
     if (!feed)
         return;
