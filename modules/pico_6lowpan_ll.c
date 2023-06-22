@@ -71,7 +71,7 @@ struct extension {
  ******************************************************************************/
 
 static const struct pico_6lowpan_ll_protocol pico_6lowpan_ll_none = {
-    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
+    NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL
 };
 
 /* Declare a global lookup-table for distribution of link layer specific tasks */

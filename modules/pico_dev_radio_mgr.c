@@ -144,7 +144,7 @@ pico_radio_mgr_socket_all(int *n)
 static struct socket *
 pico_radio_mgr_socket_node(uint8_t id)
 {
-    struct socket test = { 0, 0, id };
+    struct socket test = { 0, 0, id, 0, 0 };
     return pico_tree_findKey(&Sockets, &test);
 }
 

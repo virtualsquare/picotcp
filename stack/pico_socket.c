@@ -176,7 +176,7 @@ static int socket_cmp(void *ka, void *kb)
 }
 
 
-#define INIT_SOCKPORT { {&LEAF, pico_socket_table_compare}, 0, 0 }
+#define INIT_SOCKPORT { {&LEAF, pico_socket_table_compare}, 0, 0, NULL }
 
 int pico_socket_table_compare(void *ka, void *kb)
 {
