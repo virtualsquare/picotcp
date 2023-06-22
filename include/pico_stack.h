@@ -109,7 +109,7 @@ struct pico_timer_ref
 
 typedef struct pico_timer_ref pico_timer_ref;
 
-DECLARE_HEAP(pico_timer_ref, expire);
+DECLARE_HEAP(pico_timer_ref, expire)
 
 struct pico_stack {
     struct pico_scheduler *sched;
