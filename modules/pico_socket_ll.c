@@ -72,7 +72,7 @@ struct pico_socket *pico_socket_ll_open(struct pico_stack *S, uint16_t proto) {
 
 struct pico_frame *pico_ll_frame_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size)
 {
-    uint32_t overhead;
+    uint32_t overhead=0;
     struct pico_frame *f;
     (void)S;
     (void)self;

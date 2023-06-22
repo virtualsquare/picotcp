@@ -89,7 +89,7 @@ static int tun_open(char *name)
 
     memset(&ifr, 0, sizeof(ifr));
     ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-    strncpy(ifr.ifr_name, name, IFNAMSIZ);
+    strncpy(ifr.ifr_name, name, IFNAMSIZ-1);
     if(ioctl(tun_fd, TUNSETIFF, &ifr) < 0) {
         return(-1);
     }

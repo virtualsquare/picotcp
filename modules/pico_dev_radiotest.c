@@ -302,7 +302,7 @@ static int radiotest_poll(struct pico_device *dev, int loop_score)
 {
     struct radiotest_radio *radio = (struct radiotest_radio *)dev;
     union pico_ll_addr src = {0}, dst = {0};
-    int pollret, ret_len;
+    int pollret, ret_len=0;
     struct pollfd p;
     uint8_t buf[128];
     uint8_t phy = 0;
