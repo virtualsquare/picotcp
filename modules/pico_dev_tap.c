@@ -223,7 +223,7 @@ static int tap_get_mac(char *name, uint8_t *mac)
 struct pico_device *pico_tap_create(struct pico_stack *S, char *name)
 {
     struct pico_device_tap *tap = PICO_ZALLOC(sizeof(struct pico_device_tap));
-    uint8_t mac[6] = {};
+    uint8_t mac[6] = {0};
     struct sigaction sa;
 
     if (!tap) {
