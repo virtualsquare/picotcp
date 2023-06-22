@@ -60,9 +60,9 @@ int pico_mock_network_write(struct mock_device*mock, const void *buf, int len);
 /* TODO */
 /* we could use a few checking functions, e.g. one to see if it's a valid IP packet, if it's TCP, if the IP-address matches,... */
 /* That would be useful to avoid having to manually create buffers of what you expect, probably with masks for things that are random,... */
-uint32_t mock_get_sender_ip4(struct mock_device*mock, void*buf, int len);
+uint32_t mock_get_sender_ip4(struct mock_device*mock, const char*buf, int len);
 
-int mock_ip_protocol(struct mock_device*mock, void*buf, int len);
-int mock_icmp_type(struct mock_device*mock, void*buf, int len);
-int mock_icmp_code(struct mock_device*mock, void*buf, int len);
+int mock_ip_protocol(struct mock_device*mock, const char*buf, int len);
+int mock_icmp_type(struct mock_device*mock, const char*buf, int len);
+int mock_icmp_code(struct mock_device*mock, const char*buf, int len);
 #endif

@@ -273,7 +273,7 @@ struct mock_device *pico_mock_create(struct pico_stack *S, uint8_t*mac)
  * a few utility functions that check certain fields
  */
 
-uint32_t mock_get_sender_ip4(struct mock_device*mock, void*buf, int len)
+uint32_t mock_get_sender_ip4(struct mock_device*mock, const char*buf, int len)
 {
     uint32_t ret;
     int start = mock->mac ? 14 : 0;
@@ -303,7 +303,7 @@ uint32_t mock_get_sender_ip4(struct mock_device*mock, void*buf, int len)
  *
  */
 
-int mock_ip_protocol(struct mock_device*mock, void*buf, int len)
+int mock_ip_protocol(struct mock_device*mock, const char*buf, int len)
 {
     uint8_t type;
     int start = mock->mac ? 14 : 0;
@@ -316,7 +316,7 @@ int mock_ip_protocol(struct mock_device*mock, void*buf, int len)
 }
 
 /* note : this function doesn't check if the IP header has any options */
-int mock_icmp_type(struct mock_device*mock, void*buf, int len)
+int mock_icmp_type(struct mock_device*mock, const char*buf, int len)
 {
     uint8_t type;
     int start = mock->mac ? 14 : 0;
@@ -329,7 +329,7 @@ int mock_icmp_type(struct mock_device*mock, void*buf, int len)
 }
 
 /* note : this function doesn't check if the IP header has any options */
-int mock_icmp_code(struct mock_device*mock, void*buf, int len)
+int mock_icmp_code(struct mock_device*mock, const char*buf, int len)
 {
     uint8_t type;
     int start = mock->mac ? 14 : 0;
