@@ -389,7 +389,7 @@ struct pico_dns_client_retransmission_bookmark {
 
 static int pico_dns_client_send(struct pico_dns_query *q)
 {
-    struct pico_dns_client_retransmission_bookmark *b = PICO_ZALLOC(sizeof(uint16_t));
+    struct pico_dns_client_retransmission_bookmark *b = PICO_ZALLOC(sizeof(struct pico_dns_client_retransmission_bookmark));
     if (!b) {
         pico_err = PICO_ERR_ENOMEM;
         return -1;
