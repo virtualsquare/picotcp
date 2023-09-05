@@ -367,6 +367,8 @@ static int pico_igmp_timer_is_running(struct igmp_timer *t)
     test.type = t->type;
     test.mcast_link = t->mcast_link;
     test.mcast_group = t->mcast_group;
+    if (!t->stack)
+        return 0;
     timer = pico_tree_findKey(&t->stack->IGMPTimers, &test);
     if (timer)
         return 1;
