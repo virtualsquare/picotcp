@@ -1173,7 +1173,7 @@ uint16_t pico_mld_checksum(struct pico_frame *f)
     IGNORE_PARAMETER(f);
     return 0;
 }
-int pico_mld_process_in(struct pico_frame *f)
+int pico_mld_process_in(struct pico_stack *S, struct pico_frame *f)
 {
     IGNORE_PARAMETER(f);
     return -1;
