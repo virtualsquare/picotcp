@@ -287,7 +287,9 @@ endif
 ifneq ($(MCAST),0)
   include rules/mcast.mk
   include rules/igmp.mk
-  include rules/mld.mk
+  ifneq ($(MLD),0)
+     include rules/mld.mk
+  endif
 endif
 ifneq ($(NAT),0)
   include rules/nat.mk
