@@ -900,7 +900,7 @@ static int tcp_parse_options(struct pico_frame *f)
     uint32_t i = 0;
     f->timestamp = 0;
 
-    if (f->buffer + f->buffer_len > f->transport_hdr + f->transport_len)
+    if (f->transport_hdr + f->transport_len > f->buffer + f->buffer_len)
         return -1;
 
     while (i < (f->transport_len - PICO_SIZE_TCPHDR)) {
