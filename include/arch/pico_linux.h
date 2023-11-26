@@ -22,12 +22,4 @@ static inline unsigned long PICO_TIME_MS(void)
     return (unsigned long)jiffies_to_msecs(jiffies);
 }
 
-static inline void PICO_IDLE(void)
-{
-    unsigned long now = jiffies;
-    while (now == jiffies) {
-        ;
-    }
-}
-
 #endif

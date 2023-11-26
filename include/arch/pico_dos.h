@@ -35,10 +35,4 @@ static inline unsigned long PICO_TIME(void)
     return (PICO_TIME_MS() / 1000);
 }
 
-static inline void PICO_IDLE(void)
-{
-    union REGS regs;
-    int86(0x28, &regs, &regs); /* DOS 2+ IDLE INTERRUPT */
-}
-
 #endif /* PICO_SUPPORT_DOS_WATCOM */

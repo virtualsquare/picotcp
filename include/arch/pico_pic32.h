@@ -44,11 +44,5 @@ static inline pico_time PICO_TIME(void)
     return (pico_time)(PICO_TIME_MS() / 1000);
 }
 
-static inline void PICO_IDLE(void)
-{
-    unsigned int now = pico_ms_tick;
-    while(now == pico_ms_tick) ;
-}
-
 #endif  /* PICO_PIC32 */
 

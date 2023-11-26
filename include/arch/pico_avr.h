@@ -30,10 +30,3 @@ static inline unsigned long PICO_TIME_MS(void)
 {
     return __avr_tick;
 }
-
-static inline void PICO_IDLE(void)
-{
-    unsigned long tick_now = __avr_tick;
-    while(tick_now == __avr_tick) ;
-}
-

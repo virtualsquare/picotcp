@@ -16,7 +16,6 @@
 #define pico_free(x) do {} while(0)
 #define PICO_TIME() 666
 #define PICO_TIME_MS() 666000
-#define PICO_IDLE() do {} while(0)
 
 #endif  /* PICO_SUPPORT_ARCHNONE */
 

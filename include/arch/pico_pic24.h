@@ -84,17 +84,4 @@ static inline unsigned long PICO_TIME_MS(void)
     return tick;
 }
 
-static inline void PICO_IDLE(void)
-{
-    unsigned long tick_now;
-    /* Disable timer interrupts */
-    TIMBASE_INT_E = 0;
-    tick_now = (unsigned long)pico_tick;
-    /* Enable timer interrupts */
-    TIMBASE_INT_E = 1;
-    /* Doesn't matter that this call isn't interrupt safe, */
-    /* we just check for the value to change */
-    while(tick_now == __pic24_tick) ;
-}
-
 #endif

@@ -59,7 +59,7 @@ void start_rx(struct pico_tftp_session *session, int *synchro, const char *filen
     }
 
     for(; left; left -= countdown) {
-        usleep(2000); /* PICO_IDLE(); */
+        usleep(2000);
         pico_stack_tick();
         if (countdown)
             continue;
@@ -132,7 +132,7 @@ void start_tx(struct pico_tftp_session *session, int *synchro, const char *filen
     }
 
     for(; left; left -= countdown) {
-        usleep(2000); /* PICO_IDLE(); */
+        usleep(2000);
         pico_stack_tick();
         if (countdown)
             continue;
