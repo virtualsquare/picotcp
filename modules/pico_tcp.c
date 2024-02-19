@@ -868,7 +868,7 @@ static inline void tcp_parse_option_mss(struct pico_socket_tcp *t, uint8_t len, 
     if (tcpopt_len_check(idx, len, PICO_TCPOPTLEN_MSS) < 0)
         return;
 
-    if ((*idx + PICO_TCPOPTLEN_MSS) > len)
+    if ((*idx + PICO_TCPOPTLEN_MSS - 2) > len)
         return;
 
     t->mss_ok = 1;
