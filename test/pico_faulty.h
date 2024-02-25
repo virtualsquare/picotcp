@@ -123,11 +123,6 @@ static inline uint32_t PICO_TIME_MS(void)
   #endif
 }
 
-static inline void PICO_IDLE(void)
-{
-    usleep(5000);
-}
-
 void memory_stats(void);
 
 #endif  /* PICO_SUPPORT_POSIX */

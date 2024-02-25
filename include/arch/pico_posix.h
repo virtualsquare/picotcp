@@ -134,10 +134,5 @@ extern int pico_sem_wait(void *sem, int timeout);
 extern void *pico_thread_create(void *(*routine)(void *), void *arg);
 #endif  /* PICO_SUPPORT_THREADING */
 
-static inline void PICO_IDLE(void)
-{
-    usleep(5000);
-}
-
 #endif  /* PICO_SUPPORT_POSIX */
 
