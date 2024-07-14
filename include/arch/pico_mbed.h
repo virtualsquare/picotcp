@@ -163,10 +163,6 @@ static inline pico_time PICO_TIME_MS(void)
   #endif
 }
 
-static inline void PICO_IDLE(void)
-{
-    /* TODO needs implementation */
-}
 /*
    static inline void PICO_DEBUG(const char * formatter, ... )
    {

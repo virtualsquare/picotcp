@@ -19,7 +19,6 @@ extern void free(void *);
 
 #define PICO_TIME() msp430_time_s()
 #define PICO_TIME_MS() msp430_time_ms()
-#define PICO_IDLE() do {} while(0)
 
 #define pico_free(x) free(x)
 
