@@ -896,7 +896,9 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 #ifdef PICO_SUPPORT_ICMP4
     pico_protocol_init(*S, &pico_proto_icmp4);
     ATTACH_QUEUES(*S, icmp4, pico_proto_icmp4);
+#ifdef PICO_SUPPORT_PING
     EMPTY_TREE((*S)->Pings, pico_icmp4_cookie_compare);
+#endif
     EMPTY_TREE((*S)->ICMP4Sockets, icmp4_socket_cmp);
 #endif
 
