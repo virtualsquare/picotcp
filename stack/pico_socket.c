@@ -1616,7 +1616,10 @@ int pico_socket_fionread(struct pico_socket *s)
             return 0;
         if(!f->payload_len) {
             f->payload = f->transport_hdr + sizeof(struct pico_udp_hdr);
-            f->payload_len = (uint16_t)(f->transport_len - sizeof(struct pico_udp_hdr));
+            f->payload_len =
+                f->transport_len > sizeof(struct pico_udp_hdr)) ?
+                (uint16_t)(f->transport_len - sizeof(struct pico_udp_hdr)):
+                0;
         }
         return f->payload_len;
     }
@@ -1630,7 +1633,10 @@ int pico_socket_fionread(struct pico_socket *s)
             f->payload = f->net_hdr + f->net_len;
             f->payload_len = (uint16_t)(f->len);
             if (!s4->hdr_included)
-                f->payload_len = (uint16_t)(f->payload_len - PICO_SIZE_IP4HDR);
+                f->payload_len =
+                    f->payload_len > PICO_SIZE_IP4HDR ?
+                    (uint16_t)(f->payload_len - PICO_SIZE_IP4HDR) :
+                    0;
         }
         return f->payload_len;
     }
