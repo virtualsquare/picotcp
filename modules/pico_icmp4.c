@@ -380,6 +380,10 @@ static int8_t pico_icmp4_send_echo(struct pico_stack *S, struct pico_icmp4_ping_
     if (!dev)
         return -1;
 
+    // prevent overflow
+    if (cookie->size > PICO_ICMP_MAXCOOKIE)
+        return -1;
+
     echo = pico_proto_ipv4.alloc(S, &pico_proto_ipv4, dev, (uint16_t)(PICO_ICMPHDR_UN_SIZE + cookie->size));
     if (!echo)
         return -1;
