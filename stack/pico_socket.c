@@ -1617,7 +1617,7 @@ int pico_socket_fionread(struct pico_socket *s)
         if(!f->payload_len) {
             f->payload = f->transport_hdr + sizeof(struct pico_udp_hdr);
             f->payload_len =
-                f->transport_len > sizeof(struct pico_udp_hdr)) ?
+                (f->transport_len > sizeof(struct pico_udp_hdr)) ?
                 (uint16_t)(f->transport_len - sizeof(struct pico_udp_hdr)):
                 0;
         }
