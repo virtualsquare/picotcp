@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -43,6 +43,11 @@ typedef struct
 
 #define PICO_DNS_SD_KV_VECTOR_DECLARE(name) \
     kv_vector (name) = {0}
+
+/* ****************************************************************************
+ *  Maximum length of a key-value pair.
+ * ****************************************************************************/
+#define PICO_DNS_SD_KV_MAXLEN (0xFFFFu)
 
 /* ****************************************************************************
  *  Just calls pico_mdns_init in it's turn to initialise the mDNS-module.
@@ -108,4 +113,3 @@ pico_dns_sd_kv_vector_add( kv_vector *vector, char *key, char *value );
 
 
 #endif /* _INCLUDE_PICO_DNS_SD */
-
