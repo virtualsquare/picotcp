@@ -2200,6 +2200,12 @@ pico_mdns_handle_data_as_answers_generic(struct pico_stack *S,
         return -1;
     }
 
+    // check that the number of answers/responses correspond to the number of questions
+    if (count != pico_tree_count(&S->MDNSOwnRecords)) {
+        mdns_dbg("Number of answers does not match the number of questions\n");
+        return -1;
+    }
+
     /* TODO: When receiving multiple authoritative answers, */
     /* they should be sorted in lexicographical order */
     /* (just like in pico_mdns_record_am_i_lexi_later) */
