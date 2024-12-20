@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Kristof Roelants
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -596,9 +596,6 @@ static void pico_dns_client_callback(uint16_t ev, struct pico_socket *s)
     }
 
     header = (struct pico_dns_header *)dns_response;
-    domain = (char *)header + sizeof(struct pico_dns_header);
-    qsuffix = (struct pico_dns_question_suffix *)pico_dns_client_seek(domain);
-    /* valid asuffix is determined dynamically later on */
 
     if (pico_dns_client_check_header(header) < 0)
         return;
@@ -606,6 +603,11 @@ static void pico_dns_client_callback(uint16_t ev, struct pico_socket *s)
     q = pico_dns_client_find_query(s->stack, short_be(header->id));
     if (!q)
         return;
+
+    // FIX: what if the query is not a PTR query?
+    domain = (char *)header + sizeof(struct pico_dns_header);
+    qsuffix = (struct pico_dns_question_suffix *)pico_dns_client_seek(domain);
+    /* valid asuffix is determined dynamically later on */
 
     if (pico_dns_client_check_qsuffix(qsuffix, q) < 0)
         return;
@@ -873,4 +875,3 @@ int pico_dns_client_init(struct pico_stack *S)
 
 
 #endif /* PICO_SUPPORT_DNS_CLIENT */
-

@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Toon Stegen, Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -120,9 +120,17 @@ pico_dns_decompress_name( char *name, pico_dns_packet *packet )
     uint16_t decompressed_index = 0;
     char *label = NULL, *next = NULL;
 
+    if (!name || !packet) {
+        pico_err = PICO_ERR_EINVAL;
+        return NULL;
+    }
+
     /* Reading labels until reaching to pointer or NULL terminator.
      * Only one pointer is allowed in DNS compression, the pointer is always the last according to the RFC */
     dns_name_foreach_label_safe(label, name, next, PICO_DNS_NAMEBUF_SIZE) {
+        if (!lable || (*lable & 0xFF) >= PICO_DNS_NAMEBUF_SIZE) {
+            return NULL;
+        }
 
         uint8_t label_size = (uint8_t)(*label+1);
         if (decompressed_index + label_size >= PICO_DNS_NAMEBUF_SIZE) {
@@ -140,6 +148,12 @@ pico_dns_decompress_name( char *name, pico_dns_packet *packet )
         /* Found compression bits */
         ptr = (uint16_t)((((uint16_t) *label) & 0x003F) << 8);
         ptr = (uint16_t)(ptr | (uint16_t) *(label + 1));
+
+        /* Check if the pointer is within the packet */
+        if (ptr >= packet->len) {
+            return NULL;
+        }
+
         label = (char *)((uint8_t *)packet + ptr);
 
         dns_name_foreach_label_safe(label, label, next, PICO_DNS_NAMEBUF_SIZE-decompressed_index) {
