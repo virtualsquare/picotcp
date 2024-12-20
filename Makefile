@@ -460,7 +460,7 @@ units: mod core lib $(UNITS_OBJ) $(MOD_OBJ)
 	@echo -e "\n\t[UNIT TESTS SUITE]"
 	@mkdir -p $(PREFIX)/test
 	@echo -e "\t[CC] units.o"
-	@$(CC) -g -c -o $(PREFIX)/test/units.o test/units.c $(UNIT_CFLAGS) -I stack -I modules -I includes -I test/unit -DUNIT_TEST
+	@$(CC) -g -c -o $(PREFIX)/test/units.o test/units.c $(UNIT_CFLAGS) -I stack -I modules -I test/unit -DUNIT_TEST
 	@echo -e "\t[LD] $(PREFIX)/test/units"
 	@$(CC) -o $(PREFIX)/test/units $(UNIT_CFLAGS) $(PREFIX)/test/units.o $(UNIT_LDFLAGS) \
 	   $(UNITS_OBJ) $(PREFIX)/modules/pico_aodv.o \
@@ -496,8 +496,8 @@ devunits: mod core lib
 	@echo -e "\n\t[UNIT TESTS SUITE: device drivers]"
 	@mkdir -p $(PREFIX)/test/unit/device/
 	@echo -e "\t[CC] picotcp_mock.o"
-	@$(CC) -c -o $(PREFIX)/test/unit/device/picotcp_mock.o $(CFLAGS) -I stack -I modules -I includes -I test/unit test/unit/device/picotcp_mock.c
-	@$(CC) -c -o $(PREFIX)/test/unit/device/unit_dev_vde.o $(CFLAGS) -I stack -I modules -I includes -I test/unit test/unit/device/unit_dev_vde.c
+	@$(CC) -c -o $(PREFIX)/test/unit/device/picotcp_mock.o $(CFLAGS) -I stack -I modules -I test/unit test/unit/device/picotcp_mock.c
+	@$(CC) -c -o $(PREFIX)/test/unit/device/unit_dev_vde.o $(CFLAGS) -I stack -I modules -I test/unit test/unit/device/unit_dev_vde.c
 	@echo -e "\t[LD] $(PREFIX)/test/devunits"
 	@$(CC) -o $(PREFIX)/test/devunits $(CFLAGS) -I stack $(PREFIX)/test/unit/device/*.o -lcheck -lm -pthread -lrt
 
@@ -509,7 +509,7 @@ units_mm: mod core lib
 	@echo -e "\n\t[UNIT TESTS SUITE]"
 	@mkdir -p $(PREFIX)/test
 	@echo -e "\t[CC] units_mm.o"
-	@$(CC) -c -o $(PREFIX)/test/units_mm.o test/unit/unit_mem_manager.c $(CFLAGS) -I stack -I modules -I includes -I test/unit
+	@$(CC) -c -o $(PREFIX)/test/units_mm.o test/unit/unit_mem_manager.c $(CFLAGS) -I stack -I modules -I test/unit
 	@echo -e "\t[LD] $(PREFIX)/test/units"
 	@$(CC) -o $(PREFIX)/test/units_mm $(CFLAGS) $(PREFIX)/test/units_mm.o -lcheck -lm -pthread -lrt
 
