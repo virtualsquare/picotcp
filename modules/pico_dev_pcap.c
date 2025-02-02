@@ -104,12 +104,12 @@ static struct pico_device *pico_pcap_create(struct pico_stack *S, char *if_file_
     return (struct pico_device *)pcap;
 }
 
-struct pico_device *pico_pcap_create_fromfile(char *filename, char *name, uint8_t *mac)
+struct pico_device *pico_pcap_create_fromfile(struct pico_stack *S, char *filename, char *name, uint8_t *mac)
 {
-    return pico_pcap_create(filename, name, mac, PICO_PCAP_MODE_STORED);
+    return pico_pcap_create(S, filename, name, mac, PICO_PCAP_MODE_STORED);
 }
 
-struct pico_device *pico_pcap_create_live(char *ifname, char *name, uint8_t *mac)
+struct pico_device *pico_pcap_create_live(struct pico_stack *S, char *ifname, char *name, uint8_t *mac)
 {
-    return pico_pcap_create(ifname, name, mac, PICO_PCAP_MODE_LIVE);
+    return pico_pcap_create(S, ifname, name, mac, PICO_PCAP_MODE_LIVE);
 }
