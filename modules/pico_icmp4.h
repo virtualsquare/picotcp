@@ -178,8 +178,8 @@ int pico_icmp4_packet_filtered(struct pico_stack *S, struct pico_frame *f);
 int pico_icmp4_param_problem(struct pico_stack *S, struct pico_frame *f, uint8_t code);
 int pico_icmp4_cookie_compare(void *ka, void *kb);
 #else
-# define pico_icmp4_packet_filtered(f) (-1)
-# define pico_icmp4_param_problem(f, c) (-1)
+# define pico_icmp4_packet_filtered(S, f) (-1)
+# define pico_icmp4_param_problem(S, f, c) (-1)
 #endif /* PICO_SUPPORT_ICMP4 */
 
 #define PICO_PING_ERR_REPLIED 0

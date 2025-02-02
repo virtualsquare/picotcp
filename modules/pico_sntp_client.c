@@ -516,7 +516,7 @@ int pico_sntp_sync(struct pico_stack *S, const char *sntp_server, void (*cb_sync
 
     return 0;
 #else
-    sntp_debug("No DNS support available\n");
+    sntp_dbg("No DNS support available\n");
     pico_err = PICO_ERR_EPROTONOSUPPORT;
     return -1;
 #endif
