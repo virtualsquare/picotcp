@@ -1641,9 +1641,11 @@ int pico_socket_fionread(struct pico_socket *s)
         return f->payload_len;
     }
 #endif
+#ifdef PICO_SUPPORT_TCP
     else if (PROTO(s) == PICO_PROTO_TCP) {
         return pico_tcp_queue_in_size(s);
     }
+#endif
     return 0;
 }
 
