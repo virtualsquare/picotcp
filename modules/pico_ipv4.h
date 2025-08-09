@@ -161,7 +161,7 @@ int pico_ipv4_cleanup_links(struct pico_stack *S, struct pico_device *dev);
 struct pico_socket_ipv4;
 struct pico_socket *pico_socket_ipv4_open(struct pico_stack *S, uint16_t proto);
 int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void *orig, uint16_t *remote_port);
-int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void *dst);
+int pico_socket_ipv4_sendto(struct pico_socket *s, const void *buf, uint32_t len, void *dst);
 int pico_setsockopt_ipv4(struct pico_socket *s, int option, void *value);
 int pico_getsockopt_ipv4(struct pico_socket *s, int option, void *value);
 

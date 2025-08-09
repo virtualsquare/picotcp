@@ -513,7 +513,7 @@ static int pico_socket_ipv4_process_out(struct pico_socket *s, struct pico_frame
     return -1;
 }
 
-int pico_socket_ipv4_sendto(struct pico_socket *s, void *buf, uint32_t len, void *dst)
+int pico_socket_ipv4_sendto(struct pico_socket *s, const void *buf, uint32_t len, void *dst)
 {
     struct pico_frame *f;
     struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
