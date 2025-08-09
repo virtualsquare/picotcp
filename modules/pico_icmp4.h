@@ -169,7 +169,7 @@ int pico_icmp4_ping_abort(struct pico_stack *S, int id);
 
 struct pico_socket *pico_socket_icmp4_open(struct pico_stack *S);
 int pico_socket_icmp4_close(struct pico_socket *arg);
-int pico_socket_icmp4_sendto_check(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port);
+int pico_socket_icmp4_sendto_check(struct pico_socket *s, const void *buf, int len, void *dst, uint16_t remote_port);
 int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port);
 int pico_socket_icmp4_bind(struct pico_socket *s, void *addr, uint16_t port);
 

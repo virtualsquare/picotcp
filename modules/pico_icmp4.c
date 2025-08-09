@@ -127,7 +127,7 @@ int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *
     return len;
 }
 
-int pico_socket_icmp4_sendto_check(struct pico_socket *s, void *buf, int len, void *dst, uint16_t remote_port)
+int pico_socket_icmp4_sendto_check(struct pico_socket *s, const void *buf, int len, void *dst, uint16_t remote_port)
 {
     struct pico_icmp4_hdr *hdr;
     struct pico_socket_icmp4 *i4 = (struct pico_socket_icmp4 *)s;

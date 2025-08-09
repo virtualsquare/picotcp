@@ -190,7 +190,7 @@ int pico_socket_ll_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void
     return (int)len;
 }
 
-int pico_socket_ll_sendto(struct pico_socket *s, void *buf, uint32_t len, void *_dst)
+int pico_socket_ll_sendto(struct pico_socket *s, const void *buf, uint32_t len, void *_dst)
 {
     struct pico_frame *f;
     struct pico_ll *dst = (struct pico_ll *)_dst;

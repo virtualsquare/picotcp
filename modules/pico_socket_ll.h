@@ -49,7 +49,7 @@ int pico_socket_ll_process_in(struct pico_stack *S, struct pico_protocol *self, 
 struct pico_frame *pico_ll_frame_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size);
 struct pico_socket *pico_socket_ll_open(struct pico_stack *S, uint16_t proto);
 int pico_socket_ll_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void *orig);
-int pico_socket_ll_sendto(struct pico_socket *s, void *buf, uint32_t len, void *dst);
+int pico_socket_ll_sendto(struct pico_socket *s, const void *buf, uint32_t len, void *dst);
 int pico_setsockopt_ll(struct pico_socket *s, int option, void *value);
 int pico_getsockopt_ll(struct pico_socket *s, int option, void *value);
 int pico_socket_ll_close(struct pico_socket *arg);
