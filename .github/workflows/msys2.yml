@@ -1,0 +1,30 @@
+name: MSYS2 CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - { os: windows-latest, sys: mingw32 }
+          - { os: windows-latest, sys: mingw64 }
+          - { os: windows-latest, sys: ucrt64 }
+          - { os: windows-latest, sys: clang64 }
+          - { os: windows-11-arm, sys: clangarm64 }
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.sys}}
+          update: true
+          install: make
+          pacboy: toolchain:p
+      - run: |
+          [[ ${{matrix.sys}} == clang* ]] && make CC=clang || make
