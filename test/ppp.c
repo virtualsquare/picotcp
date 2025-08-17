@@ -22,9 +22,32 @@
 #define USERNAME "altran"
 /* #define DEBUG_FLOW */
 static int fd = -1;
+#ifdef DEBUG_FLOW
 static int idx;
+#endif
 static int ping_on = 0;
 static struct pico_device *ppp = NULL;
+static uint32_t _rand_seed = 0;
+static pico_time global_pico_tick = 0;
+
+static void pico_rand_feed(uint32_t feed)
+{
+    if (_rand_seed == 0) {
+        _rand_seed = (uint32_t) getpid();
+    }
+    if (!feed)
+        return;
+
+    _rand_seed *= 1664525;
+    _rand_seed += 1013904223;
+    _rand_seed ^= ~(feed);
+}
+
+uint32_t pico_rand(void)
+{
+    pico_rand_feed((uint32_t)global_pico_tick);
+    return _rand_seed;
+}
 
 static void sigusr1_hdl(int signo)
 {
@@ -124,15 +147,15 @@ static void cb_sock(uint16_t ev, struct pico_socket *s)
 
 }
 
-static void ping(void)
+static void ping(struct pico_stack *stack)
 {
     struct pico_socket *s;
     struct pico_ip4 dst;
 
     pico_string_to_ipv4("80.68.95.85", &dst.addr);
-    s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, cb_sock);
+    s = pico_socket_open(stack, PICO_PROTO_IPV4, PICO_PROTO_TCP, cb_sock);
     pico_socket_connect(s, &dst, short_be(80));
-    pico_icmp4_ping("80.68.95.85", 10, 1000, 4000, 8, cb_ping);
+    pico_icmp4_ping(stack, "80.68.95.85", 10, 1000, 4000, 8, cb_ping);
 }
 
 
@@ -142,6 +165,7 @@ int main(int argc, const char *argv[])
     const char *apn = APN;
     const char *passwd = PASSWD;
     const char *username = USERNAME;
+    struct pico_stack *S = NULL;
 
     if (argc > 1)
         path = argv[1];
@@ -162,13 +186,13 @@ int main(int argc, const char *argv[])
     signal(SIGUSR2, sigusr2_hdl);
     signal(SIGINT, sigusr2_hdl);
 
-    pico_stack_init();
+    pico_stack_init(&S);
 
 #if defined PICO_SUPPORT_POLARSSL || defined PICO_SUPPORT_CYASSL
     pico_register_md5sum(md5sum);
 #endif
 
-    ppp = pico_ppp_create();
+    ppp = pico_ppp_create(S);
     if (!ppp)
         return 2;
 
@@ -183,11 +207,11 @@ int main(int argc, const char *argv[])
     pico_ppp_connect(ppp);
 
     while(1 < 2) {
-        pico_stack_tick();
+        pico_stack_tick(ppp->stack);
         usleep(1000);
         if (ppp->link_state(ppp) && !ping_on) {
             ping_on++;
-            ping();
+            ping(ppp->stack);
         }
     }
 }
