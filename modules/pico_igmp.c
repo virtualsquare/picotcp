@@ -1154,16 +1154,18 @@ static int pico_igmp_process_event(struct mcast_parameters *p)
 
 #else
 
-static int pico_igmp_process_in(struct pico_protocol *self, struct pico_frame *f)
+static int pico_igmp_process_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(self);
     IGNORE_PARAMETER(f);
     pico_err = PICO_ERR_EPROTONOSUPPORT;
     return -1;
 }
 
-static int pico_igmp_process_out(struct pico_protocol *self, struct pico_frame *f)
+static int pico_igmp_process_out(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(self);
     IGNORE_PARAMETER(f);
     return -1;
@@ -1178,8 +1180,9 @@ struct pico_protocol pico_proto_igmp = {
     .process_out = pico_igmp_process_out,
 };
 
-int pico_igmp_state_change(struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t filter_mode, struct pico_tree *_MCASTFilter, uint8_t state)
+int pico_igmp_state_change(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t filter_mode, struct pico_tree *_MCASTFilter, uint8_t state)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(mcast_link);
     IGNORE_PARAMETER(mcast_group);
     IGNORE_PARAMETER(filter_mode);
