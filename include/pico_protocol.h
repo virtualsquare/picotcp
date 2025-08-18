@@ -126,7 +126,6 @@ struct pico_protocol {
     uint16_t (*get_mtu)(struct pico_stack *S, struct pico_protocol *self);
 };
 
-int pico_protocols_loop(int loop_score);
 int pico_protocol_scheduler_init(struct pico_stack *S);
 void pico_protocol_init(struct pico_stack *S, struct pico_protocol *p);
 
