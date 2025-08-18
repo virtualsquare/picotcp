@@ -166,8 +166,6 @@ START_TEST(tc_pico_protocol_generic_loop)
     ret = pico_protocol_generic_loop(&rr, 0, PICO_LOOP_DIR_IN);
 
     fail_if(ret != 0);
-
-    pico_protocols_loop(0);
 }
 END_TEST
 
