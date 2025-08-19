@@ -94,6 +94,11 @@ static void pico_rand_feed(uint32_t feed)
     _rand_seed ^= ~(feed);
 }
 
+/**
+ * WARNING: This is an UNSAFE random generator.
+ * DO NOT USE for security, cryptography, or production.
+ * Only for testing purposes.
+ */
 uint32_t pico_rand(void)
 {
     pico_rand_feed((uint32_t)global_pico_tick);
