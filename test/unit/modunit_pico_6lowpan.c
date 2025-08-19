@@ -137,7 +137,7 @@ START_TEST(tc_compare_prefix)
 }
 END_TEST
 
-START_TEST(tc_compare_ctx)
+START_TEST(tc_compare_6lowpan_ctx)
 {
     int test = 1, ret = 0;
     struct pico_ip6 a, b, c;
@@ -153,19 +153,19 @@ START_TEST(tc_compare_ctx)
     STARTING();
 
     TRYING("With 2 equal ctx's\n");
-    ret = compare_ctx(&ca, &cb);
+    ret = compare_6lowpan_ctx(&ca, &cb);
     RESULTS();
     FAIL_UNLESS(0 == ret, test, "Prefixes are equal, should've returned 0, ret = %d", ret);
 
     ca.size = 60;
     TRYING("With b > a\n");
-    ret = compare_ctx(&ca, &cb);
+    ret = compare_6lowpan_ctx(&ca, &cb);
     RESULTS();
     FAIL_UNLESS(ret, test, "Prefixes are not equal, shouln'r return 0, ret = %d", ret);
 
     cb.size = 64;
     TRYING("With b > c\n");
-    ret = compare_ctx(&cb, &cc);
+    ret = compare_6lowpan_ctx(&cb, &cc);
     RESULTS();
     FAIL_UNLESS(ret, test, "Prefixes are not equal, shouldn't return 0, ret = %d", ret);
 
@@ -1532,7 +1532,7 @@ static Suite *pico_suite(void)
     Suite *s = suite_create("PicoTCP");
 
     TCase *TCase_compare_prefix = tcase_create("Unit test for compare_prefix");
-    TCase *TCase_compare_ctx = tcase_create("Unit test for compare_ctx");
+    TCase *TCase_compare_6lowpan_ctx = tcase_create("Unit test for compare_6lowpan_ctx");
     TCase *TCase_ctx_lookup = tcase_create("Unit test for ctx_lookup");
 
 /*******************************************************************************
@@ -1565,8 +1565,8 @@ static Suite *pico_suite(void)
 
     tcase_add_test(TCase_compare_prefix, tc_compare_prefix);
     suite_add_tcase(s, TCase_compare_prefix);
-    tcase_add_test(TCase_compare_ctx ,tc_compare_ctx);
-    suite_add_tcase(s, TCase_compare_ctx);
+    tcase_add_test(TCase_compare_6lowpan_ctx ,tc_compare_6lowpan_ctx);
+    suite_add_tcase(s, TCase_compare_6lowpan_ctx);
     tcase_add_test(TCase_ctx_lookup ,tc_ctx_lookup);
     suite_add_tcase(s, TCase_ctx_lookup);
 
