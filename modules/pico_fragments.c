@@ -441,13 +441,15 @@ void pico_ipv6_process_frag(struct pico_ipv6_exthdr *frag, struct pico_frame *f,
 {
 #if defined(PICO_SUPPORT_IPV6) && defined(PICO_SUPPORT_IPV6FRAG)
     struct pico_frame *first = NULL;
-    struct pico_stack *S = f->dev->stack;
+    struct pico_stack *S;
 
     if (!f || !frag)
     {
         frag_dbg("Bad arguments provided to pico_ipv6_process_frag\n");
         return;
     }
+
+    S = f->dev->stack;
 
     first = pico_tree_first(&S->ipv6_fragments);
 
