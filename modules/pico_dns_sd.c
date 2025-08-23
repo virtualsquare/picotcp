@@ -96,7 +96,8 @@ pico_dns_sd_kv_vector_strlen( kv_vector *vector )
  *  @return Pointer to newly created record on success, NULL on failure.
  * ****************************************************************************/
 static struct pico_mdns_record *
-pico_dns_sd_srv_record_create( const char *url,
+pico_dns_sd_srv_record_create( struct pico_stack *S,
+                               const char *url,
                                uint16_t priority,
                                uint16_t weight,
                                uint16_t port,
@@ -140,7 +141,7 @@ pico_dns_sd_srv_record_create( const char *url,
     PICO_FREE(target_rname);
 
     /* Create and return new mDNS record */
-    record = pico_mdns_record_create(url, srv_data, srv_length,
+    record = pico_mdns_record_create(S, url, srv_data, srv_length,
                                      PICO_DNS_TYPE_SRV,
                                      ttl, flags);
     PICO_FREE(srv_data);
@@ -157,7 +158,8 @@ pico_dns_sd_srv_record_create( const char *url,
  *  @return Pointer to newly created record on success, NULL on failure.
  * ****************************************************************************/
 static struct pico_mdns_record *
-pico_dns_sd_txt_record_create( const char *url,
+pico_dns_sd_txt_record_create( struct pico_stack *S,
+                               const char *url,
                                kv_vector key_value_pairs,
                                uint32_t ttl,
                                uint8_t flags )
@@ -210,7 +212,7 @@ pico_dns_sd_txt_record_create( const char *url,
             txt_i = (uint16_t) (txt_i + 1u + key_len);
         }
     }
-    record = pico_mdns_record_create(url, txt, (uint16_t)(len - 1u), PICO_DNS_TYPE_TXT, ttl, flags);
+    record = pico_mdns_record_create(S, url, txt, (uint16_t)(len - 1u), PICO_DNS_TYPE_TXT, ttl, flags);
     PICO_FREE(txt);
 
     return record;
@@ -391,14 +393,15 @@ pico_dns_sd_create_service_url( const char *name,
  *  This function actually does exactly the same as pico_mdns_init();
  * ****************************************************************************/
 int
-pico_dns_sd_init( const char *_hostname,
+pico_dns_sd_init( struct pico_stack *S,
+                  const char *_hostname,
                   struct pico_ip4 address,
                   void (*callback)(pico_mdns_rtree *,
                                    char *,
                                    void *),
                   void *arg )
 {
-    return pico_mdns_init(_hostname, address, callback, arg);
+    return pico_mdns_init(S, _hostname, address, callback, arg);
 }
 
 /* ****************************************************************************
@@ -406,7 +409,8 @@ pico_dns_sd_init( const char *_hostname,
  *  See pico_mdns.h for description.
  * ****************************************************************************/
 int
-pico_dns_sd_register_service( const char *name,
+pico_dns_sd_register_service( struct pico_stack *S,
+                              const char *name,
                               const char *type,
                               uint16_t port,
                               kv_vector *txt_data,
@@ -419,7 +423,7 @@ pico_dns_sd_register_service( const char *name,
     PICO_MDNS_RTREE_DECLARE(rtree);
     struct pico_mdns_record *srv_record = NULL;
     struct pico_mdns_record *txt_record = NULL;
-    const char *hostname = pico_mdns_get_hostname();
+    const char *hostname = pico_mdns_get_hostname(S);
     char *url = NULL;
 
     /* Try to create a service URL to create records with */
@@ -435,14 +439,14 @@ pico_dns_sd_register_service( const char *name,
     dns_sd_dbg("\n>>>>>>>>>> Target: %s <<<<<<<<<<\n\n", hostname);
 
     /* Create the SRV record */
-    srv_record = pico_dns_sd_srv_record_create(url, 0, 0, port, hostname, ttl, PICO_MDNS_RECORD_UNIQUE);
+    srv_record = pico_dns_sd_srv_record_create(S, url, 0, 0, port, hostname, ttl, PICO_MDNS_RECORD_UNIQUE);
     if (!srv_record) {
         PICO_FREE(url);
         return -1;
     }
 
     /* Create the TXT record */
-    txt_record = pico_dns_sd_txt_record_create(url, *txt_data, ttl, PICO_MDNS_RECORD_UNIQUE);
+    txt_record = pico_dns_sd_txt_record_create(S, url, *txt_data, ttl, PICO_MDNS_RECORD_UNIQUE);
     PICO_FREE(url);
 
     /* Erase the key-value pair vector, it's no longer needed */
@@ -463,7 +467,7 @@ pico_dns_sd_register_service( const char *name,
 		return -1;
 	}
 
-    if (pico_mdns_claim(rtree, callback, arg)) {
+    if (pico_mdns_claim(S, rtree, callback, arg)) {
         PICO_MDNS_RTREE_DESTROY(&rtree);
         return -1;
     }

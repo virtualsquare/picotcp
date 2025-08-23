@@ -49,7 +49,8 @@ typedef struct
  *  See pico_mdns.h for description.
  * ****************************************************************************/
 int
-pico_dns_sd_init( const char *_hostname,
+pico_dns_sd_init( struct pico_stack *S,
+                  const char *_hostname,
                   struct pico_ip4 address,
                   void (*callback)(pico_mdns_rtree *,
                                    char *,
@@ -70,7 +71,8 @@ pico_dns_sd_init( const char *_hostname,
  *  @return
  * ****************************************************************************/
 int
-pico_dns_sd_register_service( const char *name,
+pico_dns_sd_register_service( struct pico_stack *S,
+                              const char *name,
                               const char *type,
                               uint16_t port,
                               kv_vector *txt_data,
