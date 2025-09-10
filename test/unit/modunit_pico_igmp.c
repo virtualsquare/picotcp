@@ -130,7 +130,7 @@ START_TEST(tc_pico_igmp_process_in)
     struct mcast_parameters *p;
     struct pico_device *dev = pico_null_create("dummy3");
     struct pico_ipv4_link *link;
-    uint8_t i, j, _i, _j;
+    uint8_t i, j, k, l;
     int result;
     struct pico_mcast_group g;
     /* Building example frame */
@@ -157,16 +157,16 @@ START_TEST(tc_pico_igmp_process_in)
     link->mcast_compatibility = PICO_IGMPV2;
     fail_if(pico_igmp_generate_report(p) != 0);
     link->mcast_compatibility = PICO_IGMPV3;
-    for(_j = 0; _j < 3; _j++) {   /* FILTER */
-        (_j == 2) ? (result = -1) : (result = 0);
-        for(_i = 0; _i < 3; _i++) {  /* FILTER */
-            if(_i == 2) result = -1;
+    for(l = 0; l < 3; l++) {   /* FILTER */
+        (l == 2) ? (result = -1) : (result = 0);
+        for(k = 0; k < 3; k++) {  /* FILTER */
+            if(k == 2) result = -1;
 
             for(i = 0; i < 3; i++) {  /* STATES */
                 for(j = 0; j < 6; j++) { /* EVENTS */
                     p->MCASTFilter = &_MCASTFilter;
-                    p->filter_mode = _i;
-                    g.filter_mode = _j;
+                    p->filter_mode = k;
+                    g.filter_mode = l;
                     if(p->event == IGMP_EVENT_DELETE_GROUP || p->event == IGMP_EVENT_QUERY_RECV)
                         p->event++;
 
