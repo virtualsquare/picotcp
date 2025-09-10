@@ -47,6 +47,12 @@ static int mcast_sources_cmp(void *ka, void *kb)
 
     return 0;
 }
+#define PICO_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
 static PICO_TREE_DECLARE(_MCASTFilter, mcast_filter_cmp);
 START_TEST(tc_pico_igmp_report_expired)
 {

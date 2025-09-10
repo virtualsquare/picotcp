@@ -182,6 +182,13 @@ START_TEST(tc_pico_fragments_complete)
 }
 END_TEST
 
+#define PICO_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
+
 START_TEST(tc_pico_fragments_empty_tree)
 {
     PICO_TREE_DECLARE(tree, pico_ipv4_frag_compare);

@@ -34,6 +34,12 @@ static int mcast_sources_cmp_ipv6(void *ka, void *kb)
     union pico_address *a = ka, *b = kb;
     return memcmp(&a->ip6, &b->ip6, sizeof(struct pico_ip6));
 }
+#define PICO_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
 static PICO_TREE_DECLARE(_MCASTFilter, mcast_filter_cmp_ipv6);
 
 START_TEST(tc_pico_mld_fill_hopbyhop)

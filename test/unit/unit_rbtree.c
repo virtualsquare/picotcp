@@ -11,6 +11,12 @@ int compare(void *a, void *b)
     return ((elem *)a)->value - ((elem *)b)->value;
 }
 
+#define PICO_TREE_DECLARE(name, compareFunction) \
+    struct pico_tree name = \
+    { \
+        &LEAF, \
+        compareFunction \
+    }
 static PICO_TREE_DECLARE(test_tree, compare);
 static PICO_TREE_DECLARE(test_tree2, compare);
 #define RBTEST_SIZE 20000
