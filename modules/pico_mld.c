@@ -626,7 +626,7 @@ static struct mcast_parameters *pico_mld_analyse_packet(struct pico_frame *f)
 
         p->state = MLD_STATE_NON_LISTENER;
         p->mcast_link.ip6 = link->address;
-        if (pico_tree_insert(&p->stack->MLDParameters, p)) {
+        if (pico_tree_insert(&f->dev->stack->MLDParameters, p)) {
 			PICO_FREE(p);
 			return NULL;
 		}
