@@ -170,7 +170,7 @@ pico_mdns_getrecord(struct pico_stack *S,  const char *url, uint16_t type,
  *  @return 0 When claiming didn't horribly fail.
  * ****************************************************************************/
 int
-pico_mdns_claim(struct pico_stack *S,  pico_mdns_rtree record_tree,
+pico_mdns_claim(struct pico_stack *S,  pico_mdns_rtree rtree,
                  void (*callback)(pico_mdns_rtree *,
                                   char *,
                                   void *),

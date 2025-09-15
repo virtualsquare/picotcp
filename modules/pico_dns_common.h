@@ -241,11 +241,11 @@ pico_dns_first_label_length( const char *url );
  *  Mirrors a dotted IPv4-address string.
  *	f.e. 192.168.0.1 => 1.0.168.192
  *
- *  @param ptr
+ *  @param ip
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_dns_mirror_addr( char *ptr );
+pico_dns_mirror_addr( char *ip );
 
 /* ****************************************************************************
  *  Convert an IPv6-address in string-format to a IPv6-address in nibble-format.
@@ -508,8 +508,8 @@ void
 pico_dns_fill_packet_header( struct pico_dns_header *hdr,
                              uint16_t qdcount,
                              uint16_t ancount,
-                             uint16_t authcount,
-                             uint16_t addcount );
+                             uint16_t nscount,
+                             uint16_t arcount );
 
 /* ****************************************************************************
  *  Creates a DNS Query packet with given question and resource records to put

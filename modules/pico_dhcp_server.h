@@ -48,7 +48,7 @@ struct pico_dhcp_server_setting
 int dhcp_settings_cmp(void *ka, void *kb);
 int dhcp_negotiations_cmp(void *ka, void *kb);
 /* required field: IP address of the interface to serve, only IPs of this network will be served. */
-int pico_dhcp_server_initiate(struct pico_dhcp_server_setting *dhcps);
+int pico_dhcp_server_initiate(struct pico_dhcp_server_setting *setting);
 
 /* To destroy an existing DHCP server configuration, running on a given interface */
 int pico_dhcp_server_destroy(struct pico_device *dev);

@@ -259,7 +259,7 @@ static void
 pico_mdns_send_probe_packet(pico_time now, void *arg );
 
 static int
-pico_mdns_reclaim(struct pico_stack *S,  pico_mdns_rtree record_tree,
+pico_mdns_reclaim(struct pico_stack *S,  pico_mdns_rtree rtree,
                    void (*callback)(pico_mdns_rtree *,
                                     char *,
                                     void *),

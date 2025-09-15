@@ -428,7 +428,7 @@ pico_dns_first_label_length( const char *url )
  *  Mirrors a dotted IPv4-address string.
  *	f.e. 192.168.0.1 => 1.0.168.192
  *
- *  @param ptr
+ *  @param ip
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
 int

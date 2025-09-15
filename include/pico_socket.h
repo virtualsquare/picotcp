@@ -221,7 +221,7 @@ int pico_socket_sendto(struct pico_socket *s, const void *buf, int len, void *ds
 int pico_socket_sendto_extended(struct pico_socket *s, const void *buf, const int len,
                                 void *dst, uint16_t remote_port, struct pico_msginfo *msginfo);
 
-int pico_socket_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *local_port);
+int pico_socket_recvfrom(struct pico_socket *s, void *buf, int len, void *orig, uint16_t *remote_port);
 int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, void *orig,
                                   uint16_t *remote_port, struct pico_msginfo *msginfo);
 
@@ -232,7 +232,7 @@ int pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t *port);
 int pico_socket_getname(struct pico_socket *s, void *local_addr, uint16_t *port, uint16_t *proto);
 int pico_socket_getpeername(struct pico_socket *s, void *remote_addr, uint16_t *port, uint16_t *proto);
 
-int pico_socket_connect(struct pico_socket *s, const void *srv_addr, uint16_t remote_port);
+int pico_socket_connect(struct pico_socket *s, const void *remote_addr, uint16_t remote_port);
 int pico_socket_listen(struct pico_socket *s, const int backlog);
 struct pico_socket *pico_socket_accept(struct pico_socket *s, void *orig, uint16_t *port);
 int8_t pico_socket_del(struct pico_socket *s);
