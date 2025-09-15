@@ -1,7 +1,7 @@
 \section{IP Filter}
 
 % Short description/overview of module functions
-This module allows the user to add and remove filters. The user can filter packets based on interface, protocol, outgoing address, outgoing netmask, incomming address, incomming netmask, outgoing port, incomming port, priority and type of service. There are four types of filters: ACCEPT, PRIORITY, REJECT, DROP. When creating a PRIORITY filter, it is necessary to give a priority value in a range between '-10' and '10', '0' as default priority.
+This module allows the user to add and remove filters. The user can filter packets based on interface, protocol, outgoing address, outgoing netmask, incoming address, incoming netmask, outgoing port, incoming port, priority and type of service. There are four types of filters: ACCEPT, PRIORITY, REJECT, DROP. When creating a PRIORITY filter, it is necessary to give a priority value in a range between '-10' and '10', '0' as default priority.
 
 
 \subsection{pico$\_$ipv4$\_$filter$\_$add}
@@ -23,10 +23,10 @@ int pico_ipv4_filter_add(struct pico_device *dev, uint8_t proto,
 \item \texttt{proto} - protocol to be filtered
 \item \texttt{out$\_$addr} - outgoing address to be filtered
 \item \texttt{out$\_$addr$\_$netmask} - outgoing address-netmask to be filtered
-\item \texttt{in$\_$addr} - incomming address to be filtered
-\item \texttt{in$\_$addr$\_$netmask} - incomming address-netmask to be filtered
+\item \texttt{in$\_$addr} - incoming address to be filtered
+\item \texttt{in$\_$addr$\_$netmask} - incoming address-netmask to be filtered
 \item \texttt{out$\_$port} - outgoing port to be filtered
-\item \texttt{in$\_$port} - incomming port to be filtered
+\item \texttt{in$\_$port} - incoming port to be filtered
 \item \texttt{priority} - priority to assign on the marked packet
 \item \texttt{tos} - type of service to be filtered
 \item \texttt{action} - type of action for the filter: ACCEPT, PRIORITY, REJECT and DROP. ACCEPT, filters all packets selected by the filter. PRIORITY is not yet implemented. REJECT drops all packets and send an ICMP message 'Packet Filtered' (Communication Administratively Prohibited). DROP will discard the packet silently.

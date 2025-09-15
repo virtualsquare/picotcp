@@ -32,7 +32,7 @@ void (*wakeup)(uint16_t ev, struct pico_socket *s));
 \item \texttt{PICO$\_$SOCK$\_$EV$\_$RD} - triggered when new data arrives on the socket. A new receive action can be taken by the socket owner because this event indicates there is new data to receive.
 \item \texttt{PICO$\_$SOCK$\_$EV$\_$WR} - triggered when ready to write to the socket. Issuing a write/send call will now succeed if the buffer has enough space to allocate new outstanding data.
 \item \texttt{PICO$\_$SOCK$\_$EV$\_$CONN} - triggered when connection is established (TCP only). This event is received either after a successful call to \texttt{pico$\_$socket$\_$connect} to indicate that the connection has been established, or on a listening socket, indicating that a call to \texttt{pico$\_$socket$\_$accept} may now be issued in order to accept the incoming connection from a remote host.
-\item \texttt{PICO$\_$SOCK$\_$EV$\_$CLOSE} - triggered when a FIN segment is received (TCP only). This event indicates that the other endpont has closed the connection, so the local TCP layer is only allowed to send new data until a local shutdown or close is initiated. PicoTCP is able to keep the connection half-open (only for sending) after the FIN packet has been received, allowing new data to be sent in the TCP CLOSE$\_$WAIT state.
+\item \texttt{PICO$\_$SOCK$\_$EV$\_$CLOSE} - triggered when a FIN segment is received (TCP only). This event indicates that the other endpoint has closed the connection, so the local TCP layer is only allowed to send new data until a local shutdown or close is initiated. PicoTCP is able to keep the connection half-open (only for sending) after the FIN packet has been received, allowing new data to be sent in the TCP CLOSE$\_$WAIT state.
 \item \texttt{PICO$\_$SOCK$\_$EV$\_$FIN} - triggered when the socket is closed. No further communication is possible from this point on the socket.
 \item \texttt{PICO$\_$SOCK$\_$EV$\_$ERR} - triggered when an error occurs. 
 \end{itemize}
@@ -150,7 +150,7 @@ void *dst, uint16_t remote_port);
 \item \texttt{buf} - Void pointer to the start of the buffer
 \item \texttt{len} - Length of the buffer \texttt{buf}
 \item \texttt{dst} - Pointer to the origin of the IPv4/IPv6 frame header
-\item \texttt{remote$\_$port} - Portnumber of the receiving socket
+\item \texttt{remote$\_$port} - Port number of the receiving socket
 \end{itemize}
 
 \subsubsection*{Return value}
@@ -199,7 +199,7 @@ void *orig, uint16_t *remote_port);
 \subsubsection*{Return value}
 On success, this call returns an integer representing the number of bytes read from the socket. On success, if \texttt{orig}
 is not NULL, The address of the remote endpoint is stored in the memory area pointed by \texttt{orig}. 
-In the same way, \texttt{remote$\_$port} will contain the portnumber of the sending socket, unless a NULL is passed
+In the same way, \texttt{remote$\_$port} will contain the port number of the sending socket, unless a NULL is passed
 from the caller.
 
 On error, -1 is returned, and \texttt{pico$\_$err} is set appropriately.
@@ -251,7 +251,7 @@ void *dst, uint16_t remote_port, struct pico_msginfo *info);
 \item \texttt{len} - Length of the data that is stored in the buffer (in bytes)
 \item \texttt{dst} - IPv4 or IPv6 address of the destination peer where th frame is sent
 \item \texttt{remote$\_$port} - Port number of the receiving socket at the remote endpoint
-\item \texttt{info} - Extended information about the packet containing this datagram. Only the fields "ttl" and "tos" are taken into consideeration, while "dev" is ignored.
+\item \texttt{info} - Extended information about the packet containing this datagram. Only the fields "ttl" and "tos" are taken into consideration, while "dev" is ignored.
 
 \end{itemize}
 
@@ -301,7 +301,7 @@ void *orig, uint16_t *remote_port, struct pico_msginfo *info);
 \subsubsection*{Return value}
 On success, this call returns an integer representing the number of bytes read from the socket. On success, if \texttt{orig}
 is not NULL, The address of the remote endpoint is stored in the memory area pointed by \texttt{orig}. 
-In the same way, \texttt{remote$\_$port} will contain the portnumber of the sending socket, unless a NULL is passed
+In the same way, \texttt{remote$\_$port} will contain the port number of the sending socket, unless a NULL is passed
 from the caller.
 
 On error, -1 is returned, and \texttt{pico$\_$err} is set appropriately.
@@ -413,7 +413,7 @@ int pico_socket_bind(struct pico_socket *s, void *local_addr, uint16_t *port);
 \begin{itemize}[noitemsep]
 \item \texttt{s} - Pointer to socket of type \texttt{struct pico$\_$socket}
 \item \texttt{local$\_$addr} - Void pointer to the local IP-address
-\item \texttt{port} - Local portnumber to bind with the socket
+\item \texttt{port} - Local port number to bind with the socket
 \end{itemize}
 
 \subsubsection*{Return value}
@@ -448,7 +448,7 @@ int pico_socket_getname(struct pico_socket *s, void *local_addr, uint16_t *port,
 \begin{itemize}[noitemsep]
 \item \texttt{s} - Pointer to socket of type \texttt{struct pico$\_$socket}
 \item \texttt{local$\_$addr} - Address (IPv4 or IPv6) previously associated to this socket
-\item \texttt{port} - Local portnumber associated to the socket
+\item \texttt{port} - Local port number associated to the socket
 \item \texttt{proto} - Proto of the address returned in the \texttt{local$\_$addr} field. Can be either \texttt{PICO$\_$PROTO$\_$IPV4} or \texttt{PICO$\_$PROTO$\_$IPV6}
 \end{itemize}
 
@@ -488,7 +488,7 @@ int pico_socket_getpeername(struct pico_socket *s, void *remote_addr, uint16_t *
 \begin{itemize}[noitemsep]
 \item \texttt{s} - Pointer to socket of type \texttt{struct pico$\_$socket}
 \item \texttt{remote$\_$addr} - Address (IPv4 or IPv6) associated to the socket remote endpoint
-\item \texttt{port} - Local portnumber associated to the socket
+\item \texttt{port} - Local port number associated to the socket
 \item \texttt{proto} - Proto of the address returned in the \texttt{local$\_$addr} field. Can be either \texttt{PICO$\_$PROTO$\_$IPV4} or \texttt{PICO$\_$PROTO$\_$IPV6}
 \end{itemize}
 
@@ -599,13 +599,13 @@ uint16_t *local_port);
 \begin{itemize}[noitemsep]
 \item \texttt{s} - Pointer to socket of type \texttt{struct pico$\_$socket}
 \item \texttt{orig} - Pointer to the origin of the IPv4/IPv6 frame header
-\item \texttt{local$\_$port} - Portnumber of the local socket (pointer)
+\item \texttt{local$\_$port} - Port number of the local socket (pointer)
 \end{itemize}
 
 \subsubsection*{Return value}
 On success, this call returns the pointer to a \texttt{struct pico$\_$socket} that
 represents the client thas was just connected. Also \texttt{orig} will contain the requesting
-IP-address and \texttt{remote$\_$port} will contain the portnumber of the requesting socket.
+IP-address and \texttt{remote$\_$port} will contain the port number of the requesting socket.
 On error, \texttt{NULL} is returned, and \texttt{pico$\_$err} is set appropriately.
 
 \subsubsection*{Errors}

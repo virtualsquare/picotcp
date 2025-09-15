@@ -28,7 +28,7 @@ int pico_dns_sd_register_service( const char *name,
 \begin{itemize}[noitemsep]
 \item \texttt{name} - Instance-name of the service. Use a descriptive name for it but not longer than 63 characters.
 \item \texttt{type} - The type of the service. For all the possible service types see: \url{http://www.dns-sd.org/servicetypes.html}
-\item \texttt{port} - The portnumber on which the service runs.
+\item \texttt{port} - The port number on which the service runs.
 \item \texttt{txt$\_$data} - Pointer to vector with key-value pairs to insert into the TXT record to give additional information about the service. Use the 'PICO$\_$DNS$\_$SD$\_$KV$\_$VECTOR$\_$DECLARE'-macro to declare a vector for key-value-pairs. This vector will be destroyed when the function returns since there's no need in keeping the contents.
 \item \texttt{ttl} - TTL of the service on the network before it needs to be reconfirmed. In seconds.
 \item \texttt{callback} - Callback function that gets called when the service is successfully registered on the network.

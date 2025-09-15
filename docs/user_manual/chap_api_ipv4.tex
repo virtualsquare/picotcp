@@ -163,7 +163,7 @@ src = pico_ipv4_source_find(dst);
 \subsection{pico$\_$ipv4$\_$link$\_$add }
 
 \subsubsection*{Description}
-Add a new local device dev inteface, f.e. eth0, with IP address 'address' and netmask 'netmask'. A device may have more than one link configured, i.e. to access multiple networks on the same link.
+Add a new local device dev interface, f.e. eth0, with IP address 'address' and netmask 'netmask'. A device may have more than one link configured, i.e. to access multiple networks on the same link.
 
 \subsubsection*{Function prototype}
 \begin{verbatim}
@@ -489,7 +489,7 @@ void (*cb)(struct pico_icmp4_stats *));
 \item \texttt{dst} - Pointer to the destination internet host address as text string
 \item \texttt{count} - Number of pings going to be send
 \item \texttt{interval} - Time between two transmissions (in ms)
-\item \texttt{timeout} - Timeout period untill reply received (in ms)
+\item \texttt{timeout} - Timeout period until reply received (in ms)
 \item \texttt{size} - Size of data buffer in bytes
 \item \texttt{cb} - Callback for ICMP ping
 \end{itemize}

@@ -200,7 +200,7 @@ START_TEST (test_icmp4_incoming_ping)
         if(cntr % 4 == 0)
             printf("\n");
     }
-    fail_unless(len == buffer2len, "ping reply lenght does not match, expected len: %d, got: %d", buffer2len, len);
+    fail_unless(len == buffer2len, "ping reply length does not match, expected len: %d, got: %d", buffer2len, len);
     fail_unless(mock_ip_protocol(mock, buffer2, len) == 1);
     fail_unless(mock_icmp_type(mock, buffer2, len) == 0);
     fail_unless(mock_icmp_code(mock, buffer2, len) == 0);

@@ -54,8 +54,8 @@ uint16_t pico_udp_checksum_ipv4(struct pico_frame *f)
         pseudo.src.addr = s->local_addr.ip4.addr;
         pseudo.dst.addr = s->remote_addr.ip4.addr;
     } else {
-        /* Case of incomming frame */
-        udp_dbg("UDP CRC: on incomming frame\n");
+        /* Case of incoming frame */
+        udp_dbg("UDP CRC: on incoming frame\n");
         pseudo.src.addr = hdr->src.addr;
         pseudo.dst.addr = hdr->dst.addr;
     }
@@ -88,7 +88,7 @@ uint16_t pico_udp_checksum_ipv6(struct pico_frame *f)
         else
             pseudo.dst = s->remote_addr.ip6;
     } else {
-        /* Case of incomming frame */
+        /* Case of incoming frame */
         pseudo.src = ipv6_hdr->src;
         pseudo.dst = ipv6_hdr->dst;
     }
