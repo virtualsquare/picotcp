@@ -55,7 +55,7 @@ struct pico_tree_node LEAF = {
  */
 static struct pico_tree_node *create_node(struct pico_tree *tree, void *key, uint8_t allocator);
 static void rotateToLeft(struct pico_tree*tree, struct pico_tree_node*node);
-static void rotateToRight(struct pico_tree*root, struct pico_tree_node*node);
+static void rotateToRight(struct pico_tree*tree, struct pico_tree_node*node);
 static void fix_insert_collisions(struct pico_tree*tree, struct pico_tree_node*node);
 static void fix_delete_collisions(struct pico_tree*tree, struct pico_tree_node *node);
 static void switchNodes(struct pico_tree*tree, struct pico_tree_node*nodeA, struct pico_tree_node*nodeB);

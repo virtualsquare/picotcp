@@ -109,7 +109,7 @@ uint16_t pico_tcp_overhead(struct pico_socket *s);
 int pico_tcp_output(struct pico_socket *s, int loop_score);
 int pico_tcp_queue_in_is_empty(struct pico_socket *s);
 int pico_tcp_queue_in_size(struct pico_socket *s);
-int pico_tcp_reply_rst(struct pico_stack *S, struct pico_frame *f);
+int pico_tcp_reply_rst(struct pico_stack *S, struct pico_frame *fr);
 void pico_tcp_cleanup_queues(struct pico_socket *sck);
 void pico_tcp_notify_closing(struct pico_socket *sck);
 void pico_tcp_flags_update(struct pico_frame *f, struct pico_socket *s);

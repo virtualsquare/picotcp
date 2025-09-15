@@ -558,7 +558,7 @@ static int pico_tcp_process_out(struct pico_stack *S, struct pico_protocol *self
     return 0;
 }
 
-int pico_tcp_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *data);
+int pico_tcp_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f);
 
 /* Interface: protocol definition */
 struct pico_protocol pico_proto_tcp = {

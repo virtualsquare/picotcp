@@ -34,12 +34,12 @@
 
 struct pico_stack;
 int dhcp_cookies_cmp(void *ka, void *kb);
-int pico_dhcp_initiate_negotiation(struct pico_device *device, void (*callback)(void*cli, int code), uint32_t *xid);
+int pico_dhcp_initiate_negotiation(struct pico_device *dev, void (*cb)(void *dhcpc, int code), uint32_t *uid);
 void *pico_dhcp_get_identifier(struct pico_stack *S, uint32_t xid);
-struct pico_ip4 pico_dhcp_get_address(void *cli);
-struct pico_ip4 pico_dhcp_get_gateway(void *cli);
-struct pico_ip4 pico_dhcp_get_netmask(void *cli);
-struct pico_ip4 pico_dhcp_get_nameserver(void*cli, int index);
+struct pico_ip4 pico_dhcp_get_address(void *dhcpc);
+struct pico_ip4 pico_dhcp_get_gateway(void *dhcpc);
+struct pico_ip4 pico_dhcp_get_netmask(void *dhcpc);
+struct pico_ip4 pico_dhcp_get_nameserver(void*dhcpc, int index);
 int pico_dhcp_client_abort(struct pico_stack *S, uint32_t xid);
 char *pico_dhcp_get_hostname(struct pico_stack *S);
 char *pico_dhcp_get_domain(struct pico_stack *S);
