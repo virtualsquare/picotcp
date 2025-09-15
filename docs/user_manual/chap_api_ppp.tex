@@ -59,7 +59,7 @@ The function associated with the read must be non-blocking, no matter the execut
 \item \texttt{dev} - a pointer to a struct \texttt{pico\_device} specifying the target interface.
 \item \texttt{sread} - a pointer to a function of type \texttt{int fn(struct pico\_device *, void *, int)} 
     specifying the target serial read function. The function prototype will be called with the device pointer,
-    a buffer to be filled with serial data, and the maximum lenght of the usable buffer.
+    a buffer to be filled with serial data, and the maximum length of the usable buffer.
 \end{itemize}
 
 \subsubsection*{Return value}
@@ -92,7 +92,7 @@ The function associated with the write must be non-blocking, no matter the execu
 \item \texttt{dev} - a pointer to a struct \texttt{pico\_device} specifying the target interface.
 \item \texttt{swrite} - a pointer to a function of type \texttt{int fn(struct pico\_device *, const void *, int)} 
     specifying the target serial write function. The function prototype will be called with the device pointer,
-    a buffer to be filled with serial data, and the maximum lenght of the usable buffer.
+    a buffer to be filled with serial data, and the maximum length of the usable buffer.
 \end{itemize}
 
 \subsubsection*{Return value}

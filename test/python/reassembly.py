@@ -1,8 +1,8 @@
 #!/usr/bin/python
 #
-# reassemby.py
+# reassembly.py
 #
-# Reassemly test with PicoTCP receiving and Linux sending
+# Reassembly test with PicoTCP receiving and Linux sending
 #
 # (receiver)                       (Sender)
 # PicoTCP ------------------------ Linux

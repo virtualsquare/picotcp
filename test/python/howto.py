@@ -76,7 +76,7 @@ router1 = Host(T, network1, network2)
 # host1.2___/
 # (ping host1.1)
 
-# Now, we can attach an host to the second network too:
+# Now, we can attach a host to the second network too:
 # Connection to the host can be an emulated channel, i.e.
 # it is possible to add bidirectional delay and limited
 # bandwidth in the link between the host and the network:

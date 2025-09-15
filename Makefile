@@ -107,7 +107,7 @@ CFLAGS=-I$(PREFIX)/include -Iinclude -Imodules  $(EXTRA_CFLAGS)
 # options for adding warnings
 CFLAGS+= -Wall -W -Wextra -Wshadow -Wcast-qual -Wwrite-strings -Wundef -Wdeclaration-after-statement -Wno-address-of-packed-member
 CFLAGS+= -Wconversion -Wcast-align -Wmissing-prototypes
-# options for supressing warnings
+# options for suppressing warnings
 CFLAGS+= -Wno-missing-field-initializers
 
 ifeq ($(CC),clang)

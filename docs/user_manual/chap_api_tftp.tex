@@ -13,7 +13,7 @@ transmission of zero bytes must follow the flow.
 
 Function pico$\_$tftp$\_$listen must be used to start the server with a proper callback that should be provided by the user. To reject a request received by the server the server callback must call pico$\_$tftp$\_$reject$\_$request.
 
-In order to start transmission or reception of files a session handler must be obtained with a call to pico$\_$tftp$\_$session$\_$setup. The created session may take advantage of the Extenxed Options of the TFTP protocol invoking pico$\_$tftp$\_$set$\_$option before starting using it.
+In order to start transmission or reception of files a session handler must be obtained with a call to pico$\_$tftp$\_$session$\_$setup. The created session may take advantage of the Extended Options of the TFTP protocol invoking pico$\_$tftp$\_$set$\_$option before starting using it.
 
 Real file transaction is started using the functions pico$\_$tftp$\_$start$\_$tx and pico$\_$tftp$\_$start$\_$rx; both require a callback that must be provided by the user to handle single chunks of the transmission. The transmitter callback must use pico$\_$tftp$\_$send function to send each block of data.
 
@@ -88,7 +88,7 @@ void tftp_listen_cb(union pico_address *addr, uint16_t port,
     }
 }
 
-// Code fragment to demostrate the use of pico_tftp_listen:
+// Code fragment to demonstrate the use of pico_tftp_listen:
 if (!is_server_enabled) {
     pico_tftp_listen(PICO_PROTO_IPV4, (commands->operation == 'S') ?
                      tftp_listen_cb_opt : tftp_listen_cb);
@@ -495,12 +495,12 @@ int cb_tftp_tx(struct pico_tftp_session *session, uint16_t event,
 
 \subsubsection*{Description}
 Start a TFTP transfer. The action can be unsolicited (client GET operation) or solicited (server responding to a PUT request).
-In either case, the transfer will happen one block at a time, and the callback provided by the user will be called upon successful transfer of a block, whose content can be directly accessed via the \texttt{block} field, reception of an option acknowledge messagge (client mode) or whenever an error occurs.
+In either case, the transfer will happen one block at a time, and the callback provided by the user will be called upon successful transfer of a block, whose content can be directly accessed via the \texttt{block} field, reception of an option acknowledge message (client mode) or whenever an error occurs.
 The possible values for the \texttt{event} variable in callback are:
 \begin{itemize}[noitemsep]
 \item \texttt{PICO$\_$TFTP$\_$EV$\_$OK} Previously sent block has been acknowledge.
 \item \texttt{PICO$\_$TFTP$\_$EV$\_$OPT} Option acknowledge has been received.
-\item \texttt{PICO$\_$TFTP$\_$EV$\_$ERR$\_$PEER} An error has occurrend remotely.
+\item \texttt{PICO$\_$TFTP$\_$EV$\_$ERR$\_$PEER} An error has occurred remotely.
 \item \texttt{PICO$\_$TFTP$\_$EV$\_$ERR$\_$LOCAL} An internal error has occurred.
 \end{itemize}
 
@@ -517,7 +517,7 @@ int pico_tftp_start_rx(struct pico_tftp_session *session, uint16_t port,
 \begin{itemize}[noitemsep]
 \item \texttt{session} - the session handler to use for the file transfer.
 \item \texttt{port} - The port on the remote peer.
-\item \texttt{filename} - The name of the file to be transfered. In case of solicited transfer, it must match the filename provided during the request.
+\item \texttt{filename} - The name of the file to be transferred. In case of solicited transfer, it must match the filename provided during the request.
 \item \texttt{user$\_$cb} - The callback provided by the user to be called upon each block transfer, option acknowledge or in case of error. This is the callback where the incoming data is processed. When len is less than the block size, the transfer is over.
 \item \texttt{arg} - The pointer sent as argument to the callback.
 \end{itemize}

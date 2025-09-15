@@ -16,7 +16,7 @@ int pico_ipv6_to_string(char *ipbuf, const uint8_t ip[PICO_SIZE_IP6]);
 \subsubsection*{Parameters}
 \begin{itemize}[noitemsep]
 \item \texttt{ipbuf} - Char array to store the result in.
-\item \texttt{ip} - Internet host address in unsigned byte array notation of lenght 16.
+\item \texttt{ip} - Internet host address in unsigned byte array notation of length 16.
 \end{itemize}
 
 \subsubsection*{Return value}
@@ -274,7 +274,7 @@ src = pico_ipv6_source_find(dst);
 \subsection{pico$\_$ipv6$\_$link$\_$add }
 
 \subsubsection*{Description}
-Add a new local device dev inteface, f.e. eth0, with IP address 'address' and netmask 'netmask'. A device may have more than one link configured, i.e. to access multiple networks on the same link.
+Add a new local device dev interface, f.e. eth0, with IP address 'address' and netmask 'netmask'. A device may have more than one link configured, i.e. to access multiple networks on the same link.
 
 \subsubsection*{Function prototype}
 \begin{verbatim}

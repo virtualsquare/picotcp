@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # fairness.py
-# A complex test for butterly-like topology,
+# A complex test for butterfly-like topology,
 # using 3 TCP connections and 3 ping flows.
 #
 # s1---.                 .---r1

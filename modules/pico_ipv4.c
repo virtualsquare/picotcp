@@ -382,7 +382,7 @@ static int pico_ipv4_process_local_unicast_in(struct pico_stack *S, struct pico_
 #ifdef PICO_SUPPORT_UDP
         /* address of this device is apparently 0.0.0.0; might be a DHCP packet */
         /* XXX KRO: is obsolete. Broadcast flag is set on outgoing DHCP messages.
-         * incomming DHCP messages are to be broadcasted. Our current DHCP server
+         * incoming DHCP messages are to be broadcasted. Our current DHCP server
          * implementation does not take this flag into account yet though ... */
         pico_enqueue(pico_proto_udp.q_in, f);
         return 1;
