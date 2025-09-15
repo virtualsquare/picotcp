@@ -2172,7 +2172,7 @@ void pico_socket_destroy_all(struct pico_stack *S)
         PICO_FREE(s);
     }
 #endif
-#ifdef PICO_SUPPORT_RAWSOCKETS
+#if defined(PICO_SUPPORT_IPV4) && defined(PICO_SUPPORT_RAWSOCKETS)
     pico_tree_foreach_safe(index, &S->IP4Sockets, safe){
         s = index->keyValue;
         pico_socket_ipv4_close(s);
