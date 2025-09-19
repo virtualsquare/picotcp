@@ -13,8 +13,8 @@
 
 extern volatile uint32_t __str9_tick;
 
-#define pico_native_malloc(x) calloc(x, 1)
-#define pico_native_free(x) free(x)
+#define pico_zalloc(x) calloc(x, 1)
+#define pico_free(x) free(x)
 
 static inline unsigned long PICO_TIME(void)
 {
