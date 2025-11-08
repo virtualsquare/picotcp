@@ -17,13 +17,13 @@ jobs:
             version: '10.1'
             pkginstall: sudo pkgin update && sudo pkgin -y install clang gmake
           - operating_system: openbsd
-            version: '7.7'
+            version: '7.8'
             pkginstall: sudo pkg_add -u && sudo pkg_add gmake
 
     steps:
       - uses: actions/checkout@v4
 
-      - uses: cross-platform-actions/action@v0.29.0
+      - uses: cross-platform-actions/action@v0.30.0
         with:
           operating_system: ${{ matrix.operating_system }}
           architecture: ${{ matrix.architecture }}
