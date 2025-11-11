@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Toon Stegen, Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -26,6 +26,7 @@
  *
  *********************************************************************/
 #include "pico_config.h"
+#include "pico_dns_common.h"
 #include "pico_stack.h"
 #include "pico_addressing.h"
 #include "pico_socket.h"
@@ -934,7 +935,7 @@ pico_mdns_record_delete( void **record )
  *  Creates a single standalone mDNS resource record with given name, type and
  *  data.
  *
- *  @param S       TCP/IP stack reference 
+ *  @param S       TCP/IP stack reference
  *  @param url     DNS rrecord name in URL format. Will be converted to DNS
  *                 name notation format.
  *  @param _rdata  Memory buffer with data to insert in the resource record. If
@@ -1040,7 +1041,7 @@ pico_mdns_cookie_delete( void **ptr )
 /* ****************************************************************************
  *  Creates a single standalone mDNS cookie
  *
- *  @param S        TCP/IP stack reference 
+ *  @param S        TCP/IP stack reference
  *  @param qtree    DNS questions you want to insert in the cookie.
  *  @param antree   mDNS answers/authority records you want to add to cookie.
  *  @param artree   mDNS additional records you want to add to cookie.
@@ -1050,7 +1051,7 @@ pico_mdns_cookie_delete( void **ptr )
  *  @return Pointer to newly create cookie, NULL on failure.
  * ****************************************************************************/
 static struct pico_mdns_cookie *
-pico_mdns_cookie_create( struct pico_stack *S,  
+pico_mdns_cookie_create( struct pico_stack *S,
                          pico_dns_qtree qtree,
                          pico_mdns_rtree antree,
                          pico_mdns_rtree artree,
@@ -1466,7 +1467,7 @@ pico_mdns_my_records_probed( pico_mdns_rtree *records )
                         PICO_FREE(record->stack->mdns_hostname);
                     }
                     /* Re-allocate hostname from given rname */
-                    record->stack->mdns_hostname = 
+                    record->stack->mdns_hostname =
                         pico_dns_qname_to_url(found->record->rname);
                 }
 
@@ -2187,6 +2188,12 @@ pico_mdns_handle_data_as_answers_generic(struct pico_stack *S,
     /* Check params */
     if ((!ptr) || !packet || !(*ptr)) {
         pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+
+    // check that the number of answare/response corrispond to the number of questions
+    if (count != pico_tree_count(&S->MDNSOwnRecords)) {
+        mdns_dbg("Number of answers does not match the number of questions\n");
         return -1;
     }
 
@@ -3000,7 +3007,7 @@ pico_mdns_getrecord_generic(struct pico_stack *S,  const char *url, uint16_t typ
     }
 
     /* Associate the current TCP/IP stack reference to access relevant
-     * fields/trees 
+     * fields/trees
      */
     q->stack = S;
 
