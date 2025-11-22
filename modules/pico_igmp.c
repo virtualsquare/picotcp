@@ -473,6 +473,7 @@ static int pico_igmp_compatibility_mode(struct pico_frame *f)
     if (datalen >= 12) {
         /* IGMPv3 query */
         t.type = IGMP_TIMER_V2_QUERIER;
+        t.stack = S;
         if (pico_igmp_timer_is_running(&t)) { /* IGMPv2 querier present timer still running */
             igmp_dbg("Timer is already running\n");
             return -1;
@@ -509,6 +510,7 @@ static int pico_igmp_compatibility_mode(struct pico_frame *f)
             t.delay = ((IGMP_ROBUSTNESS * link->mcast_last_query_interval) + IGMP_QUERY_RESPONSE_INTERVAL) * 1000;
             t.f = f;
             t.callback = pico_igmp_v2querier_expired;
+            t.stack = S;
             /* only one of this type of timer may exist! */
             if (pico_igmp_timer_start(S, &t) < 0)
                 return -1;
@@ -905,6 +907,7 @@ static int srsfst(struct mcast_parameters *p)
     t.delay = (pico_rand() % (IGMP_UNSOLICITED_REPORT_INTERVAL * 10000));
     t.f = p->f;
     t.callback = pico_igmp_report_expired;
+    t.stack = p->stack;
     if (pico_igmp_timer_start(p->stack, &t) < 0)
         return -1;
 
@@ -991,6 +994,7 @@ static int srst(struct mcast_parameters *p)
     t.delay = (pico_rand() % (IGMP_UNSOLICITED_REPORT_INTERVAL * 10000));
     t.f = p->f;
     t.callback = pico_igmp_report_expired;
+    t.stack = p->stack;
     if (pico_igmp_timer_start(p->stack, &t) < 0)
         return -1;
 
@@ -1040,6 +1044,7 @@ static int st(struct mcast_parameters *p)
     t.delay = (pico_rand() % ((1u + p->max_resp_time) * 100u));
     t.f = p->f;
     t.callback = pico_igmp_report_expired;
+    t.stack = p->stack;
     if (pico_igmp_timer_start(p->stack, &t) < 0)
         return -1;
 
