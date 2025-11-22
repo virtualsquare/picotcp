@@ -253,7 +253,7 @@ START_TEST(tc_pico_ppp_ctl_send)
     fail_if(called_serial_send != 1);
     called_serial_send = 0;
     fail_if(serial_out_first_char != 0x7e);
-    fail_if(serial_out_len != 30);
+    fail_if(serial_out_len != 55);
 }
 END_TEST
 START_TEST(tc_pico_ppp_send)
@@ -279,7 +279,7 @@ START_TEST(tc_pico_ppp_send)
     fail_if(called_serial_send != 1);
     called_serial_send = 0;
     fail_if(serial_out_first_char != 0x7e);
-    fail_if(serial_out_len != 38);
+    fail_if(serial_out_len != 70);
 
     /* with LCPOPT_PROTO_COMP set */
     called_serial_send = 0;
@@ -288,7 +288,7 @@ START_TEST(tc_pico_ppp_send)
     fail_if(called_serial_send != 1);
     called_serial_send = 0;
     fail_if(serial_out_first_char != 0x7e);
-    fail_if(serial_out_len != 37);
+    fail_if(serial_out_len != 68);
     LCPOPT_UNSET_PEER((&_ppp), LCPOPT_PROTO_COMP);
 
     /* with LCPOPT_ADDRCTL_COMP set */
@@ -298,7 +298,7 @@ START_TEST(tc_pico_ppp_send)
     fail_if(called_serial_send != 1);
     called_serial_send = 0;
     fail_if(serial_out_first_char != 0x7e);
-    fail_if(serial_out_len != 36);
+    fail_if(serial_out_len != 67);
     LCPOPT_UNSET_PEER((&_ppp), LCPOPT_ADDRCTL_COMP);
 
 }
@@ -459,7 +459,7 @@ START_TEST(tc_lcp_send_configure_request)
     called_serial_send = 0;
     lcp_send_configure_request(&_ppp);
     fail_if(called_serial_send != 1);
-    fail_if(serial_out_len != 12);
+    fail_if(serial_out_len != 18);
 
     /* With all the options... */
     called_serial_send = 0;
@@ -468,7 +468,7 @@ START_TEST(tc_lcp_send_configure_request)
     LCPOPT_SET_LOCAL((&_ppp), LCPOPT_ADDRCTL_COMP);
     lcp_send_configure_request(&_ppp);
     fail_if(called_serial_send != 1);
-    fail_if(serial_out_len != 20);
+    fail_if(serial_out_len != 32);
 
     /* with a failing malloc... */
     pico_set_mm_failure(1);
@@ -515,7 +515,7 @@ START_TEST(tc_lcp_send_terminate_request)
     called_serial_send = 0;
     lcp_send_terminate_request(&_ppp);
     fail_if(called_serial_send != 1);
-    fail_if(serial_out_len != 12);
+    fail_if(serial_out_len != 17);
 
 }
 END_TEST
@@ -652,7 +652,7 @@ START_TEST(tc_ipcp_ack)
     ipcp->len = short_be(4);
     ipcp_send_ack(&_ppp);
     fail_if(called_serial_send != 1);
-    fail_if(serial_out_len != 12);
+    fail_if(serial_out_len != 18);
 
 }
 END_TEST
@@ -731,7 +731,7 @@ START_TEST(tc_ipcp_reject_vj)
     called_serial_send = 0;
     ipcp_reject_vj(&_ppp, buf);
     fail_if(called_serial_send != 1);
-    fail_if(serial_out_len != 18);
+    fail_if(serial_out_len != 30);
 }
 END_TEST
 START_TEST(tc_ppp_ipv4_conf)
