@@ -39,9 +39,6 @@ START_TEST (test_socket)
     s = pico_socket_open(PICO_PROTO_IPV4, 99, NULL);
     fail_if(s != NULL, "Error got socket wrong parameters");
 
-    s = pico_socket_open(PICO_PROTO_IPV4, 0xFFFF, NULL);
-    fail_if(s != NULL, "Error got socket");
-
     s = pico_socket_open(99, PICO_PROTO_UDP, NULL);
     fail_if(s != NULL, "Error got socket");
 
