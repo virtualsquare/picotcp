@@ -1435,6 +1435,11 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
     struct pico_remote_endpoint *remote_endpoint = NULL;
     void *src = NULL;
 
+    if (!s) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+
     if(len == 0)
         return 0;
 
