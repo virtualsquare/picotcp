@@ -992,7 +992,7 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 #ifdef PICO_SUPPORT_AODV
     pico_aodv_init(*S);
     EMPTY_TREE((*S)->aodv_nodes, aodv_node_compare);
-    EMPTY_TREE((*S)->aodv_nodes, aodv_dev_cmp);
+    EMPTY_TREE((*S)->aodv_devices, aodv_dev_cmp);
 #endif
 #ifdef PICO_SUPPORT_6LOWPAN
     if (pico_6lowpan_init(*S))
