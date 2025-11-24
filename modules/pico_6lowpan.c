@@ -1555,7 +1555,7 @@ defrag_update(struct frag_ctx *frag, uint16_t off, struct pico_frame *f)
     pico_frame_discard(f);
     if (frag->copied >= frag->dgram_size) { // Datagram completely reassembled
         lp_dbg("6LP: FIN: "GRN"reassembly"RST" with tag '%u', stats:  len: %d net: %d trans: %d\n", frag->dgram_tag, r->len, r->net_len, r->transport_len);
-        pico_tree_delete(&f->dev->stack->LPReassemblyTree, frag);
+        pico_tree_delete(&frag->f->dev->stack->LPReassemblyTree, frag);
         PICO_FREE(frag);
 #ifdef PICO_6LOWPAN_IPHC_ENABLED
         r = pico_ipv6_finalize(r, 0);
