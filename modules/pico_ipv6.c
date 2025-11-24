@@ -2071,6 +2071,9 @@ struct pico_ipv6_link *pico_ipv6_link_by_dev(struct pico_device *dev)
     struct pico_tree_node *index = NULL;
     struct pico_ipv6_link *link = NULL;
 
+    if (!dev)
+        return NULL;
+
     pico_tree_foreach(index, &dev->stack->IPV6Links)
     {
         link = index->keyValue;
