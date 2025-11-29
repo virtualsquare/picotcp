@@ -503,6 +503,7 @@ pico_mdns_record_copy( struct pico_mdns_record *record )
     copy->current_ttl = record->current_ttl;
     copy->flags = record->flags;
     copy->claim_id = record->claim_id;
+    copy->stack = record->stack;
 
     return copy;
 }
@@ -806,6 +807,7 @@ pico_mdns_record_resolve_conflict( struct pico_mdns_record *record,
     int retval;
     PICO_MDNS_RTREE_DECLARE(new_records);
     struct pico_mdns_record *copy = NULL;
+    struct pico_stack *S = NULL;
     char *new_name = NULL;
 
     /* Check params */
@@ -828,12 +830,15 @@ pico_mdns_record_resolve_conflict( struct pico_mdns_record *record,
 		}
     }
 
+    /* Copy stack pointer for later use */
+    S = record->stack;
+
     /* Step 3: delete conflicting record from my records */
-    pico_tree_delete(&record->stack->MDNSOwnRecords, record);
+    pico_tree_delete(&S->MDNSOwnRecords, record);
     pico_mdns_record_delete((void **)&record);
 
     /* Step 4: Try to reclaim the newly created records */
-    retval = pico_mdns_reclaim(record->stack, new_records, record->stack->mdns_init_callback, NULL);
+    retval = pico_mdns_reclaim(S, new_records, S->mdns_init_callback, NULL);
     pico_tree_destroy(&new_records, NULL);
     return retval;
 }
@@ -1170,6 +1175,7 @@ pico_mdns_cookie_resolve_conflict( struct pico_mdns_cookie *cookie,
 {
     struct pico_tree_node *node = NULL;
     struct pico_dns_question *question = NULL;
+    struct pico_stack *S = NULL;
     PICO_MDNS_RTREE_DECLARE(new_records);
     PICO_MDNS_RTREE_DECLARE(antree);
     char *new_name = NULL;
@@ -1190,6 +1196,7 @@ pico_mdns_cookie_resolve_conflict( struct pico_mdns_cookie *cookie,
     antree = cookie->antree;
     callback = cookie->callback;
     arg = cookie->arg;
+    S = cookie->stack;
 
     /* Find the first question in the cookie with the name for which
      * the conflict occured. When found, generate a new name.
@@ -1217,11 +1224,11 @@ pico_mdns_cookie_resolve_conflict( struct pico_mdns_cookie *cookie,
     pico_mdns_cookie_del_questions(cookie, rname);
 
     /* Step 3: Create records with new name for the records with that name */
-    new_records = pico_mdns_generate_new_records(cookie->stack, &antree, rname, new_name);
+    new_records = pico_mdns_generate_new_records(S, &antree, rname, new_name);
     PICO_FREE(new_name);
 
     /* Step 4: Try to reclaim the newly created records */
-    retval = pico_mdns_reclaim(cookie->stack, new_records, callback, arg);
+    retval = pico_mdns_reclaim(S, new_records, callback, arg);
     pico_tree_destroy(&new_records, NULL);
     return retval;
 }
@@ -2130,7 +2137,8 @@ pico_mdns_handle_single_additional(struct pico_stack *S,  struct pico_mdns_recor
  *  @return Tree with possible responses on the questions.
  * ****************************************************************************/
 static pico_mdns_rtree
-pico_mdns_handle_data_as_questions ( uint8_t **ptr,
+pico_mdns_handle_data_as_questions ( struct pico_stack *S,
+                                     uint8_t **ptr,
                                      uint16_t qdcount,
                                      pico_dns_packet *packet )
 {
@@ -2152,6 +2160,8 @@ pico_mdns_handle_data_as_questions ( uint8_t **ptr,
         /* Set qsuffix of the question to the correct location */
         question.qsuffix = (struct pico_dns_question_suffix *)
                            (question.qname + pico_dns_namelen_comp(question.qname) + 1);
+
+        question.stack = S;
 
         /* Handle a single question and merge the returned tree */
         rtree = pico_mdns_handle_single_question(&question, packet);
@@ -2212,6 +2222,7 @@ pico_mdns_handle_data_as_answers_generic(struct pico_stack *S,
         if (NULL != answer.rname) {
             mdns_answer.record = &answer;
             mdns_answer.record->rname_length = (uint16_t)(pico_dns_strlen(answer.rname) + 1u);
+            mdns_answer.stack = S;
 
             /* Handle a single aswer */
             switch (type) {
@@ -2730,7 +2741,7 @@ pico_mdns_handle_query_packet(struct pico_stack *S, pico_dns_packet *packet, str
 
     /* Generate a list of answers */
     qdcount = short_be(packet->qdcount);
-    antree = pico_mdns_handle_data_as_questions(&data, qdcount, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet);
     if (pico_tree_count(&antree) == 0) {
         mdns_dbg("No records found that correspond with this query!\n");
         return 0;
@@ -2770,7 +2781,7 @@ pico_mdns_handle_probe_packet(struct pico_stack *S,  pico_dns_packet *packet, st
 
     /* Generate a list of answers */
     qdcount = short_be(packet->qdcount);
-    antree = pico_mdns_handle_data_as_questions(&data, qdcount, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet);
 
     /* Check for Simultaneous Probe Tiebreaking */
     nscount = short_be(packet->nscount);
