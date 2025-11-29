@@ -575,7 +575,7 @@ pico_dns_sd_kv_vector_get( kv_vector *vector, uint16_t index )
         return NULL;
 
     /* Return record with conditioned index */
-    if (index < vector->count)
+    if (vector->pairs && (index < vector->count))
         return vector->pairs[index];
 
     return NULL;
