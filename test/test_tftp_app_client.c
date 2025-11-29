@@ -27,7 +27,7 @@ int32_t get_filesize(const char *filename)
     return buf.st_size;
 }
 
-void start_rx(struct pico_tftp_session *session, int *synchro, const char *filename, int options)
+void start_rx(struct pico_stack *stack, struct pico_tftp_session *session, int *synchro, const char *filename, int options)
 {
     int ret;
     int fd;
@@ -46,7 +46,7 @@ void start_rx(struct pico_tftp_session *session, int *synchro, const char *filen
         }
     }
 
-    ret = pico_tftp_app_start_rx(session, filename);
+    ret = pico_tftp_app_start_rx(stack, session, filename);
     if (ret) {
         fprintf(stderr, "Error in pico_tftp_app_start_rx\n");
         exit(1);
@@ -60,7 +60,7 @@ void start_rx(struct pico_tftp_session *session, int *synchro, const char *filen
 
     for(; left; left -= countdown) {
         usleep(2000); /* PICO_IDLE(); */
-        pico_stack_tick();
+        pico_stack_tick(stack);
         if (countdown)
             continue;
 
@@ -93,7 +93,7 @@ void start_rx(struct pico_tftp_session *session, int *synchro, const char *filen
     }
 }
 
-void start_tx(struct pico_tftp_session *session, int *synchro, const char *filename, int options)
+void start_tx(struct pico_stack *stack, struct pico_tftp_session *session, int *synchro, const char *filename, int options)
 {
     int ret;
     int fd;
@@ -118,7 +118,7 @@ void start_tx(struct pico_tftp_session *session, int *synchro, const char *filen
         }
     }
 
-    ret = pico_tftp_app_start_tx(session, filename);
+    ret = pico_tftp_app_start_tx(stack, session, filename);
     if (ret) {
         fprintf(stderr, "Error in pico_tftp_app_start_rx\n");
         exit(1);
@@ -133,7 +133,7 @@ void start_tx(struct pico_tftp_session *session, int *synchro, const char *filen
 
     for(; left; left -= countdown) {
         usleep(2000); /* PICO_IDLE(); */
-        pico_stack_tick();
+        pico_stack_tick(stack);
         if (countdown)
             continue;
 
@@ -184,9 +184,10 @@ int main(int argc, char**argv)
     union pico_address server_address;
     struct pico_ip4 netmask;
     struct pico_tftp_session *session;
+    struct pico_stack *stack;
     int synchro;
     int options = 0;
-    void (*operation)(struct pico_tftp_session *session, int *synchro, const char *filename, int options);
+    void (*operation)(struct pico_stack *stack, struct pico_tftp_session *session, int *synchro, const char *filename, int options);
 
     unsigned char macaddr[6] = {
         0, 0, 0, 0xa, 0xb, 0x0
@@ -221,18 +222,18 @@ int main(int argc, char**argv)
     }
 
     printf("%s start!\n", argv[0]);
-    pico_stack_init();
-    pico_dev = (struct pico_device *) pico_vde_create("/tmp/vde_switch", "tap0", macaddr);
+    pico_stack_init(&stack);
+    pico_dev = (struct pico_device *) pico_vde_create(stack, "/tmp/vde_switch", "tap0", macaddr);
 
     if(!pico_dev) {
         fprintf(stderr, "Error creating pico device, got enough privileges? Exiting...\n");
         exit(1);
     }
 
-    pico_ipv4_link_add(pico_dev, my_ip, netmask);
+    pico_ipv4_link_add(stack, pico_dev, my_ip, netmask);
     printf("Starting picoTCP loop\n");
 
-    session = pico_tftp_app_setup(&server_address, short_be(PICO_TFTP_PORT), PICO_PROTO_IPV4, &synchro);
+    session = pico_tftp_app_setup(stack, &server_address, short_be(PICO_TFTP_PORT), PICO_PROTO_IPV4, &synchro);
     if (!session) {
         fprintf(stderr, "Error in pico_tftp_app_setup\n");
         exit(1);
@@ -240,5 +241,5 @@ int main(int argc, char**argv)
 
     printf("synchro %d\n", synchro);
 
-    operation(session, &synchro, argv[1], options);
+    operation(stack, session, &synchro, argv[1], options);
 }

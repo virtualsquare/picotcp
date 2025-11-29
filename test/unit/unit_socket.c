@@ -1,6 +1,7 @@
 
-int pico_aodv_init(void)
+int pico_aodv_init(struct pico_stack *S)
 {
+    (void)S;
     return 0;
 }
 START_TEST (test_socket)
@@ -11,15 +12,21 @@ START_TEST (test_socket)
     struct pico_socket *sk_tcp, *sk_udp, *s, *sl, *sa;
     struct pico_device *dev;
     struct pico_ip4 inaddr_dst, inaddr_link, inaddr_incorrect, inaddr_uni, inaddr_null, netmask, orig, inaddr_got;
+    struct pico_stack *S;
 
     int getnodelay = -1;
     int nodelay = -1;
     int count = 0;
+    int olsr_socket_udp_count = 0;
 
     uint32_t getsocket_buffer = 0;
     uint32_t socket_buffer = 0;
 
-    pico_stack_init();
+    pico_stack_init(&S);
+#ifdef PICO_SUPPORT_OLSR
+    /* pico_stack_init calls pico_olsr_init which creates a socket with PICO_PROTO_UDP */
+    olsr_socket_udp_count = 1;
+#endif
 
     printf("START SOCKET TEST\n");
 
@@ -29,24 +36,24 @@ START_TEST (test_socket)
     pico_string_to_ipv4("0.0.0.0", &inaddr_null.addr);
     pico_string_to_ipv4("10.40.0.3", &inaddr_uni.addr);
 
-    dev = pico_null_create("dummy");
+    dev = pico_null_create(S, "dummy");
     netmask.addr = long_be(0xFFFF0000);
-    ret = pico_ipv4_link_add(dev, inaddr_link, netmask);
+    ret = pico_ipv4_link_add(S, dev, inaddr_link, netmask);
     fail_if(ret < 0, "socket> error adding link");
 
 
     /* socket_open passing wrong parameters */
-    s = pico_socket_open(PICO_PROTO_IPV4, 99, NULL);
+    s = pico_socket_open(S, PICO_PROTO_IPV4, 99, NULL);
     fail_if(s != NULL, "Error got socket wrong parameters");
 
-    s = pico_socket_open(99, PICO_PROTO_UDP, NULL);
+    s = pico_socket_open(S, 99, PICO_PROTO_UDP, NULL);
     fail_if(s != NULL, "Error got socket");
 
-    s = pico_socket_open(0xFFFF, PICO_PROTO_UDP, NULL);
+    s = pico_socket_open(S, 0xFFFF, PICO_PROTO_UDP, NULL);
     fail_if(s != NULL, "Error got socket");
 
 
-    sk_tcp = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, NULL);
+    sk_tcp = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_TCP, NULL);
     fail_if(sk_tcp == NULL, "socket> tcp socket open failed");
 
 
@@ -70,22 +77,22 @@ START_TEST (test_socket)
     /* socket_bind passing correct parameters */
     ret = pico_socket_bind(sk_tcp, &inaddr_link, &port_be);
     fail_if(ret < 0, "socket> tcp socket bind failed");
-    count = pico_count_sockets(PICO_PROTO_TCP);
+    count = pico_count_sockets(S, PICO_PROTO_TCP);
     printf("Count: %d\n", count);
     fail_unless(count == 1);
-    count = pico_count_sockets(0);
+    count = pico_count_sockets(S, 0);
     printf("Count: %d\n", count);
-    fail_unless(count == 1);
+    fail_unless(count == (1 + olsr_socket_udp_count));
 
-    sk_udp = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, NULL);
+    sk_udp = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, NULL);
     fail_if(sk_udp == NULL, "socket> udp socket open failed");
 
     port_be = short_be(5555);
     ret = pico_socket_bind(sk_udp, &inaddr_link, &port_be);
     fail_if(ret < 0, "socket> udp socket bind failed");
 
-    fail_if (pico_count_sockets(PICO_PROTO_UDP) != 1);
-    fail_if (pico_count_sockets(0) != 2);
+    fail_if (pico_count_sockets(S, PICO_PROTO_UDP) != (1 + olsr_socket_udp_count));
+    fail_if (pico_count_sockets(S, 0) != (2 + olsr_socket_udp_count));
 
 
     ret = pico_socket_getname(sk_udp, &inaddr_got, &port_got, &proto);
@@ -113,7 +120,7 @@ START_TEST (test_socket)
 
 
     /* testing listening socket */
-    sl = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_TCP, NULL);
+    sl = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_TCP, NULL);
     fail_if(sl == NULL, "socket> tcp socket open failed");
     port_be = short_be(6666);
     ret = pico_socket_bind(sl, &inaddr_link, &port_be);
@@ -439,7 +446,7 @@ START_TEST (test_crc_check)
     int ret = -1;
 
     printf("START CRC TEST\n");
-    pico_stack_init();
+    pico_stack_init(&S);
 
     /* IPv4 CRC unit tests */
     /* Allocated memory will not be freed when pico_ipv4_crc_check fails */

@@ -518,7 +518,7 @@ static void pico_socket_check_empty_sockport(struct pico_socket *s, struct pico_
     }
 }
 
-int8_t pico_socket_del(struct pico_socket *s)
+int8_t MOCKABLE pico_socket_del(struct pico_socket *s)
 {
     struct pico_sockport *sp = pico_get_sockport(s->stack, PROTO(s), s->local_port);
     if (!sp) {
@@ -675,7 +675,7 @@ static struct pico_socket *pico_socket_transport_open(struct pico_stack *S, uint
     return s;
 }
 
-struct pico_socket *pico_socket_open(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *))
+struct pico_socket *MOCKABLE pico_socket_open(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *))
 {
 
     struct pico_socket *s = NULL;

@@ -1,22 +1,23 @@
 #include "pico_sntp_client.h"
-#include "modules/pico_sntp_client.c"
-#include "check.h"
 #include "pico_socket.h"
-/* Mocking functions, variables, ... */
-volatile pico_time pico_tick = 0ull;
-volatile pico_err_t pico_err = 0;
+#include "pico_stack.h"
+#include "modules/pico_sntp_client.c"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 void cb_synced(pico_err_t status);
 
 /* Used in pico_sntp_sync_start */
-struct pico_socket *pico_socket_open(uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s))
+struct pico_socket *pico_socket_open(struct pico_stack *S, uint16_t net, uint16_t proto, void (*wakeup)(uint16_t ev, struct pico_socket *s))
 {
     struct pico_socket *sock = PICO_ZALLOC(sizeof(struct pico_socket));
     (void) net;
     (void) proto;
     (void) wakeup;
     fail_unless (sock != NULL);
+    sock->stack = S;
     return sock;
 }
 
@@ -98,8 +99,9 @@ int pico_socket_sendto(struct pico_socket *s, const void *buf, int len, void *ds
 }
 
 /* Used in pico_sntp_sync_start_dns_ipv4, not tested */
-int pico_dns_client_getaddr(const char *url, void (*callback)(char *ip, void *arg), void *arg)
+int pico_dns_client_getaddr(struct pico_stack *S, const char *url, void (*callback)(char *ip, void *arg), void *arg)
 {
+    (void) S;
     (void) url;
     (void) callback;
     (void) arg;
@@ -107,8 +109,9 @@ int pico_dns_client_getaddr(const char *url, void (*callback)(char *ip, void *ar
 }
 
 /* Used in pico_sntp_sync_start_dns_ipv6, not tested */
-int pico_dns_client_getaddr6(const char *url, void (*callback)(char *, void *), void *arg)
+int pico_dns_client_getaddr6(struct pico_stack *S, const char *url, void (*callback)(char *, void *), void *arg)
 {
+    (void) S;
     (void) url;
     (void) callback;
     (void) arg;
@@ -124,8 +127,9 @@ void cb_synced(pico_err_t status)
 
 /* Used in pico_sntp_send */
 static uint32_t timers_added = 0;
-uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void *arg)
+uint32_t pico_timer_add(struct pico_stack *S, pico_time expire, void (*timer)(pico_time, void *), void *arg)
 {
+    (void) S;
     (void) expire;
     (void) timer;
     (void) arg;
@@ -133,8 +137,9 @@ uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void
 }
 
 /* Used in pico_sntp_cleanup */
-void pico_timer_cancel(uint32_t t)
+void pico_timer_cancel(struct pico_stack *S, uint32_t t)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(t);
 }
 
@@ -191,6 +196,10 @@ START_TEST(tc_pico_sntp_cleanup)
 {
     struct sntp_server_ns_cookie *ck;
     struct pico_socket *sock;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
     fail_unless (ck != NULL);
     ck->hostname = PICO_ZALLOC(sizeof(char) * 5);
@@ -198,7 +207,7 @@ START_TEST(tc_pico_sntp_cleanup)
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
-    sock = pico_socket_open(0, 0, &pico_sntp_client_wakeup);
+    sock = pico_socket_open(S, 0, 0, &pico_sntp_client_wakeup);
     ck->sock = sock;
     sock->priv = ck;
 
@@ -214,6 +223,9 @@ START_TEST(tc_pico_sntp_parse)
     struct pico_sntp_header header = {
         0
     };
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
 
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
     fail_unless (ck != NULL);
@@ -222,7 +234,7 @@ START_TEST(tc_pico_sntp_parse)
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
-    sock = pico_socket_open(0, 0, &pico_sntp_client_wakeup);
+    sock = pico_socket_open(S, 0, 0, &pico_sntp_client_wakeup);
     ck->sock = sock;
     sock->priv = ck;
 
@@ -242,6 +254,10 @@ START_TEST(tc_pico_sntp_client_wakeup)
     uint16_t event = PICO_SOCK_EV_ERR;
     struct sntp_server_ns_cookie *ck;
     struct pico_socket *sock;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
     fail_unless (ck != NULL);
     ck->hostname = PICO_ZALLOC(sizeof(char) * 5);
@@ -249,7 +265,7 @@ START_TEST(tc_pico_sntp_client_wakeup)
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
-    sock = pico_socket_open(0, 0, &pico_sntp_client_wakeup);
+    sock = pico_socket_open(S, 0, 0, &pico_sntp_client_wakeup);
     ck->sock = sock;
     sock->priv = ck;
 
@@ -263,6 +279,10 @@ START_TEST(tc_sntp_receive_timeout)
 {
     struct sntp_server_ns_cookie *ck;
     struct pico_socket *sock;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
     fail_unless (ck != NULL);
     ck->hostname = PICO_ZALLOC(sizeof(char) * 5);
@@ -270,7 +290,7 @@ START_TEST(tc_sntp_receive_timeout)
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
-    sock = pico_socket_open(0, 0, &pico_sntp_client_wakeup);
+    sock = pico_socket_open(S, 0, 0, &pico_sntp_client_wakeup);
     ck->sock = sock;
     sock->priv = ck;
     sntp_receive_timeout(0ull, ck);
@@ -287,7 +307,12 @@ START_TEST(tc_pico_sntp_send)
     struct sntp_server_ns_cookie ck = {
         0
     };
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+    
     sock.priv = &ck;
+    sock.stack = S;
 
     pico_sntp_send(&sock, &dst);
 }
@@ -297,7 +322,15 @@ START_TEST(tc_dnsCallback)
     /* TODO: test this: static void dnsCallback(char *ip, void *arg) */
     char ip[] = "198.123.30.132";
     struct sntp_server_ns_cookie *ck;
+    struct pico_socket *sock;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    sock = pico_socket_open(S, 0, 0, &pico_sntp_client_wakeup);
+
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
+    ck->sock = sock;
 
     dnsCallback(ip, ck);
 }
@@ -305,63 +338,84 @@ END_TEST
 START_TEST(tc_pico_sntp_sync)
 {
     const char *sntp_server= "ntp.nasa.gov";
+    struct pico_stack *S = NULL;
 
-    fail_if(pico_sntp_sync(NULL, cb_synced) == 0);
+    pico_stack_init(&S);
+
+    fail_if(pico_sntp_sync(S, NULL, cb_synced) == 0);
     fail_if(pico_err != PICO_ERR_EINVAL);
 
-    fail_if(pico_sntp_sync(sntp_server, NULL) == 0);
+    fail_if(pico_sntp_sync(S, sntp_server, NULL) == 0);
     fail_if(pico_err != PICO_ERR_EINVAL);
 
-    fail_if(pico_sntp_sync(sntp_server, cb_synced) != 0);
+    fail_if(pico_sntp_sync(S, sntp_server, cb_synced) != 0);
 }
 END_TEST
 START_TEST(tc_pico_sntp_sync_ip)
 {
     union pico_address sntp_addr = { .ip4.addr = 0ul };
+    struct pico_stack *S = NULL;
 
-    fail_if(pico_sntp_sync_ip(NULL, cb_synced) == 0);
+    pico_stack_init(&S);
+
+    fail_if(pico_sntp_sync_ip(S, NULL, cb_synced) == 0);
     fail_if(pico_err != PICO_ERR_EINVAL);
 
-    fail_if(pico_sntp_sync_ip(&sntp_addr, NULL) == 0);
+    fail_if(pico_sntp_sync_ip(S, &sntp_addr, NULL) == 0);
     fail_if(pico_err != PICO_ERR_EINVAL);
 
-    fail_if(pico_sntp_sync_ip(&sntp_addr, cb_synced) != 0);
+    fail_if(pico_sntp_sync_ip(S, &sntp_addr, cb_synced) != 0);
 }
 END_TEST
 START_TEST(tc_pico_sntp_sync_start)
 {
     struct sntp_server_ns_cookie ck = { 0 };
     union pico_address sntp_addr = { .ip4.addr= 0ul };
+    struct pico_stack *S = NULL;
 
-    fail_if(pico_sntp_sync_start(&ck, &sntp_addr) != 0);
+    pico_stack_init(&S);
+
+    fail_if(pico_sntp_sync_start(S, &ck, &sntp_addr) != 0);
 }
 END_TEST
 START_TEST(tc_pico_sntp_sync_start_dns_ipv4)
 {
     const char *sntp_server = "ntp.nasa.gov";
+    struct pico_stack *S = NULL;
 
-    fail_if(pico_sntp_sync_start_dns_ipv4(sntp_server, cb_synced) != 0);
+    pico_stack_init(&S);
+
+    fail_if(pico_sntp_sync_start_dns_ipv4(S, sntp_server, cb_synced) != 0);
 }
 END_TEST
 START_TEST(tc_pico_sntp_sync_start_dns_ipv6)
 {
     const char *sntp_server = "ntp.nasa.gov";
+    struct pico_stack *S = NULL;
 
-    fail_if(pico_sntp_sync_start_dns_ipv6(sntp_server, cb_synced) != 0);
+    pico_stack_init(&S);
+
+    fail_if(pico_sntp_sync_start_dns_ipv6(S, sntp_server, cb_synced) != 0);
 }
 END_TEST
 START_TEST(tc_pico_sntp_sync_start_ipv4)
 {
     union pico_address sntp_addr = { .ip4.addr = 0};
+    struct pico_stack *S = NULL;
 
-    fail_if(pico_sntp_sync_start_ipv4(&sntp_addr, cb_synced) != 0);
+    pico_stack_init(&S);
+
+    fail_if(pico_sntp_sync_start_ipv4(S, &sntp_addr, cb_synced) != 0);
 }
 END_TEST
 START_TEST(tc_pico_sntp_sync_start_ipv6)
 {
     union pico_address sntp_addr = { .ip6.addr = { 0 } };
+    struct pico_stack *S = NULL;
 
-    fail_if(pico_sntp_sync_start_ipv6(&sntp_addr, cb_synced) != 0);
+    pico_stack_init(&S);
+
+    fail_if(pico_sntp_sync_start_ipv6(S, &sntp_addr, cb_synced) != 0);
 }
 END_TEST
 

@@ -88,7 +88,7 @@ int pico_ipv4_compare(struct pico_ip4 *a, struct pico_ip4 *b)
     return 0;
 }
 
-int pico_ipv4_to_string(char *ipbuf, const uint32_t ip)
+int MOCKABLE pico_ipv4_to_string(char *ipbuf, const uint32_t ip)
 {
     const unsigned char *addr = (const unsigned char *) &ip;
     int i;
@@ -131,7 +131,7 @@ static int pico_string_check_null_args(const char *ipstr, uint32_t *ip)
 
 }
 
-int pico_string_to_ipv4(const char *ipstr, uint32_t *ip)
+int MOCKABLE pico_string_to_ipv4(const char *ipstr, uint32_t *ip)
 {
     unsigned char buf[PICO_SIZE_IP4] = {
         0

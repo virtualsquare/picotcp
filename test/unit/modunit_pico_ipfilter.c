@@ -10,11 +10,13 @@
 #include "pico_udp.h"
 #include "pico_tree.h"
 #include "modules/pico_ipfilter.c"
-#include "check.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
-int pico_icmp4_packet_filtered(struct pico_frame *f)
+int pico_icmp4_packet_filtered(struct pico_stack *S, struct pico_frame *f)
 {
+    (void)S;
     (void)f;
     return 0;
 }

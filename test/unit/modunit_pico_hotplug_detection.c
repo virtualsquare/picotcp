@@ -2,8 +2,10 @@
 #include "pico_tree.h"
 #include "pico_device.h"
 #include "modules/pico_hotplug_detection.c"
-#include "check.h"
+#include "test/pico_rand.h"
 #include "pico_dev_null.c"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 void cb_one(struct pico_device *dev, int event);
@@ -14,8 +16,9 @@ int link_state_b(struct pico_device *self);
 /* stubs for timer */
 static int8_t timer_active = 0;
 void (*timer_cb_function)(pico_time, void *);
-uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void *arg)
+uint32_t pico_timer_add(struct pico_stack *S, pico_time expire, void (*timer)(pico_time, void *), void *arg)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(expire);
     IGNORE_PARAMETER(arg);
 
@@ -25,8 +28,10 @@ uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void
     return 123;
 }
 
-void pico_timer_cancel(uint32_t id)
+void pico_timer_cancel(struct pico_stack *S, uint32_t id)
 {
+    IGNORE_PARAMETER(S);
+
     timer_active--;
     fail_if(id != 123);
 }
@@ -71,8 +76,14 @@ START_TEST(tc_pico_hotplug_reg_dereg)
 {
     /* create some devices */
     struct pico_device *dev_a, *dev_b;
-    dev_a = pico_null_create("dummy1");
-    dev_b = pico_null_create("dummy2");
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    timer_active = 0;
+
+    dev_a = pico_null_create(S, "dummy1");
+    dev_b = pico_null_create(S, "dummy2");
 
     dev_a->link_state = &link_state_a;
     dev_b->link_state = &link_state_b;
@@ -90,7 +101,7 @@ START_TEST(tc_pico_hotplug_reg_dereg)
     pico_hotplug_deregister(dev_b, &cb_two);
 
     /* check that our tree is empty at the end */
-    fail_unless(pico_tree_empty(&Hotplug_device_tree));
+    fail_unless(pico_tree_empty(&S->Hotplug_device_tree));
 
     /* register functions multiple times */
     pico_hotplug_register(dev_a, &cb_one);
@@ -108,7 +119,7 @@ START_TEST(tc_pico_hotplug_reg_dereg)
     fail_unless(timer_active == 0);
 
     /* check that our tree is empty at the end */
-    fail_unless(pico_tree_empty(&Hotplug_device_tree));
+    fail_unless(pico_tree_empty(&S->Hotplug_device_tree));
 }
 END_TEST
 
@@ -116,9 +127,14 @@ START_TEST(tc_pico_hotplug_callbacks)
 {
     /* create some devices */
     struct pico_device *dev_a, *dev_b;
+    struct pico_stack *S;
 
-    dev_a = pico_null_create("dummy1");
-    dev_b = pico_null_create("dummy2");
+    pico_stack_init(&S);
+
+    timer_active = 0;
+
+    dev_a = pico_null_create(S, "dummy1");
+    dev_b = pico_null_create(S, "dummy2");
 
     dev_a->link_state = &link_state_a;
     dev_b->link_state = &link_state_b;
@@ -131,14 +147,14 @@ START_TEST(tc_pico_hotplug_callbacks)
     fail_unless(timer_active == 1);
 
     timer_active = 0;
-    timer_cb_function(0, NULL);
+    timer_cb_function(0, S);
     fail_unless(timer_active == 1);
     fail_unless(cb_one_cntr == 1);
     fail_unless(cb_two_cntr == 2);
 
     state_a = 1;
     timer_active = 0;
-    timer_cb_function(0, NULL);
+    timer_cb_function(0, S);
     fail_unless(timer_active == 1);
     fail_unless(cb_one_cntr == 2);
     fail_unless(cb_one_last_event == PICO_HOTPLUG_EVENT_UP );
@@ -147,7 +163,7 @@ START_TEST(tc_pico_hotplug_callbacks)
 
     state_b = 1;
     timer_active = 0;
-    timer_cb_function(0, NULL);
+    timer_cb_function(0, S);
     fail_unless(timer_active == 1);
     fail_unless(cb_one_cntr == 2);
     fail_unless(cb_one_last_event == PICO_HOTPLUG_EVENT_UP );
@@ -157,7 +173,7 @@ START_TEST(tc_pico_hotplug_callbacks)
     state_a = 0;
     state_b = 0;
     timer_active = 0;
-    timer_cb_function(0, NULL);
+    timer_cb_function(0, S);
     fail_unless(timer_active == 1);
     fail_unless(cb_one_cntr == 3);
     fail_unless(cb_one_last_event == PICO_HOTPLUG_EVENT_DOWN );

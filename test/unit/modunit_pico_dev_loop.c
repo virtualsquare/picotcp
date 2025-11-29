@@ -1,11 +1,14 @@
 #include "modules/pico_dev_loop.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
+
 static int called = 0;
 static int fail = 0;
 
 Suite *pico_suite(void);
 
-int pico_device_init(struct pico_device __attribute__((unused)) *dev, const char __attribute__((unused)) *name, const uint8_t __attribute__((unused)) *mac)
+int pico_device_init(struct pico_stack __attribute__((unused)) *S, struct pico_device __attribute__((unused)) *dev, const char __attribute__((unused)) *name, const uint8_t __attribute__((unused)) *mac)
 {
     if (fail)
         return -1;
@@ -52,16 +55,19 @@ END_TEST
 
 START_TEST(tc_pico_loop_create)
 {
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
 
 #ifdef PICO_FAULTY
     printf("Testing with faulty memory in pico_loop_create (1)\n");
     pico_set_mm_failure(1);
-    fail_if(pico_loop_create() != NULL);
+    fail_if(pico_loop_create(S) != NULL);
 #endif
     fail = 1;
-    fail_if(pico_loop_create() != NULL);
+    fail_if(pico_loop_create(S) != NULL);
     fail = 0;
-    fail_if(pico_loop_create() == NULL);
+    fail_if(pico_loop_create(S) == NULL);
 
 }
 END_TEST

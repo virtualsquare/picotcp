@@ -12,8 +12,11 @@
 #include "pico_tree.h"
 #include "pico_constants.h"
 #include "pico_fragments.h"
-#include "./modules/pico_fragments.c"
-#include "check.h"
+#include "pico_dev_mock.c"
+#include "modules/pico_fragments.c"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 /* Mock! */
@@ -30,34 +33,38 @@ int32_t pico_transport_receive(struct pico_frame *f, uint8_t proto)
     return 0;
 }
 
-static int timer_add_called = 0;
-uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void *arg)
+static uint32_t timer_add_called = 0;
+uint32_t pico_timer_add(struct pico_stack *S, pico_time expire, void (*timer)(pico_time, void *), void *arg)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(expire);
     IGNORE_PARAMETER(arg);
-    fail_if(timer != pico_frag_expire);
+    IGNORE_PARAMETER(timer);
     timer_add_called++;
-    return 0;
+    return timer_add_called;
 }
 
 static int timer_cancel_called = 0;
-void pico_timer_cancel(uint32_t id)
+void pico_timer_cancel(struct pico_stack *S, uint32_t id)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(id);
     timer_cancel_called++;
 }
 
 static int icmp4_frag_expired_called = 0;
-int pico_icmp4_frag_expired(struct pico_frame *f)
+int pico_icmp4_frag_expired(struct pico_stack *S, struct pico_frame *f)
 {
+    IGNORE_PARAMETER(S);
     fail_unless(IS_IPV4(f));
     icmp4_frag_expired_called++;
     return 0;
 }
 
 static int icmp6_frag_expired_called = 0;
-int pico_icmp6_frag_expired(struct pico_frame *f)
+int pico_icmp6_frag_expired(struct pico_stack *S, struct pico_frame *f)
 {
+    IGNORE_PARAMETER(S);
     fail_unless(IS_IPV6(f));
     icmp6_frag_expired_called++;
     return 0;
@@ -103,6 +110,10 @@ END_TEST
 START_TEST(tc_pico_ipv6_fragments_complete)
 {
     struct pico_frame *a, *b;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
     transport_recv_called = 0;
     timer_cancel_called = 0;
     a = pico_frame_alloc(32 + 20);
@@ -124,15 +135,15 @@ START_TEST(tc_pico_ipv6_fragments_complete)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20; /* off = 32 */
 
-    pico_tree_insert(&ipv6_fragments, a);
-    pico_tree_insert(&ipv6_fragments, b);
+    pico_tree_insert(&S->ipv6_fragments, a);
+    pico_tree_insert(&S->ipv6_fragments, b);
 
     pico_set_mm_failure(1);
-    pico_fragments_complete(64, TESTPROTO, PICO_PROTO_IPV6);
+    pico_fragments_complete(S, 64, TESTPROTO, PICO_PROTO_IPV6);
     fail_if(transport_recv_called != 0);
     fail_if(timer_cancel_called != 0);
 
-    pico_fragments_complete(64, TESTPROTO, PICO_PROTO_IPV6);
+    pico_fragments_complete(S, 64, TESTPROTO, PICO_PROTO_IPV6);
     fail_if(transport_recv_called != 1);
     fail_if(timer_cancel_called != 1);
 }
@@ -141,6 +152,10 @@ END_TEST
 START_TEST(tc_pico_ipv4_fragments_complete)
 {
     struct pico_frame *a, *b;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
     transport_recv_called = 0;
     timer_cancel_called = 0;
     a = pico_frame_alloc(32 + 20);
@@ -162,15 +177,15 @@ START_TEST(tc_pico_ipv4_fragments_complete)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20 >> 3u; /* off = 32 */
 
-    pico_tree_insert(&ipv4_fragments, a);
-    pico_tree_insert(&ipv4_fragments, b);
+    pico_tree_insert(&S->ipv4_fragments, a);
+    pico_tree_insert(&S->ipv4_fragments, b);
 
     pico_set_mm_failure(1);
-    pico_fragments_complete(64, TESTPROTO, PICO_PROTO_IPV4);
+    pico_fragments_complete(S, 64, TESTPROTO, PICO_PROTO_IPV4);
     fail_if(transport_recv_called != 0);
     fail_if(timer_cancel_called != 0);
 
-    pico_fragments_complete(64, TESTPROTO, PICO_PROTO_IPV4);
+    pico_fragments_complete(S, 64, TESTPROTO, PICO_PROTO_IPV4);
     fail_if(transport_recv_called != 1);
     fail_if(timer_cancel_called != 1);
 }
@@ -230,8 +245,12 @@ END_TEST
 START_TEST(tc_pico_fragments_check_complete)
 {
     struct pico_frame *a, *b;
-    fail_if(pico_fragments_check_complete(&ipv4_fragments, TESTPROTO, PICO_PROTO_IPV4) != 1);
-    fail_if(pico_fragments_check_complete(&ipv6_fragments, TESTPROTO, PICO_PROTO_IPV6) != 1);
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    fail_if(pico_fragments_check_complete(S, &S->ipv4_fragments, TESTPROTO, PICO_PROTO_IPV4) != 1);
+    fail_if(pico_fragments_check_complete(S, &S->ipv6_fragments, TESTPROTO, PICO_PROTO_IPV6) != 1);
 
     /* Case 1: IPV4 all packets received */
     transport_recv_called = 0;
@@ -255,10 +274,10 @@ START_TEST(tc_pico_fragments_check_complete)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20 >> 3u; /* off = 32 */
 
-    pico_tree_insert(&ipv4_fragments, a);
-    pico_tree_insert(&ipv4_fragments, b);
+    pico_tree_insert(&S->ipv4_fragments, a);
+    pico_tree_insert(&S->ipv4_fragments, b);
 
-    fail_if(pico_fragments_check_complete(&ipv4_fragments, TESTPROTO, PICO_PROTO_IPV4) != 0);
+    fail_if(pico_fragments_check_complete(S, &S->ipv4_fragments, TESTPROTO, PICO_PROTO_IPV4) != 0);
     fail_if(transport_recv_called != 1);
     fail_if(timer_cancel_called != 1);
 
@@ -284,10 +303,10 @@ START_TEST(tc_pico_fragments_check_complete)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20; /* off = 32 */
 
-    pico_tree_insert(&ipv6_fragments, a);
-    pico_tree_insert(&ipv6_fragments, b);
+    pico_tree_insert(&S->ipv6_fragments, a);
+    pico_tree_insert(&S->ipv6_fragments, b);
 
-    fail_if(pico_fragments_check_complete(&ipv6_fragments, TESTPROTO, PICO_PROTO_IPV6) != 0);
+    fail_if(pico_fragments_check_complete(S, &S->ipv6_fragments, TESTPROTO, PICO_PROTO_IPV6) != 0);
     fail_if(transport_recv_called != 1);
     fail_if(timer_cancel_called != 1);
 
@@ -315,10 +334,10 @@ START_TEST(tc_pico_fragments_check_complete)
     b->frag = 0x20 >> 3u | PICO_IPV4_MOREFRAG; /* off = 32 + more frags */
     /* b->frag = PICO_IPV4_MOREFRAG; /\* more frags *\/ */
 
-    pico_tree_insert(&ipv4_fragments, a);
-    pico_tree_insert(&ipv4_fragments, b);
+    pico_tree_insert(&S->ipv4_fragments, a);
+    pico_tree_insert(&S->ipv4_fragments, b);
 
-    fail_if(pico_fragments_check_complete(&ipv4_fragments, TESTPROTO, PICO_PROTO_IPV4) == 0);
+    fail_if(pico_fragments_check_complete(S, &S->ipv4_fragments, TESTPROTO, PICO_PROTO_IPV4) == 0);
     fail_if(transport_recv_called != 0);
     fail_if(timer_cancel_called != 0);
 
@@ -344,10 +363,10 @@ START_TEST(tc_pico_fragments_check_complete)
     b->transport_hdr = b->buffer + 20;
     b->frag = 1; /* more frags */
 
-    pico_tree_insert(&ipv6_fragments, a);
-    pico_tree_insert(&ipv6_fragments, b);
+    pico_tree_insert(&S->ipv6_fragments, a);
+    pico_tree_insert(&S->ipv6_fragments, b);
 
-    fail_if(pico_fragments_check_complete(&ipv6_fragments, TESTPROTO, PICO_PROTO_IPV6) == 0);
+    fail_if(pico_fragments_check_complete(S, &S->ipv6_fragments, TESTPROTO, PICO_PROTO_IPV6) == 0);
     fail_if(transport_recv_called != 0);
     fail_if(timer_cancel_called != 0);
 }
@@ -359,12 +378,20 @@ START_TEST(tc_pico_fragments_send_notify)
     char ipv4_multicast_address[] = {
         "224.0.0.1"
     };
+    struct mock_device *mock = NULL;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
+    /* Create mock device */
+    mock = pico_mock_create(S, NULL);
+    fail_if(!mock, "MOCK DEVICE creation failed");
 
     icmp4_frag_expired_called = 0;
 
     /* Case 1: NULL fragment */
 
-    pico_fragments_send_notify(NULL);
+    pico_fragments_send_notify(S, NULL);
 
     /* Notify should not be send when supplied a NULL argument */
     fail_if(icmp4_frag_expired_called);
@@ -373,20 +400,21 @@ START_TEST(tc_pico_fragments_send_notify)
     a = pico_frame_alloc(sizeof(struct pico_ipv4_hdr));
     fail_if(!a);
     printf("Allocated frame, %p\n", a);
+    a->dev = mock->dev;
 
     a->net_hdr = a->buffer;
     a->net_len = sizeof(struct pico_ipv4_hdr);
     a->buffer[0] = 0x40;        /* IPV4 */
     a->frag = 0x20 >> 3u;       /* off = 32 */
 
-    pico_fragments_send_notify(a);
+    pico_fragments_send_notify(S, a);
 
     /* fragment has offset > 0, no notify should be sent */
     fail_if(icmp4_frag_expired_called);
 
     /* Case 3: fragment with offset > 0 & multicast address */
     pico_string_to_ipv4(ipv4_multicast_address, &((struct pico_ipv4_hdr*)(a->net_hdr))->dst.addr);
-    pico_fragments_send_notify(a);
+    pico_fragments_send_notify(S, a);
 
     /* fragment has offset > 0 AND multicast address, no notify should be sent */
     fail_if(icmp4_frag_expired_called);
@@ -398,7 +426,7 @@ START_TEST(tc_pico_fragments_send_notify)
     a->frag = PICO_IPV4_MOREFRAG; /* more frags */
     pico_string_to_ipv4("127.0.0.1", &((struct pico_ipv4_hdr*)(a->net_hdr))->dst.addr); /* Set a non-nulticast address */
 
-    pico_fragments_send_notify(a);
+    pico_fragments_send_notify(S, a);
 
     /* fragment has offset == 0, notify should be sent */
     fail_if(!icmp4_frag_expired_called);
@@ -407,7 +435,7 @@ START_TEST(tc_pico_fragments_send_notify)
     icmp4_frag_expired_called = 0; /* reset flag */
     pico_string_to_ipv4(ipv4_multicast_address, &((struct pico_ipv4_hdr*)(a->net_hdr))->dst.addr);
 
-    pico_fragments_send_notify(a);
+    pico_fragments_send_notify(S, a);
 
     /* fragment has offset == 0 but multicast address, notify should NOT sent */
     fail_if(icmp4_frag_expired_called);
@@ -427,6 +455,14 @@ START_TEST(tc_pico_frag_expire)
         "224.0.0.1"
     };
     struct pico_ip6 ipv6_multicast_addr = {{ 0xff, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9 }};
+    struct mock_device *mock = NULL;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
+    /* Create mock device */
+    mock = pico_mock_create(S, NULL);
+    fail_if(!mock, "MOCK DEVICE creation failed");
 
     /* Clear env vars */
     icmp4_frag_expired_called = 0;
@@ -452,12 +488,13 @@ START_TEST(tc_pico_frag_expire)
     a->net_len = sizeof(struct pico_ipv4_hdr);
     a->buffer[0] = 0x40;        /* IPV4 */
     a->frag = 0x20 >> 3u;       /* off = 32 */
+    a->dev = mock->dev;
 
-    pico_tree_insert(&ipv4_fragments, a);
+    pico_tree_insert(&S->ipv4_fragments, a);
 
-    pico_frag_expire(0, (void*)(&ipv4_fragments));
+    pico_frag_expire(0, (void*)(&S->ipv4_fragments));
     fail_if(icmp4_frag_expired_called);
-    fail_if(!pico_tree_empty(&ipv4_fragments));
+    fail_if(!pico_tree_empty(&S->ipv4_fragments));
 
     /* Case 2: first fragment was received, send notify + empty tree */
 
@@ -465,12 +502,13 @@ START_TEST(tc_pico_frag_expire)
     b->net_len = sizeof(struct pico_ipv4_hdr);
     b->buffer[0] = 0x40;        /* IPV4 */
     b->frag = PICO_IPV4_MOREFRAG; /* more frags */
+    b->dev = mock->dev;
 
-    pico_tree_insert(&ipv4_fragments, b);
+    pico_tree_insert(&S->ipv4_fragments, b);
 
-    pico_frag_expire(0, (void*)(&ipv4_fragments));
+    pico_frag_expire(0, (void*)(&S->ipv4_fragments));
     fail_if(!icmp4_frag_expired_called);
-    fail_if(!pico_tree_empty(&ipv4_fragments));
+    fail_if(!pico_tree_empty(&S->ipv4_fragments));
 
     /* Case 3: first fragment was received but it is multicast, do not send notify + empty tree */
     /* Reallocate frame, it was discarded in the last pico_frag_expire() */
@@ -484,14 +522,15 @@ START_TEST(tc_pico_frag_expire)
     b->net_len = sizeof(struct pico_ipv4_hdr);
     b->buffer[0] = 0x40;        /* IPV4 */
     b->frag = PICO_IPV4_MOREFRAG; /* more frags */
+    b->dev = mock->dev;
 
     pico_string_to_ipv4(ipv4_multicast_address, &((struct pico_ipv4_hdr*)(b->net_hdr))->dst.addr);
 
-    pico_tree_insert(&ipv4_fragments, b);
+    pico_tree_insert(&S->ipv4_fragments, b);
 
-    pico_frag_expire(0, (void*)(&ipv4_fragments));
+    pico_frag_expire(0, (void*)(&S->ipv4_fragments));
     fail_if(icmp4_frag_expired_called);
-    fail_if(!pico_tree_empty(&ipv4_fragments));
+    fail_if(!pico_tree_empty(&S->ipv4_fragments));
 
 
     /* IPV6 TESTS */
@@ -508,13 +547,14 @@ START_TEST(tc_pico_frag_expire)
     a->net_len = sizeof(struct pico_ipv6_hdr);
     a->buffer[0] = 0x60;        /* IPV6 */
     a->frag = 0x20;             /* off = 32 */
+    a->dev = mock->dev;
     memcpy(((struct pico_ipv6_hdr*)(a->net_hdr))->dst.addr, addr_1.addr, PICO_SIZE_IP6);
 
-    pico_tree_insert(&ipv6_fragments, a);
+    pico_tree_insert(&S->ipv6_fragments, a);
 
-    pico_frag_expire(0, (void*)(&ipv6_fragments));
+    pico_frag_expire(0, (void*)(&S->ipv6_fragments));
     fail_if(icmp6_frag_expired_called);
-    fail_if(!pico_tree_empty(&ipv6_fragments));
+    fail_if(!pico_tree_empty(&S->ipv6_fragments));
 
     /* Case 5: first fragment was received, send notify + empty tree */
 
@@ -522,13 +562,14 @@ START_TEST(tc_pico_frag_expire)
     b->net_len = sizeof(struct pico_ipv6_hdr);
     b->buffer[0] = 0x60;        /* IPV6 */
     b->frag = 1;
+    b->dev = mock->dev;
     memcpy(((struct pico_ipv6_hdr*)(b->net_hdr))->dst.addr, addr_1.addr, PICO_SIZE_IP6);
 
-    pico_tree_insert(&ipv6_fragments, b);
+    pico_tree_insert(&S->ipv6_fragments, b);
 
-    pico_frag_expire(0, (void*)(&ipv6_fragments));
+    pico_frag_expire(0, (void*)(&S->ipv6_fragments));
     fail_if(!icmp6_frag_expired_called);
-    fail_if(!pico_tree_empty(&ipv6_fragments));
+    fail_if(!pico_tree_empty(&S->ipv6_fragments));
 
     /* Case 6: first fragment was received but it is multicast, do not send notify + empty tree */
     /* Reallocate frame, it was discarded in the last pico_frag_expire() */
@@ -542,23 +583,28 @@ START_TEST(tc_pico_frag_expire)
     b->net_len = sizeof(struct pico_ipv4_hdr);
     b->buffer[0] = 0x60;        /* IPV4 */
     b->frag = 1;
+    b->dev = mock->dev;
 
     memcpy(((struct pico_ipv6_hdr*)(b->net_hdr))->dst.addr, ipv6_multicast_addr.addr, PICO_SIZE_IP6);
 
-    pico_tree_insert(&ipv6_fragments, b);
+    pico_tree_insert(&S->ipv6_fragments, b);
 
-    pico_frag_expire(0, (void*)(&ipv6_fragments));
+    pico_frag_expire(0, (void*)(&S->ipv6_fragments));
     fail_if(icmp6_frag_expired_called);
-    fail_if(!pico_tree_empty(&ipv6_fragments));
+    fail_if(!pico_tree_empty(&S->ipv6_fragments));
 
 }
 END_TEST
 START_TEST(tc_pico_ipv6_frag_timer_on)
 {
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
     /* Reset env variable */
     timer_add_called = 0;
 
-    pico_ipv6_frag_timer_on();
+    pico_ipv6_frag_timer_on(S);
 
     /* Was timer added? */
     fail_if(!timer_add_called);
@@ -566,10 +612,14 @@ START_TEST(tc_pico_ipv6_frag_timer_on)
 END_TEST
 START_TEST(tc_pico_ipv4_frag_timer_on)
 {
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
     /* Reset env variable */
     timer_add_called = 0;
 
-    pico_ipv4_frag_timer_on();
+    pico_ipv4_frag_timer_on(S);
 
     /* Was timer added? */
     fail_if(!timer_add_called);
@@ -832,6 +882,9 @@ END_TEST
 START_TEST(tc_pico_fragments_reassemble)
 {
     struct pico_frame *a, *b;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
 
     /* NULL tree */
     transport_recv_called = 0;
@@ -842,13 +895,13 @@ START_TEST(tc_pico_fragments_reassemble)
     /* Empty tree */
     transport_recv_called = 0;
     buffer_len_transport_receive = 0;
-    fail_if(pico_fragments_reassemble(&ipv4_fragments, 0, TESTPROTO, PICO_PROTO_IPV4) != -2);
+    fail_if(pico_fragments_reassemble(&S->ipv4_fragments, 0, TESTPROTO, PICO_PROTO_IPV4) != -2);
     fail_if(transport_recv_called);
 
     /* Empty tree */
     transport_recv_called = 0;
     buffer_len_transport_receive = 0;
-    fail_if(pico_fragments_reassemble(&ipv6_fragments, 0, TESTPROTO, PICO_PROTO_IPV6) != -2);
+    fail_if(pico_fragments_reassemble(&S->ipv6_fragments, 0, TESTPROTO, PICO_PROTO_IPV6) != -2);
     fail_if(transport_recv_called);
 
     /* Case 1: IPV4 , everything good */
@@ -873,13 +926,13 @@ START_TEST(tc_pico_fragments_reassemble)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20 >> 3u; /* off = 32 */
 
-    pico_tree_insert(&ipv4_fragments, a);
-    pico_tree_insert(&ipv4_fragments, b);
+    pico_tree_insert(&S->ipv4_fragments, a);
+    pico_tree_insert(&S->ipv4_fragments, b);
 
-    fail_if(pico_fragments_reassemble(&ipv4_fragments, 64, TESTPROTO, PICO_PROTO_IPV4) != 0);
+    fail_if(pico_fragments_reassemble(&S->ipv4_fragments, 64, TESTPROTO, PICO_PROTO_IPV4) != 0);
     fail_if(transport_recv_called != 1);
     fail_if(buffer_len_transport_receive != 64 + PICO_SIZE_IP4HDR);
-    fail_if(!pico_tree_empty(&ipv4_fragments));
+    fail_if(!pico_tree_empty(&S->ipv4_fragments));
 
     /* Case 2: IPV6 , everything good */
     transport_recv_called = 0;
@@ -903,13 +956,13 @@ START_TEST(tc_pico_fragments_reassemble)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20; /* off = 32 */
 
-    pico_tree_insert(&ipv6_fragments, a);
-    pico_tree_insert(&ipv6_fragments, b);
+    pico_tree_insert(&S->ipv6_fragments, a);
+    pico_tree_insert(&S->ipv6_fragments, b);
 
-    fail_if(pico_fragments_reassemble(&ipv6_fragments, 64, TESTPROTO, PICO_PROTO_IPV6) != 0);
+    fail_if(pico_fragments_reassemble(&S->ipv6_fragments, 64, TESTPROTO, PICO_PROTO_IPV6) != 0);
     fail_if(transport_recv_called != 1);
     fail_if(buffer_len_transport_receive != 64 + PICO_SIZE_IP6HDR);
-    fail_if(!pico_tree_empty(&ipv4_fragments));
+    fail_if(!pico_tree_empty(&S->ipv4_fragments));
 
     /* Case 3: IPV4 with mm failure*/
     transport_recv_called = 0;
@@ -933,14 +986,14 @@ START_TEST(tc_pico_fragments_reassemble)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20 >> 3u; /* off = 32 */
 
-    pico_tree_insert(&ipv4_fragments, a);
-    pico_tree_insert(&ipv4_fragments, b);
+    pico_tree_insert(&S->ipv4_fragments, a);
+    pico_tree_insert(&S->ipv4_fragments, b);
 
     pico_set_mm_failure(1);
-    fail_if(pico_fragments_reassemble(&ipv4_fragments, 64, TESTPROTO, PICO_PROTO_IPV4) != 1);
+    fail_if(pico_fragments_reassemble(&S->ipv4_fragments, 64, TESTPROTO, PICO_PROTO_IPV4) != 1);
     fail_if(transport_recv_called == 1);
     fail_if(buffer_len_transport_receive != 0);
-    fail_if(pico_tree_empty(&ipv4_fragments));
+    fail_if(pico_tree_empty(&S->ipv4_fragments));
 
     /* Case 4: IPV6 with mm failure */
     transport_recv_called = 0;
@@ -963,14 +1016,14 @@ START_TEST(tc_pico_fragments_reassemble)
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20; /* off = 32 */
 
-    pico_tree_insert(&ipv6_fragments, a);
-    pico_tree_insert(&ipv6_fragments, b);
+    pico_tree_insert(&S->ipv6_fragments, a);
+    pico_tree_insert(&S->ipv6_fragments, b);
 
     pico_set_mm_failure(1);
-    fail_if(pico_fragments_reassemble(&ipv6_fragments, 64, TESTPROTO, PICO_PROTO_IPV6) != 1);
+    fail_if(pico_fragments_reassemble(&S->ipv6_fragments, 64, TESTPROTO, PICO_PROTO_IPV6) != 1);
     fail_if(transport_recv_called == 1);
     fail_if(buffer_len_transport_receive != 0);
-    fail_if(pico_tree_empty(&ipv6_fragments));
+    fail_if(pico_tree_empty(&S->ipv6_fragments));
 }
 END_TEST
 
@@ -978,12 +1031,20 @@ START_TEST(tc_pico_ipv6_process_frag)
 {
     struct pico_ipv6_exthdr *hdr = NULL;
     struct pico_frame *a = NULL, *b = NULL, *c = NULL;
+    struct mock_device *mock = NULL;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
+    /* Create mock device */
+    mock = pico_mock_create(S, NULL);
+    fail_if(!mock, "MOCK DEVICE creation failed");
 
     /* NULL args provided */
-    ipv6_cur_frag_id = 0;
+    S->ipv6_cur_frag_id = 0;
     timer_add_called = 0;
     pico_ipv6_process_frag(hdr, a, TESTPROTO);
-    fail_if(ipv6_cur_frag_id != 0);
+    fail_if(S->ipv6_cur_frag_id != 0);
     fail_if(timer_add_called != 0);
 
     /* init hdr */
@@ -991,10 +1052,10 @@ START_TEST(tc_pico_ipv6_process_frag)
     hdr->ext.frag.id[0]= 0xF;
 
     /* NULL frame provided */
-    ipv6_cur_frag_id = 0;
+    S->ipv6_cur_frag_id = 0;
     timer_add_called = 0;
     pico_ipv6_process_frag(hdr, a, TESTPROTO);
-    fail_if(ipv6_cur_frag_id != 0);
+    fail_if(S->ipv6_cur_frag_id != 0);
     fail_if(timer_add_called != 0);
 
     /* init frame */
@@ -1013,55 +1074,58 @@ START_TEST(tc_pico_ipv6_process_frag)
     a->transport_len = 32;
     a->transport_hdr = a->buffer + 20;
     a->frag = 1; /* more frags */
+    a->dev = mock->dev;
 
     b->net_hdr = b->buffer;
     b->net_len = 20;
     b->transport_len = 32;
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20 | 0x1; /* off = 32 */
+    b->dev = mock->dev;
 
     c->net_hdr = c->buffer;
     c->net_len = 20;
     c->transport_len = 32;
     c->transport_hdr = c->buffer + 20;
     c->frag = 0x40; /* off = 64 */
+    c->dev = mock->dev;
 
     /* Case 1: Empty fragments tree */
-    ipv6_cur_frag_id = 0;
+    S->ipv6_cur_frag_id = 0;
     timer_add_called = 0;
     /* make sure tree is empty */
-    fail_if(!pico_tree_empty(&ipv6_fragments));
+    fail_if(!pico_tree_empty(&S->ipv6_fragments));
 
     pico_ipv6_process_frag(hdr, a, TESTPROTO);
-    fail_if(ipv6_cur_frag_id != IP6_FRAG_ID(hdr));
+    fail_if(S->ipv6_cur_frag_id != IP6_FRAG_ID(hdr));
     fail_if(timer_add_called != 1);
-    fail_if(pico_tree_empty(&ipv6_fragments));
+    fail_if(pico_tree_empty(&S->ipv6_fragments));
     /* make sure we added the fragment to the tree */
-    fail_if(((struct pico_frame *)pico_tree_first(&ipv6_fragments))->buffer != a->buffer);
+    fail_if(((struct pico_frame *)pico_tree_first(&S->ipv6_fragments))->buffer != a->buffer);
 
     /* Case 2: Adding second fragment */
     timer_add_called = 0;
     pico_ipv6_process_frag(hdr, b, TESTPROTO);
-    fail_if(ipv6_cur_frag_id != IP6_FRAG_ID(hdr));
+    fail_if(S->ipv6_cur_frag_id != IP6_FRAG_ID(hdr));
     fail_if(timer_add_called != 0);
-    fail_if(pico_tree_empty(&ipv6_fragments));
+    fail_if(pico_tree_empty(&S->ipv6_fragments));
     /* make sure we added the fragment to the tree */
-    fail_if(((struct pico_frame *)pico_tree_last(&ipv6_fragments))->buffer != b->buffer);
+    fail_if(((struct pico_frame *)pico_tree_last(&S->ipv6_fragments))->buffer != b->buffer);
 
     /* Case 3: Adding final fragment */
     timer_cancel_called = 0;
     transport_recv_called = 0;
     buffer_len_transport_receive = 0;
     pico_ipv6_process_frag(hdr, c, TESTPROTO);
-    fail_if(ipv6_cur_frag_id != IP6_FRAG_ID(hdr));
+    fail_if(S->ipv6_cur_frag_id != IP6_FRAG_ID(hdr));
     fail_if(timer_cancel_called != 1);
     fail_if(transport_recv_called != 1);
     fail_if(buffer_len_transport_receive != 96 + PICO_SIZE_IP6HDR);
     /* Everything was received, tree should be empty */
-    fail_if(!pico_tree_empty(&ipv6_fragments));
+    fail_if(!pico_tree_empty(&S->ipv6_fragments));
 
     /* Cleanup */
-    pico_fragments_empty_tree(&ipv6_fragments);
+    pico_fragments_empty_tree(&S->ipv6_fragments);
     pico_frame_discard(a);
     pico_frame_discard(b);
     pico_frame_discard(c);
@@ -1072,12 +1136,20 @@ START_TEST(tc_pico_ipv4_process_frag)
 {
     struct pico_ipv4_hdr *hdr = NULL;
     struct pico_frame *a = NULL, *b = NULL, *c = NULL;
+    struct mock_device *mock = NULL;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
+    /* Create mock device */
+    mock = pico_mock_create(S, NULL);
+    fail_if(!mock, "MOCK DEVICE creation failed");
 
     /* NULL args provided */
-    ipv4_cur_frag_id = 0;
+    S->ipv4_cur_frag_id = 0;
     timer_add_called = 0;
     pico_ipv4_process_frag(hdr, a, TESTPROTO);
-    fail_if(ipv4_cur_frag_id != 0);
+    fail_if(S->ipv4_cur_frag_id != 0);
     fail_if(timer_add_called != 0);
 
     /* init hdr */
@@ -1085,10 +1157,10 @@ START_TEST(tc_pico_ipv4_process_frag)
     hdr->id = TESTID;
 
     /* NULL frame provided */
-    ipv4_cur_frag_id = 0;
+    S->ipv4_cur_frag_id = 0;
     timer_add_called = 0;
     pico_ipv4_process_frag(hdr, a, TESTPROTO);
-    fail_if(ipv4_cur_frag_id != 0);
+    fail_if(S->ipv4_cur_frag_id != 0);
     fail_if(timer_add_called != 0);
 
     /* init frame */
@@ -1107,55 +1179,58 @@ START_TEST(tc_pico_ipv4_process_frag)
     a->transport_len = 32;
     a->transport_hdr = a->buffer + 20;
     a->frag = PICO_IPV4_MOREFRAG; /* more frags */
+    a->dev = mock->dev;
 
     b->net_hdr = b->buffer;
     b->net_len = 20;
     b->transport_len = 32;
     b->transport_hdr = b->buffer + 20;
     b->frag = 0x20 >> 3u | PICO_IPV4_MOREFRAG; /* off = 32 + more frags*/
+    b->dev = mock->dev;
 
     c->net_hdr = c->buffer;
     c->net_len = 20;
     c->transport_len = 32;
     c->transport_hdr = c->buffer + 20;
     c->frag = 0x40 >> 3u; /* off = 64 */
+    c->dev = mock->dev;
 
     /* Case 1: Empty fragments tree */
-    ipv4_cur_frag_id = 0;
+    S->ipv4_cur_frag_id = 0;
     timer_add_called = 0;
     /* make sure tree is empty */
-    fail_if(!pico_tree_empty(&ipv4_fragments));
+    fail_if(!pico_tree_empty(&S->ipv4_fragments));
 
     pico_ipv4_process_frag(hdr, a, TESTPROTO);
-    fail_if(ipv4_cur_frag_id != TESTID);
+    fail_if(S->ipv4_cur_frag_id != TESTID);
     fail_if(timer_add_called != 1);
-    fail_if(pico_tree_empty(&ipv4_fragments));
+    fail_if(pico_tree_empty(&S->ipv4_fragments));
     /* make sure we added the fragment to the tree */
-    fail_if(((struct pico_frame *)pico_tree_first(&ipv4_fragments))->buffer != a->buffer);
+    fail_if(((struct pico_frame *)pico_tree_first(&S->ipv4_fragments))->buffer != a->buffer);
 
     /* Case 2: Adding second fragment */
     timer_add_called = 0;
     pico_ipv4_process_frag(hdr, b, TESTPROTO);
-    fail_if(ipv4_cur_frag_id != TESTID);
+    fail_if(S->ipv4_cur_frag_id != TESTID);
     fail_if(timer_add_called != 0);
-    fail_if(pico_tree_empty(&ipv4_fragments));
+    fail_if(pico_tree_empty(&S->ipv4_fragments));
     /* make sure we added the fragment to the tree */
-    fail_if(((struct pico_frame *)pico_tree_last(&ipv4_fragments))->buffer != b->buffer);
+    fail_if(((struct pico_frame *)pico_tree_last(&S->ipv4_fragments))->buffer != b->buffer);
 
     /* Case 3: Adding final fragment */
     timer_cancel_called = 0;
     transport_recv_called = 0;
     buffer_len_transport_receive = 0;
     pico_ipv4_process_frag(hdr, c, TESTPROTO);
-    fail_if(ipv4_cur_frag_id != TESTID);
+    fail_if(S->ipv4_cur_frag_id != TESTID);
     fail_if(timer_cancel_called != 1);
     fail_if(transport_recv_called != 1);
     fail_if(buffer_len_transport_receive != 96 + PICO_SIZE_IP4HDR);
     /* Everything was received, tree should be empty */
-    fail_if(!pico_tree_empty(&ipv4_fragments));
+    fail_if(!pico_tree_empty(&S->ipv4_fragments));
 
     /* Cleanup */
-    pico_fragments_empty_tree(&ipv4_fragments);
+    pico_fragments_empty_tree(&S->ipv4_fragments);
     pico_frame_discard(a);
     pico_frame_discard(b);
     pico_frame_discard(c);

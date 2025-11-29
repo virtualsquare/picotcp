@@ -13,8 +13,10 @@ START_TEST(test_pico_device)
   };
   const char *name = "device_test";
 
+  struct pico_stack *S;
+  pico_stack_init(&S);
   dummy_device = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_device, name, mac);
+  pico_device_init(S, dummy_device, name, mac);
   pico_device_destroy(dummy_device);
 }
 END_TEST

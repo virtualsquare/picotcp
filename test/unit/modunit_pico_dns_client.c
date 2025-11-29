@@ -8,16 +8,24 @@
 #include "pico_tree.h"
 #include "pico_udp.h"
 #include "modules/pico_dns_client.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 
 START_TEST(tc_pico_dns_client_callback)
 {
-    struct pico_socket *s = pico_udp_open();
-    s->proto = &pico_proto_udp;
+    struct pico_socket *s;
+    struct pico_stack *S;
 
+    pico_stack_init(&S);
+
+    s = pico_udp_open();
     fail_if(!s);
+    
+    s->proto = &pico_proto_udp;
+    s->stack = S;
 
     /* Test with ERR */
     pico_dns_client_callback(PICO_SOCK_EV_ERR, s);

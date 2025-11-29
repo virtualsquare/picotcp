@@ -81,6 +81,7 @@ START_TEST (test_dhcp_server_api)
  ************************************************************************/
 
     struct mock_device *mock;
+    struct pico_stack *S;
     uint8_t macaddr1[6] = {
         0xc1, 0, 0, 0xa, 0xb, 0xf
     };
@@ -104,11 +105,13 @@ START_TEST (test_dhcp_server_api)
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create mock device  */
-    mock = pico_mock_create(macaddr1);
+    mock = pico_mock_create(S, macaddr1);
     fail_if(!mock, "MOCK DEVICE creation failed");
     fail_if(pico_mock_network_read(mock, buf, BUFLEN), "data on network that shouldn't be there");
-    fail_if(pico_ipv4_link_add(mock->dev, serverip, netmask), "add link to mock device failed");
+    fail_if(pico_ipv4_link_add(S, mock->dev, serverip, netmask), "add link to mock device failed");
 
     /* test 0 */
     /* Clear error code */
@@ -122,6 +125,7 @@ START_TEST (test_dhcp_server_api)
     pico_err = PICO_ERR_NOERR;
     /* Store data in settings */
     s1.server_ip.addr = long_be(0x0A28000F); /* make sure this IP is not assigned */
+    s1.dev = mock->dev;
     /* Test 1 statements */
     fail_unless(pico_dhcp_server_initiate(&s1), "DHCP_SERVER> initiate succeeded after pointer to dev == NULL");
     fail_unless(pico_err == PICO_ERR_EINVAL, "DHCP_SERVER> initiate succeeded without PICO_ERR_EINVAL after wrong parameter");
@@ -131,6 +135,7 @@ START_TEST (test_dhcp_server_api)
     pico_err = PICO_ERR_NOERR;
     /* Store data in settings */
     s2.server_ip = serverip;
+    s2.dev = mock->dev;
     /* Test 2 statements */
     fail_if(pico_dhcp_server_initiate(&s2), "DHCP_SERVER> failed after correct parameter");
 }
@@ -169,6 +174,7 @@ START_TEST (test_dhcp)
     int network_read = 0;
     uint8_t *buf;
     uint8_t printbufactive = 0;
+    struct pico_stack *S = NULL;
 
     buf = PICO_ZALLOC(600);
 
@@ -181,33 +187,35 @@ START_TEST (test_dhcp)
     printbuf(&(buf[0]), len, "DHCP-DISCOVER packet", printbufactive);
 
     /*Initiate test setup*/
-    pico_stack_init();
+    pico_stack_init(&S);
 
     /* Create mock device  */
-    mock = pico_mock_create(macaddr2);
+    mock = pico_mock_create(S, macaddr2);
     fail_if(!mock, "MOCK DEVICE creation failed");
     fail_if(pico_mock_network_read(mock, buf, BUFLEN), "data on network that shouldn't be there");
-    fail_if(pico_ipv4_link_add(mock->dev, serverip, netmask), "add link to mock device failed");
+    fail_if(pico_ipv4_link_add(S, mock->dev, serverip, netmask), "add link to mock device failed");
 
     s.server_ip = serverip;
+    s.dev = mock->dev;
 
     fail_if(pico_dhcp_server_initiate(&s), "DHCP_SERVER> server initiation failed");
 
-    dn = pico_dhcp_server_find_negotiation(xid.addr);
+    dn = pico_dhcp_server_find_negotiation(S, xid.addr);
     fail_unless(dn == NULL, "DCHP SERVER -> negotiation data available befor discover msg recvd");
 
     /* simulate reception of a DISCOVER packet */
     sock.local_addr.ip4 = serverip;
+    sock.stack = S;
     pico_dhcp_server_recv(&sock, buf, len);
 
-    tick_it(3);
+    tick_it(S, 3);
 
     /* check if negotiation data is stored */
-    dn = pico_dhcp_server_find_negotiation(xid.addr);
+    dn = pico_dhcp_server_find_negotiation(S, xid.addr);
     fail_if(dn == NULL, "DCHP SERVER -> no negotiation stored after discover msg recvd");
 
     /* check if new ip is in ARP cache */
-    stored_ipv4 = pico_arp_reverse_lookup(&dn->hwaddr);
+    stored_ipv4 = pico_arp_reverse_lookup(S, &dn->hwaddr);
     fail_if(stored_ipv4 == NULL, "DCHP SERVER -> new address is not inserted in ARP");
     fail_unless(stored_ipv4->addr == dn->ciaddr.addr, "DCHP SERVER -> new ip not stored in negotiation data");
 
@@ -226,7 +234,7 @@ START_TEST (test_dhcp)
     pico_dhcp_server_recv(&sock, &(buf[0x2a]), len - 0x2a);
     fail_unless(dn->state == PICO_DHCP_STATE_BOUND, "DCHP SERVER -> negotiation state not changed to BOUND");
 
-    tick_it(3);
+    tick_it(S, 3);
 
     /* check if state is changed and reply is received  */
     do {
@@ -271,6 +279,7 @@ START_TEST (test_dhcp_server_ipninarp)
         0
     };
     uint8_t printbufactive = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
@@ -281,35 +290,37 @@ START_TEST (test_dhcp_server_ipninarp)
     printbuf(&(buf[0]), len, "DHCP-DISCOVER packet", printbufactive);
 
     /*Initiate test setup*/
-    pico_stack_init();
+    pico_stack_init(&S);
 
     /* Create mock device  */
-    mock = pico_mock_create(macaddr1);
+    mock = pico_mock_create(S, macaddr1);
     fail_if(!mock, "MOCK DEVICE creation failed");
     fail_if(pico_mock_network_read(mock, buf, BUFLEN), "data on network that shouldn't be there");
-    fail_if(pico_ipv4_link_add(mock->dev, serverip, netmask), "add link to mock device failed");
+    fail_if(pico_ipv4_link_add(S, mock->dev, serverip, netmask), "add link to mock device failed");
     s.server_ip = serverip;
+    s.dev = mock->dev;
 
     fail_if(pico_dhcp_server_initiate(&s), "DHCP_SERVER> server initiation failed");
 
-    dn = pico_dhcp_server_find_negotiation(xid.addr);
+    dn = pico_dhcp_server_find_negotiation(S, xid.addr);
     fail_unless(dn == NULL, "DCHP SERVER -> negotiation data available before discover msg recvd");
 
     /* simulate reception of a DISCOVER packet */
     sock.local_addr.ip4 = serverip;
+    sock.stack = S;
     pico_dhcp_server_recv(&sock, buf, len);
 
     /* check if negotiation data is stored */
-    dn = pico_dhcp_server_find_negotiation(xid.addr);
+    dn = pico_dhcp_server_find_negotiation(S, xid.addr);
     fail_if(dn == NULL, "DCHP SERVER -> no negotiation stored after discover msg recvd");
 
     /* check if new ip is in ARP cache */
-    stored_ipv4 = pico_arp_reverse_lookup(&dn->hwaddr);
+    stored_ipv4 = pico_arp_reverse_lookup(S, &dn->hwaddr);
     fail_if(stored_ipv4 == NULL, "DCHP SERVER -> new address is not inserted in ARP");
     fail_unless(stored_ipv4->addr == dn->ciaddr.addr, "DCHP SERVER -> new ip not stored in negotiation data");
 
     /* check if new ip is in ARP cache */
-    fail_if(pico_arp_reverse_lookup(&dn->hwaddr) == NULL, "DCHP SERVER -> new address is not inserted in ARP");
+    fail_if(pico_arp_reverse_lookup(S, &dn->hwaddr) == NULL, "DCHP SERVER -> new address is not inserted in ARP");
 }
 END_TEST
 
@@ -340,6 +351,7 @@ START_TEST (test_dhcp_server_ipinarp)
     struct pico_ip4 *stored_ipv4 = NULL;
     struct pico_dhcp_server_negotiation *dn = NULL;
     struct pico_eth *arp_resp = NULL;
+    struct pico_stack *S = NULL;
     unsigned char macaddr1[6] = {
         0xc1, 0, 0, 0xa, 0xb, 0xf
     };
@@ -350,38 +362,40 @@ START_TEST (test_dhcp_server_ipinarp)
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /*Insert custom values in buffer*/
     fail_if(generate_dhcp_msg(buf, &len, DHCP_MSG_TYPE_DISCOVER), "DHCP_SERVER->failed to generate buffer");
     memcpy(&(buf[28]), &(macaddr1[0]), sizeof(struct pico_ip4));
     memcpy(&(buf[4]), &(xid.addr), sizeof(struct pico_ip4));
 
     /* Create mock device  */
-    mock = pico_mock_create(macaddr1);
+    mock = pico_mock_create(S, macaddr1);
     fail_if(!mock, "MOCK DEVICE creation failed");
-    fail_if(pico_ipv4_link_add(mock->dev, serverip, netmask), "add link to mock device failed");
+    fail_if(pico_ipv4_link_add(S, mock->dev, serverip, netmask), "add link to mock device failed");
     s.server_ip = serverip;
+    s.dev = mock->dev;
 
-    /*Initiate test setup*/
-    pico_stack_init();
     pico_arp_create_entry(&(macaddr1[0]), ipv4address, s.dev);
 
     fail_if(pico_dhcp_server_initiate(&s), "DHCP_SERVER> server initiation failed");
 
     /* simulate reception of a DISCOVER packet */
     sock.local_addr.ip4 = serverip;
+    sock.stack = S;
     pico_dhcp_server_recv(&sock, buf, len);
 
     /* check if negotiation data is stored */
-    dn = pico_dhcp_server_find_negotiation(xid.addr);
+    dn = pico_dhcp_server_find_negotiation(S, xid.addr);
     fail_if(dn == NULL, "DCHP SERVER -> no negotiation stored after discover msg recvd");
 
     /* check if new ip is in ARP cache */
-    stored_ipv4 = pico_arp_reverse_lookup(&dn->hwaddr);
+    stored_ipv4 = pico_arp_reverse_lookup(S, &dn->hwaddr);
     fail_if(stored_ipv4 == NULL, "DCHP SERVER -> new address is not inserted in ARP");
     fail_unless(stored_ipv4->addr == dn->ciaddr.addr, "DCHP SERVER -> new ip not stored in negotiation data");
 
     /* check if new ip is in ARP cache */
-    arp_resp = pico_arp_lookup(&ipv4address);
+    arp_resp = pico_arp_lookup(S, &ipv4address);
     fail_if(arp_resp == NULL, "DCHP SERVER -> address unavailable in arp cache");
 }
 END_TEST
@@ -423,11 +437,12 @@ START_TEST (test_dhcp_client)
     uint32_t len = 0;
     uint32_t xid = 0;
     struct pico_dhcp_client_cookie *cli = NULL;
+    struct pico_stack *S = NULL;
 
-    pico_stack_init();
+    pico_stack_init(&S);
 
     /* Create mock device  */
-    mock = pico_mock_create(macaddr1);
+    mock = pico_mock_create(S, macaddr1);
     fail_if(!mock, "MOCK DEVICE creation failed");
     fail_if(pico_mock_network_read(mock, buf, BUFLEN), "data on network that shouldn't be there");
 
@@ -440,7 +455,7 @@ START_TEST (test_dhcp_client)
     fail_if(pico_mock_network_read(mock, buf, BUFLEN), "data on network that shouldn't be there");
 
     /* push discover msg on network */
-    tick_it(3);
+    tick_it(S, 3);
 
     /* read discover message from network */
     len = pico_mock_network_read(mock, buf, BUFLEN );
@@ -479,7 +494,7 @@ START_TEST (test_dhcp_client)
     fail_unless(address.addr == yiaddr.addr, "Client address incorrect => yiaddr or pico_dhcp_get_address incorrect");
     gateway = pico_dhcp_get_gateway(cli);
     fail_unless(gateway.addr == router.addr, "Gateway incorrect! => routeroption or pico_dhcp_get_gateway incorrect");
-    tick_it(3);
+    tick_it(S, 3);
 
     len = pico_mock_network_read(mock, buf, BUFLEN);
     fail_unless(len, "received msg on network of %d bytes", len);
@@ -503,15 +518,18 @@ START_TEST (test_dhcp_client_api)
     /* Declaration test 1 */
     uint32_t xid1 = 0;
     struct pico_dhcp_client_cookie *cli1 = NULL;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
 
     /* test 0 */
     /* Clear error code */
     pico_err = PICO_ERR_NOERR;
     /* Test 0 statements */
     pico_dhcp_initiate_negotiation(NULL, NULL, &xid0);
-    cli0 = pico_dhcp_client_find_cookie(xid0);
+    cli0 = pico_dhcp_client_find_cookie(S, xid0);
     fail_unless(cli0 == NULL, "DHCP_CLIENT> initiate succeeded after pointer to dev == NULL");
     fail_unless(pico_err == PICO_ERR_EINVAL, "DHCP_SERVER> initiate succeeded without PICO_ERR_EINVAL after wrong parameter");
 
@@ -520,7 +538,7 @@ START_TEST (test_dhcp_client_api)
     pico_err = PICO_ERR_NOERR;
     /* Test 1 statements */
     pico_dhcp_initiate_negotiation(NULL, &callback_dhcpclient, &xid1);
-    cli1 = pico_dhcp_client_find_cookie(xid1);
+    cli1 = pico_dhcp_client_find_cookie(S, xid1);
     fail_unless(cli1 == NULL, "DHCP_CLIENT> initiate succeeded after pointer to dev == NULL");
     fail_unless(pico_err == PICO_ERR_EINVAL, "DHCP_SERVER> initiate succeeded without PICO_ERR_EINVAL after wrong parameter");
 
@@ -531,11 +549,14 @@ START_TEST (test_dhcp_client_api)
     struct pico_dhcp_client_cookie *cli2 = NULL;
     struct pico_device *dev2;
     struct mock_device *mock2 = NULL;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
 
     /* test 2 */
     /* Create device  */
-    dev2 = pico_null_create("dummy");
-    mock2 = pico_mock_create(NULL);
+    dev2 = pico_null_create(S, "dummy");
+    mock2 = pico_mock_create(S, NULL);
     fail_if(mock2 == NULL, "No device created");
     /* Clear error code */
     pico_err = PICO_ERR_NOERR;

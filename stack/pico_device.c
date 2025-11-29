@@ -220,7 +220,7 @@ static void devloop_all_in(struct pico_stack *S, void *arg);
 static void devloop_all_out(struct pico_stack *S, void *arg);
 #endif
 
-int pico_device_init(struct pico_stack *S, struct pico_device *dev, const char *name, const uint8_t *mac)
+int MOCKABLE pico_device_init(struct pico_stack *S, struct pico_device *dev, const char *name, const uint8_t *mac)
 {
     uint32_t len = (uint32_t)strlen(name);
     int ret = 0;
@@ -286,7 +286,7 @@ static void pico_queue_destroy(struct pico_queue *q)
     }
 }
 
-void pico_device_destroy(struct pico_device *dev)
+void MOCKABLE pico_device_destroy(struct pico_device *dev)
 {
 
     pico_queue_destroy(dev->q_in);

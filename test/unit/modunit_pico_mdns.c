@@ -10,11 +10,13 @@
 #include "pico_tree.h"
 #include "pico_dev_mock.c"
 #include "modules/pico_mdns.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
-void add_records(void); /* MARK: helper to add records to MyRecords s*/
-int mdns_init(void); /* MARK: Initialise mDNS module */
+void add_records( struct pico_stack *S ); /* MARK: helper to add records to MyRecords s*/
+int mdns_init( struct pico_stack *S ); /* MARK: Initialise mDNS module */
 
 static int amount_callback_executed = 0;
 void callback( pico_mdns_rtree *tree, char *str, void *arg);
@@ -29,7 +31,7 @@ void callback( pico_mdns_rtree *tree,
     amount_callback_executed++;
 }
 
-int mdns_init() /* MARK: Initialise mDNS module */
+int mdns_init( struct pico_stack *S ) /* MARK: Initialise mDNS module */
 {
     struct mock_device *mock = NULL;
 
@@ -40,15 +42,15 @@ int mdns_init() /* MARK: Initialise mDNS module */
         .addr = long_be(0xffffff00)
     };
 
-    mock = pico_mock_create(NULL);
+    mock = pico_mock_create(S, NULL);
     if (!mock) {
         return -1;
     }
 
-    pico_ipv4_link_add(mock->dev, local, netmask);
+    pico_ipv4_link_add(S, mock->dev, local, netmask);
 
     /* Try to initialise the mDNS module right */
-    return pico_mdns_init("host.local", local, callback, NULL);
+    return pico_mdns_init(S, "host.local", local, callback, NULL);
 }
 
 #define PICO_MDNS_COOKIE_DECLARE(name) \
@@ -67,24 +69,25 @@ START_TEST(tc_mdns_init) /* MARK: mdns_init */
         0
     };
     char hostname[] = "host.local";
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    pico_stack_init();
+    pico_stack_init(&S);
 
     /* Try to initialise the mDNS module wrong */
-    ret = pico_mdns_init(NULL, local, callback, NULL);
+    ret = pico_mdns_init(S, NULL, local, callback, NULL);
     fail_unless(ret, "mdns_init failed checking params!\n");
 
     /* Try to initialise the mDNS module wrong */
-    ret = pico_mdns_init(hostname, local, callback, NULL);
+    ret = pico_mdns_init(S, hostname, local, callback, NULL);
     fail_unless(ret, "mdns_init failed checking params!\n");
 
     /* Try to initialise the mDNS module wrong */
-    ret = pico_mdns_init(hostname, local, NULL, NULL);
+    ret = pico_mdns_init(S, hostname, local, NULL, NULL);
     fail_unless(ret, "mdns_init failed checking params!\n");
 
-    ret = mdns_init();
+    ret = mdns_init(S);
     fail_unless(0 == ret, "mdns_init failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -105,14 +108,17 @@ START_TEST(tc_mdns_record_cmp_name_type) /* MARK: mdns_record_cmp_name_type*/
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create different test records */
-    a.record = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
+    a.record = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!a.record, "Record A could not be created!\n");
-    b.record = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b.record = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!b.record, "Record B could not be created!\n");
 
@@ -123,11 +129,11 @@ START_TEST(tc_mdns_record_cmp_name_type) /* MARK: mdns_record_cmp_name_type*/
     pico_dns_record_delete((void**)(void **)&(b.record));
 
     /* Create different test records */
-    a.record = pico_dns_record_create(url3, (uint8_t *)url1, (uint16_t) strlen(url1), &len,
+    a.record = pico_dns_record_create(S, url3, (uint8_t *)url1, (uint16_t) strlen(url1), &len,
                                       PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!a.record, "Record A could not be created!\n");
-    b.record = pico_dns_record_create(url3, (uint8_t *)url1, (uint16_t) strlen(url1), &len,
+    b.record = pico_dns_record_create(S, url3, (uint8_t *)url1, (uint16_t) strlen(url1), &len,
                                       PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!b.record, "Record B could not be created!\n");
@@ -162,14 +168,17 @@ START_TEST(tc_mdns_record_cmp) /* MARK: mdns_record_cmp */
     struct pico_ip4 secondIP = {
         .addr = 0x5758595A
     };
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create test records */
-    a.record = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    a.record = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!(a.record), "Record A could not be created!\n");
-    b.record = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b.record = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!(b.record), "Record B could not be created!\n");
 
@@ -180,10 +189,10 @@ START_TEST(tc_mdns_record_cmp) /* MARK: mdns_record_cmp */
     pico_dns_record_delete((void**)(void **)&(b.record));
 
     /* Create different test records */
-    a.record = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
+    a.record = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!a.record, "Record A could not be created!\n");
-    b.record = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b.record = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!b.record, "Record B could not be created!\n");
 
@@ -194,10 +203,10 @@ START_TEST(tc_mdns_record_cmp) /* MARK: mdns_record_cmp */
     pico_dns_record_delete((void**)(void **)&(b.record));
 
     /* Create different test records */
-    a.record = pico_dns_record_create(url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    a.record = pico_dns_record_create(S, url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!a.record, "Record A could not be created!\n");
-    b.record = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b.record = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!b.record, "Record B could not be created!\n");
 
@@ -209,10 +218,10 @@ START_TEST(tc_mdns_record_cmp) /* MARK: mdns_record_cmp */
 
 
     /* Create different test records */
-    a.record = pico_dns_record_create(url1, &firstIP, 4, &len, PICO_DNS_TYPE_A,
+    a.record = pico_dns_record_create(S, url1, &firstIP, 4, &len, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN, 0);
     fail_if(!a.record, "Record A could not be created!\n");
-    b.record = pico_dns_record_create(url1, &secondIP, 4, &len, PICO_DNS_TYPE_A, PICO_DNS_CLASS_IN, 0);
+    b.record = pico_dns_record_create(S, url1, &secondIP, 4, &len, PICO_DNS_TYPE_A, PICO_DNS_CLASS_IN, 0);
     fail_if(!b.record, "Record B could not be created!\n");
 
     /* Try to compare records with equal rname but equal type different IP address (testing the effect of pico_tolower) */
@@ -252,8 +261,11 @@ START_TEST(tc_mdns_cookie_cmp) /* MARK: mdns_cookie_cmp */
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
 
     /* Create some questions */
     question1 = pico_dns_question_create(url1, &len, PICO_PROTO_IPV4,
@@ -278,19 +290,19 @@ START_TEST(tc_mdns_cookie_cmp) /* MARK: mdns_cookie_cmp */
     fail_if(!question5, "Could not create question 5!\n");
 
     /* Create test records */
-    record1.record = pico_dns_record_create(url1, &rdata, 4, &len,
+    record1.record = pico_dns_record_create(S, url1, &rdata, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record1.record, "Record 1 could not be created!\n");
-    record2.record = pico_dns_record_create(url1, &rdata, 4, &len,
+    record2.record = pico_dns_record_create(S, url1, &rdata, 4, &len,
                                             PICO_DNS_TYPE_AAAA,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record2.record, "Record 2 could not be created!\n");
-    record3.record = pico_dns_record_create(url2, &rdata, 4, &len,
+    record3.record = pico_dns_record_create(S, url2, &rdata, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record3.record, "Record 3 could not be created!\n");
-    record4.record = pico_dns_record_create(url4, &rdata, 4, &len,
+    record4.record = pico_dns_record_create(S, url4, &rdata, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record4.record, "Record 3 could not be created!\n");
@@ -369,15 +381,18 @@ END_TEST
 START_TEST(tc_mdns_cookie_delete) /* MARK: mdns_cookie_delete */
 {
     struct pico_mdns_cookie *a = NULL;
+    struct pico_stack *S = NULL;
     PICO_DNS_QTREE_DECLARE(qtree);
     PICO_MDNS_RTREE_DECLARE(antree);
     PICO_MDNS_RTREE_DECLARE(artree);
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     fail_unless(pico_mdns_cookie_delete((void **)&a),
                 "mdns_cookie_delete failed checking params!\n");
-    a = pico_mdns_cookie_create(qtree, antree, artree, 0, 0, NULL, NULL);
+    a = pico_mdns_cookie_create(S, qtree, antree, artree, 0, 0, NULL, NULL);
     fail_unless(!pico_mdns_cookie_delete((void **)&a),
                 "mdns_cookie_delete failed!\n");
 
@@ -390,13 +405,16 @@ END_TEST
 START_TEST(tc_mdns_cookie_create) /* MARK: mdns_cookie_create */
 {
     struct pico_mdns_cookie *a = NULL;
+    struct pico_stack *S = NULL;
     PICO_DNS_QTREE_DECLARE(qtree);
     PICO_MDNS_RTREE_DECLARE(antree);
     PICO_MDNS_RTREE_DECLARE(artree);
 
     printf("*********************** starting %s * \n", __func__);
 
-    a = pico_mdns_cookie_create(qtree, antree, artree, 0, 0, NULL, NULL);
+    pico_stack_init(&S);
+
+    a = pico_mdns_cookie_create(S, qtree, antree, artree, 0, 0, NULL, NULL);
     fail_if(!a, "mdns_cookie_create failed!\n");
 
     pico_mdns_cookie_delete((void **)&a);
@@ -422,8 +440,11 @@ START_TEST(tc_mdns_cookie_tree_find_query_cookie) /* MARK: mdns_ctree_find_cooki
     char url4[] = "ab.local";
     char url5[] = "t.local";
     uint16_t len = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
 
     /* Create some questions */
     question1 = pico_dns_question_create(url1, &len, PICO_PROTO_IPV4,
@@ -454,27 +475,27 @@ START_TEST(tc_mdns_cookie_tree_find_query_cookie) /* MARK: mdns_ctree_find_cooki
     pico_tree_insert(&qtree_b, question2);
     pico_tree_insert(&qtree_b, question5);
 
-    a = pico_mdns_cookie_create(qtree_a, antree, artree, 1,
+    a = pico_mdns_cookie_create(S, qtree_a, antree, artree, 1,
                                 PICO_MDNS_PACKET_TYPE_QUERY, NULL, NULL);
     fail_if(!a, "mdns_cookie_create failed!\n");
-    b = pico_mdns_cookie_create(qtree_b, antree, artree, 1,
+    b = pico_mdns_cookie_create(S, qtree_b, antree, artree, 1,
                                 PICO_MDNS_PACKET_TYPE_QUERY, NULL, NULL);
     fail_if(!b, "mdns_cookie_create failed!\n");
 
-    pico_tree_insert(&Cookies, a);
-    pico_tree_insert(&Cookies, b);
+    pico_tree_insert(&S->MDNSCookies, a);
+    pico_tree_insert(&S->MDNSCookies, b);
 
-    fail_unless(b == pico_mdns_ctree_find_cookie("\3foo\5local", PICO_MDNS_PACKET_TYPE_QUERY),
+    fail_unless(b == pico_mdns_ctree_find_cookie(S, "\3foo\5local", PICO_MDNS_PACKET_TYPE_QUERY),
                 "mdns_cookie_tree_find_query_cookie failed with foo.local\n");
 
-    fail_unless(a == pico_mdns_ctree_find_cookie("\2pi\5local", PICO_MDNS_PACKET_TYPE_QUERY),
+    fail_unless(a == pico_mdns_ctree_find_cookie(S, "\2pi\5local", PICO_MDNS_PACKET_TYPE_QUERY),
                 "mdns_cookie_tree_find_query_cookie failed with pi.local\n");
 
-    fail_unless(NULL == pico_mdns_ctree_find_cookie("bla.local", PICO_MDNS_PACKET_TYPE_QUERY),
+    fail_unless(NULL == pico_mdns_ctree_find_cookie(S, "bla.local", PICO_MDNS_PACKET_TYPE_QUERY),
                 "mdns_cookie_tree_find_query_cookie failed with foo.local\n");
 
-    pico_tree_delete(&Cookies, a);
-    pico_tree_delete(&Cookies, b);
+    pico_tree_delete(&S->MDNSCookies, a);
+    pico_tree_delete(&S->MDNSCookies, b);
     pico_mdns_cookie_delete((void **)&a);
     pico_mdns_cookie_delete((void **)&b);
 
@@ -504,38 +525,39 @@ START_TEST(tc_mdns_cookie_apply_spt) /* MARK: mdns_cookie_apply_spt */
     };
     int ret = 0;
     uint16_t len = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create test records */
-    record1.record = pico_dns_record_create(url1, &rdata, 4, &len,
+    record1.record = pico_dns_record_create(S, url1, &rdata, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record1.record, "Record 1 could not be created!\n");
-    record2.record = pico_dns_record_create(url2, &rdata2, 4, &len,
+    record2.record = pico_dns_record_create(S, url2, &rdata2, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record2.record, "Record 2 could not be created!\n");
-    record3.record = pico_dns_record_create(url1, &rdata2, 4, &len,
+    record3.record = pico_dns_record_create(S, url1, &rdata2, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record3.record, "Record 3 could not be created!\n");
-    record4.record = pico_dns_record_create(url2, &rdata, 4, &len,
+    record4.record = pico_dns_record_create(S, url2, &rdata, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record4.record, "Record 4 could not be created!\n");
 
     /* Make it a probe cookie otherwise it will just return -1 */
     a.type = PICO_MDNS_PACKET_TYPE_PROBE;
-
-    /* Need to initialise the stack to allow timer scheduling IMPORTANT! */
-    pico_stack_init();
+    a.stack = S;
 
     /* Create 2 exactly the same cookies */
     pico_tree_insert(&(a.antree), &record1);
     pico_tree_insert(&(a.antree), &record2);
-    pico_tree_insert(&MyRecords, &record1);
-    pico_tree_insert(&MyRecords, &record2);
+    pico_tree_insert(&S->MDNSOwnRecords, &record1);
+    pico_tree_insert(&S->MDNSOwnRecords, &record2);
 
     ret = pico_mdns_cookie_apply_spt(&a, record3.record);
     fail_unless(ret, "mdns_cookie_apply_spt failed checking parms!\n");
@@ -716,15 +738,18 @@ START_TEST(tc_mdns_generate_new_records) /* MARK: mdns_generate_new_records */
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    pico_stack_init(&S);
+
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!(record->record), "Record could not be created!\n");
     pico_tree_insert(&ctree, record);
 
-    ntree = pico_mdns_generate_new_records(&ctree, url2,
+    ntree = pico_mdns_generate_new_records(S, &ctree, url2,
                                            url3);
 
     fail_unless(1 == pico_tree_count(&ntree), "new_tree has wrong count!\n");
@@ -750,14 +775,17 @@ START_TEST(tc_mdns_cookie_resolve_conflict) /* MARK: mdns_cookie_resolve_conflic
     };
     int ret = 0;
     uint16_t len = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
 
     question = pico_dns_question_create(url, &len, PICO_PROTO_IPV4,
                                         PICO_DNS_TYPE_A,
                                         PICO_DNS_CLASS_IN, 0);
     fail_if(!question, "Question could not be created!\n");
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!(record->record), "Record could not be created!\n");
 
@@ -766,17 +794,15 @@ START_TEST(tc_mdns_cookie_resolve_conflict) /* MARK: mdns_cookie_resolve_conflic
     pico_tree_insert(&qtree, question);
 
     /* Make it a probe cookie otherwise it will just return -1 */
-    a = pico_mdns_cookie_create(qtree, antree, artree, 1,
+    a = pico_mdns_cookie_create(S, qtree, antree, artree, 1,
                                 PICO_MDNS_PACKET_TYPE_PROBE,
                                 callback, NULL);
 
-    /* Need to initialise the stack to allow timer scheduling IMPORTANT! */
-    pico_stack_init();
-    ret = mdns_init();
+    ret = mdns_init(S);
     fail_unless(0 == ret, "mdns_init failed!\n");
 
     /* Cookie needs to be removed from cookie tree so we need to add it first */
-    pico_tree_insert(&Cookies, a);
+    pico_tree_insert(&S->MDNSCookies, a);
 
     ret = pico_mdns_cookie_resolve_conflict(a, url2);
     fail_unless(0 == ret, "mdns_cookie_resolve_conflict failed!\n");
@@ -849,15 +875,17 @@ START_TEST(tc_mdns_record_resolve_conflict) /* MARK: mdns_record_resolve_conflic
         long_be(0x00FFFFFF)
     };
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+
+    pico_stack_init(&S);
+
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!(record->record), "Record could not be created!\n");
-    /* Need to initialise the stack to allow timer scheduling IMPORTANT! */
-    pico_stack_init();
 
-    ret = mdns_init();
+    ret = mdns_init(S);
     fail_unless(0 == ret, "mdns_init failed!\n");
 
     ret = pico_mdns_record_resolve_conflict(record, url2);
@@ -887,23 +915,26 @@ START_TEST(tc_mdns_record_am_i_lexi_later) /* MARK: mdns_record_am_i_lexi_later 
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create test records */
-    record1.record = pico_dns_record_create(url1, &rdata, 4, &len,
+    record1.record = pico_dns_record_create(S, url1, &rdata, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record1.record, "Record 1 could not be created!\n");
-    record2.record = pico_dns_record_create(url2, &rdata2, 4, &len,
+    record2.record = pico_dns_record_create(S, url2, &rdata2, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record2.record, "Record 2 could not be created!\n");
-    record3.record = pico_dns_record_create(url1, &rdata2, 4, &len,
+    record3.record = pico_dns_record_create(S, url1, &rdata2, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record3.record, "Record 3 could not be created!\n");
-    record4.record = pico_dns_record_create(url2, &rdata, 4, &len,
+    record4.record = pico_dns_record_create(S, url2, &rdata, 4, &len,
                                             PICO_DNS_TYPE_A,
                                             PICO_DNS_CLASS_IN, 0);
     fail_if(!record4.record, "Record 4 could not be created!\n");
@@ -924,10 +955,14 @@ START_TEST(tc_mdns_record_copy_with_new_name) /* MARK: copy_with_new_name */
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
     /* Create a record */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!(record->record), "Record could not be created!\n");
 
@@ -952,10 +987,14 @@ START_TEST(tc_mdns_record_copy) /* MARK: mdns_record_copy */
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
     /* Create a record */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!(record->record), "Record could not be created!\n");
 
@@ -985,9 +1024,14 @@ START_TEST(tc_mdns_record_create) /* MARK: mdns_record_create */
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
+    struct pico_stack *S = NULL;
+
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
     /* Create a record */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!(record->record), "Record could not be created!\n");
     fail_unless(0 == strcmp(record->record->rname, "\3foo\5local"),
@@ -1006,10 +1050,14 @@ START_TEST(tc_mdns_record_delete) /* MARK: mdns_record_delete */
         long_be(0x00FFFFFF)
     };
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
     /* Create a record */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!(record->record), "Record could not be created!\n");
 
@@ -1021,7 +1069,7 @@ START_TEST(tc_mdns_record_delete) /* MARK: mdns_record_delete */
     printf("*********************** ending %s * \n", __func__);
 }
 END_TEST
-void add_records( void ) /* MARK: helper to add records to MyRecords s*/
+void add_records( struct pico_stack *S ) /* MARK: helper to add records to MyRecords s*/
 {
     struct pico_mdns_record *record = NULL, *record1 = NULL, *record2 = NULL,
     *record3 = NULL;
@@ -1035,7 +1083,7 @@ void add_records( void ) /* MARK: helper to add records to MyRecords s*/
     char url1[] = "bar.local";
 
     /* Create an A record with URL */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      (PICO_MDNS_RECORD_UNIQUE |
                                       PICO_MDNS_RECORD_PROBED |
                                       PICO_MDNS_RECORD_HOSTNAME));
@@ -1043,7 +1091,7 @@ void add_records( void ) /* MARK: helper to add records to MyRecords s*/
     printf("Is hostname record: %d\n", IS_HOSTNAME_RECORD(record));
 
     /* Create 2 PTR records to URL */
-    record1 = pico_mdns_record_create(url, url, (uint16_t) strlen(url),
+    record1 = pico_mdns_record_create(S, url, url, (uint16_t) strlen(url),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record1, "Record could not be created!\n");
@@ -1051,21 +1099,21 @@ void add_records( void ) /* MARK: helper to add records to MyRecords s*/
     /* Simulate that this record is probed */
     record1->flags |= PICO_MDNS_RECORD_PROBED;
 
-    record2 = pico_mdns_record_create(url, url1, (uint16_t) strlen(url1),
+    record2 = pico_mdns_record_create(S, url, url1, (uint16_t) strlen(url1),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Create a totally different record */
-    record3 = pico_mdns_record_create(url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
+    record3 = pico_mdns_record_create(S, url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Add the records to the tree */
-    pico_tree_insert(&MyRecords, record);
-    pico_tree_insert(&MyRecords, record1);
-    pico_tree_insert(&MyRecords, record2);
-    pico_tree_insert(&MyRecords, record3);
+    pico_tree_insert(&S->MDNSOwnRecords, record);
+    pico_tree_insert(&S->MDNSOwnRecords, record1);
+    pico_tree_insert(&S->MDNSOwnRecords, record2);
+    pico_tree_insert(&S->MDNSOwnRecords, record3);
 }
 START_TEST(tc_mdns_record_tree_find_name) /* MARK: mdns_record_find_name */
 {
@@ -1073,12 +1121,15 @@ START_TEST(tc_mdns_record_tree_find_name) /* MARK: mdns_record_find_name */
     struct pico_tree_node *node = NULL;
     struct pico_mdns_record *record = NULL;
     int found = 1;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    add_records();
+    pico_stack_init(&S);
 
-    hits = pico_mdns_rtree_find_name(&MyRecords, "\3foo\5local", 0);
+    add_records(S);
+
+    hits = pico_mdns_rtree_find_name(&S->MDNSOwnRecords, "\3foo\5local", 0);
     fail_unless(2 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 2 records here!\n");
     pico_tree_foreach(node, &hits) {
@@ -1090,7 +1141,7 @@ START_TEST(tc_mdns_record_tree_find_name) /* MARK: mdns_record_find_name */
     fail_unless(1 == found,
                 "mdns_record_tree_find_name returned records with other name!\n");
 
-    hits = pico_mdns_rtree_find_name(&MyRecords, "\3bar\5local", 0);
+    hits = pico_mdns_rtree_find_name(&S->MDNSOwnRecords, "\3bar\5local", 0);
     fail_unless(1 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 1 record here!\n");
     record = pico_tree_firstNode(hits.root)->keyValue;
@@ -1109,12 +1160,16 @@ START_TEST(tc_mdns_record_tree_find_name_type) /* MARK: mdns_record_find_name_ty
     int found = 1;
     char url[] = "\3foo\5local";
     char url2[] = "\3bar\5local";
+    struct pico_stack *S = NULL;
+
     printf("*********************** starting %s * \n", __func__);
 
-    add_records();
+    pico_stack_init(&S);
+
+    add_records(S);
 
     /* Try to find the first A record */
-    hits = pico_mdns_rtree_find_name_type(&MyRecords, url, PICO_DNS_TYPE_A, 0);
+    hits = pico_mdns_rtree_find_name_type(&S->MDNSOwnRecords, url, PICO_DNS_TYPE_A, 0);
     fail_unless(1 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 1 record here!\n");
     record = pico_tree_firstNode(hits.root)->keyValue;
@@ -1122,7 +1177,7 @@ START_TEST(tc_mdns_record_tree_find_name_type) /* MARK: mdns_record_find_name_ty
                 "mdns_record_tree_find_name returned record with other name!\n");
 
     /* Try to find the 2 PTR records */
-    hits = pico_mdns_rtree_find_name_type(&MyRecords, url, PICO_DNS_TYPE_PTR, 0);
+    hits = pico_mdns_rtree_find_name_type(&S->MDNSOwnRecords, url, PICO_DNS_TYPE_PTR, 0);
     pico_tree_foreach(node, &hits) {
         if ((record = node->keyValue)) {
             if (strcmp(record->record->rname, url))
@@ -1133,7 +1188,7 @@ START_TEST(tc_mdns_record_tree_find_name_type) /* MARK: mdns_record_find_name_ty
                 "mdns_record_tree_find_name returned records with other name!\n");
 
     /* Try to find the last A record */
-    hits = pico_mdns_rtree_find_name_type(&MyRecords, url2, PICO_DNS_TYPE_A, 0);
+    hits = pico_mdns_rtree_find_name_type(&S->MDNSOwnRecords, url2, PICO_DNS_TYPE_A, 0);
     fail_unless(1 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 1 record here!\n");
     record = pico_tree_firstNode(hits.root)->keyValue;
@@ -1157,44 +1212,47 @@ START_TEST(tc_mdns_record_tree_del_name) /* MARK: mdns_record_tree_del_name */
     char url[] = "foo.local";
     char url1[] = "bar.local";
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create an A record with URL */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record, "Record could not be created!\n");
 
     /* Create 2 PTR records to URL */
-    record1 = pico_mdns_record_create(url, url, (uint16_t) strlen(url),
+    record1 = pico_mdns_record_create(S, url, url, (uint16_t) strlen(url),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record1, "Record could not be created!\n");
-    record2 = pico_mdns_record_create(url, url1, (uint16_t) strlen(url1),
+    record2 = pico_mdns_record_create(S, url, url1, (uint16_t) strlen(url1),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Create a totally different record */
-    record3 = pico_mdns_record_create(url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
+    record3 = pico_mdns_record_create(S, url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Add the records to the tree */
-    pico_tree_insert(&MyRecords, record);
-    pico_tree_insert(&MyRecords, record1);
-    pico_tree_insert(&MyRecords, record2);
-    pico_tree_insert(&MyRecords, record3);
+    pico_tree_insert(&S->MDNSOwnRecords, record);
+    pico_tree_insert(&S->MDNSOwnRecords, record1);
+    pico_tree_insert(&S->MDNSOwnRecords, record2);
+    pico_tree_insert(&S->MDNSOwnRecords, record3);
 
     /* Try to del the first tree records */
-    ret = pico_mdns_rtree_del_name(&MyRecords, "\3foo\5local");
+    ret = pico_mdns_rtree_del_name(&S->MDNSOwnRecords, "\3foo\5local");
     fail_unless(0 == ret,
                 "mdns_record_tree_del_name failed!\n");
-    hits = pico_mdns_rtree_find_name(&MyRecords, "\3foo\5local", 0);
+    hits = pico_mdns_rtree_find_name(&S->MDNSOwnRecords, "\3foo\5local", 0);
     fail_unless(0 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 3 records here!\n");
 
-    hits = pico_mdns_rtree_find_name( &MyRecords, "\3bar\5local", 0);
+    hits = pico_mdns_rtree_find_name( &S->MDNSOwnRecords, "\3bar\5local", 0);
     fail_unless(1 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 1 record here!\n");
     record = pico_tree_first(&hits);
@@ -1209,24 +1267,28 @@ START_TEST(tc_mdns_record_tree_del_name_type) /* MARK: mdns_record_tree_del_name
     PICO_MDNS_RTREE_DECLARE(hits);
     int ret = 0;
     char url[] = "\3foo\5local";
+    struct pico_stack *S = NULL;
+
     printf("*********************** starting %s * \n", __func__);
 
-    add_records();
+    pico_stack_init(&S);
+
+    add_records(S);
 
     /* Try to del the two PTR records */
-    ret = pico_mdns_rtree_del_name_type(&MyRecords, url,
+    ret = pico_mdns_rtree_del_name_type(&S->MDNSOwnRecords, url,
                                         PICO_DNS_TYPE_PTR);
     fail_unless(0 == ret, "mdns_record_tree_del_name_type returned error!\n");
 
     /* Try to find the 2 PTR records */
-    hits = pico_mdns_rtree_find_name_type(&MyRecords, url,
+    hits = pico_mdns_rtree_find_name_type(&S->MDNSOwnRecords, url,
                                           PICO_DNS_TYPE_PTR, 0);
     fail_unless(0 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name_type returned PTR records!\n");
 
 
     /* Try to find the first A record */
-    hits = pico_mdns_rtree_find_name_type(&MyRecords, url,
+    hits = pico_mdns_rtree_find_name_type(&S->MDNSOwnRecords, url,
                                           PICO_DNS_TYPE_A, 0);
     fail_unless(1 == pico_tree_count(&hits),
                 "mdns_record_tree_del_name_type failed!\n");
@@ -1247,27 +1309,31 @@ START_TEST(tc_mdns_my_records_add) /* MARK: mdns_my_records_add */
     };
     char url[] = "foo.local";
     char url1[] = "bar.local";
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
     /* Create an A record with URL */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record, "Record could not be created!\n");
 
     /* Create 2 PTR records to URL */
-    record1 = pico_mdns_record_create(url, url, (uint16_t) strlen(url),
+    record1 = pico_mdns_record_create(S, url, url, (uint16_t) strlen(url),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record1, "Record could not be created!\n");
 
     /* Simulate that this record is not added again */
-    record2 = pico_mdns_record_create(url, url1, (uint16_t) strlen(url1),
+    record2 = pico_mdns_record_create(S, url, url1, (uint16_t) strlen(url1),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Create a totally different record */
-    record3 = pico_mdns_record_create(url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
+    record3 = pico_mdns_record_create(S, url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
@@ -1285,12 +1351,15 @@ END_TEST
 START_TEST(tc_mdns_my_records_find_probed) /* MARK: mdns_my_records_find_probed */
 {
     PICO_MDNS_RTREE_DECLARE(hits);
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    add_records();
+    pico_stack_init(&S);
 
-    hits = pico_mdns_my_records_find_probed();
+    add_records(S);
+
+    hits = pico_mdns_my_records_find_probed(S);
     fail_unless(2 == pico_tree_count(&hits),
                 "mdns_my_records_find_probed failed %d!\n",
                 pico_tree_count(&hits));
@@ -1302,12 +1371,15 @@ END_TEST
 START_TEST(tc_mdns_my_records_find_to_probe) /* MARK: mdns_my_records_find_to_probe */
 {
     PICO_MDNS_RTREE_DECLARE(hits);
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    add_records();
+    pico_stack_init(&S);
 
-    hits = pico_mdns_my_records_find_to_probe();
+    add_records(S);
+
+    hits = pico_mdns_my_records_find_to_probe(S);
     fail_unless(1 == pico_tree_count(&hits),
                 "mdns_my_records_find_to_probe failed! %d\n",  pico_tree_count(&hits));
 
@@ -1328,17 +1400,21 @@ START_TEST(tc_mdns_my_records_claimed_id) /* MARK: mnds_my_records_claimed_id */
     };
     char url[] = "foo.local";
     char url1[] = "bar.local";
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
     /* Create an A record with URL */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     record->claim_id = 1;
     record->flags |= PICO_MDNS_RECORD_PROBED;
     fail_if(!record, "Record could not be created!\n");
 
     /* Create 2 PTR records to URL */
-    record1 = pico_mdns_record_create(url, url, (uint16_t) strlen(url),
+    record1 = pico_mdns_record_create(S, url, url, (uint16_t) strlen(url),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     record1->claim_id = 1;
@@ -1346,28 +1422,28 @@ START_TEST(tc_mdns_my_records_claimed_id) /* MARK: mnds_my_records_claimed_id */
     fail_if(!record1, "Record could not be created!\n");
 
     /* Simulate that this record is not added again */
-    record2 = pico_mdns_record_create(url, url1, (uint16_t)strlen(url1),
+    record2 = pico_mdns_record_create(S, url, url1, (uint16_t)strlen(url1),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Create a totally different record */
-    record3 = pico_mdns_record_create(url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
+    record3 = pico_mdns_record_create(S, url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Add the records to the tree */
-    pico_tree_insert(&MyRecords, record);
-    pico_tree_insert(&MyRecords, record1);
-    pico_tree_insert(&MyRecords, record2);
-    pico_tree_insert(&MyRecords, record3);
+    pico_tree_insert(&S->MDNSOwnRecords, record);
+    pico_tree_insert(&S->MDNSOwnRecords, record1);
+    pico_tree_insert(&S->MDNSOwnRecords, record2);
+    pico_tree_insert(&S->MDNSOwnRecords, record3);
 
-    fail_unless(1 == pico_mdns_my_records_claimed_id(1, &hits),
+    fail_unless(1 == pico_mdns_my_records_claimed_id(S, 1, &hits),
                 "mdns_my_records_claimed_id_failed!\n");
     fail_unless(2 == pico_tree_count(&hits),
                 "Vector count should be 2!\n");
 
-    fail_unless(0 == pico_mdns_my_records_claimed_id(0, &hits),
+    fail_unless(0 == pico_mdns_my_records_claimed_id(S, 0, &hits),
                 "Claim ID '0' isn't claimed yet..");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1387,41 +1463,44 @@ START_TEST(tc_mdns_my_records_claimed) /* MARK: mdns_my_records_claimed */
     char url[] = "foo.local";
     char url1[] = "bar.local";
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create an A record with URL */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record, "Record could not be created!\n");
 
     /* Create 2 PTR records to URL */
-    record1 = pico_mdns_record_create(url, url, (uint16_t) strlen(url),
+    record1 = pico_mdns_record_create(S, url, url, (uint16_t) strlen(url),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record1, "Record could not be created!\n");
-    record2 = pico_mdns_record_create(url, url1, (uint16_t) strlen(url1),
+    record2 = pico_mdns_record_create(S, url, url1, (uint16_t) strlen(url1),
                                       PICO_DNS_TYPE_PTR, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Create a totally different record */
-    record3 = pico_mdns_record_create(url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
+    record3 = pico_mdns_record_create(S, url1, &rdata1, 4, PICO_DNS_TYPE_A, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "Record could not be created!\n");
 
     /* Add the records to the tree */
-    pico_tree_insert(&MyRecords, record);
-    pico_tree_insert(&MyRecords, record1);
-    pico_tree_insert(&MyRecords, record2);
-    pico_tree_insert(&MyRecords, record3);
+    pico_tree_insert(&S->MDNSOwnRecords, record);
+    pico_tree_insert(&S->MDNSOwnRecords, record1);
+    pico_tree_insert(&S->MDNSOwnRecords, record2);
+    pico_tree_insert(&S->MDNSOwnRecords, record3);
 
     pico_tree_insert(&rtree, record);
     pico_tree_insert(&rtree, record1);
     pico_tree_insert(&rtree, record2);
     pico_tree_insert(&rtree, record3);
 
-    ret = pico_mdns_my_records_claimed(rtree, callback, NULL);
+    ret = pico_mdns_my_records_claimed(S, rtree, callback, NULL);
     fail_unless(0 == ret, "mdns_my_records_claimed failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1436,20 +1515,23 @@ START_TEST(tc_mdns_cache_add_record) /* MARK: mdns_cache_add_record */
     };
     char url[] = "foo.local";
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create an A record with URL */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 80,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 80,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record, "Record could not be created!\n");
 
-    ret = pico_mdns_cache_add_record(record);
+    ret = pico_mdns_cache_add_record(S, record);
     fail_unless(0 == ret,
                 "mdns_cache_add_record returned error!\n");
-    found = pico_tree_findKey(&Cache, record);
+    found = pico_tree_findKey(&S->MDNSCache, record);
     fail_if(found == NULL, "mdns_cache_add_record failed!\n");
-    ret = pico_mdns_cache_add_record(record);
+    ret = pico_mdns_cache_add_record(S, record);
     fail_unless(0 == ret,
                 "mdns_cache_add_record returned error!\n");
 
@@ -1471,10 +1553,15 @@ START_TEST(tc_mdns_populate_answer_vector) /* MARK: mdns_popolate_antree */
 {
     PICO_MDNS_RTREE_DECLARE(rtree);
     char value[] = "\3foo\5local";
-    printf("*********************** starting %s * \n", __func__);
-    add_records();
+    struct pico_stack *S = NULL;
 
-    rtree = pico_mdns_populate_antree(value, PICO_DNS_TYPE_A,
+    printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
+    add_records(S);
+
+    rtree = pico_mdns_populate_antree(S, value, PICO_DNS_TYPE_A,
                                       PICO_DNS_CLASS_IN);
 
     fail_unless(1 == pico_tree_count(&rtree), "mdns_populate_answer_vector failed!\n");
@@ -1500,8 +1587,11 @@ START_TEST(tc_mdns_handle_data_as_questions) /* MARK: handle_data_as_questions *
     int ret = 0;
     struct pico_dns_question *a = NULL, *b = NULL;
     struct pico_mdns_record *record1 = NULL, *record2 = NULL;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
 
     /* Create a DNS query packet */
     a = pico_mdns_question_create(qurl, &len, PICO_PROTO_IPV4, PICO_DNS_TYPE_A,
@@ -1517,22 +1607,22 @@ START_TEST(tc_mdns_handle_data_as_questions) /* MARK: handle_data_as_questions *
     fail_if(packet == NULL, "mdns_query_create returned NULL!\n");
 
     /* Create records for answers */
-    record1 = pico_mdns_record_create(qurl, &rdata, 4, PICO_DNS_TYPE_A, 120,
+    record1 = pico_mdns_record_create(S, qurl, &rdata, 4, PICO_DNS_TYPE_A, 120,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record1, "mdns_record_create returned NULL!\n");
     record1->flags |= 0xC0;
-    record2 = pico_mdns_record_create(qurl2, &rdata1, 4, PICO_DNS_TYPE_A, 120,
+    record2 = pico_mdns_record_create(S, qurl2, &rdata1, 4, PICO_DNS_TYPE_A, 120,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record2, "mdns_record_created returned NULL!\n");
     record2->flags |= 0xC0;
 
     /* Add them to my records */
-    pico_tree_insert(&MyRecords, record1);
-    pico_tree_insert(&MyRecords, record2);
+    pico_tree_insert(&S->MDNSOwnRecords, record1);
+    pico_tree_insert(&S->MDNSOwnRecords, record2);
 
     ptr = ((uint8_t *)packet + 12);
 
-    antree = pico_mdns_handle_data_as_questions(&ptr, 2, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &ptr, 2, packet);
     fail_unless(2 == pico_tree_count(&antree),
                 "pico_mdns_handle_data_as_questions returned error!\n");
 
@@ -1552,13 +1642,16 @@ START_TEST(tc_mdns_handle_data_as_answers) /* MARK: handle_data_as_answers */
     uint8_t *ptr = NULL;
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    a = pico_mdns_record_create(url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    pico_stack_init(&S);
+
+    a = pico_mdns_record_create(S, url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 PICO_MDNS_RECORD_UNIQUE);
     fail_if(!a, "dns_record_create returned NULL!\n");
-    b = pico_mdns_record_create(url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    b = pico_mdns_record_create(S, url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 PICO_MDNS_RECORD_SHARED);
     fail_if(!a, "dns_record_create returned NULL!\n");
     pico_tree_insert(&rtree, a->record);
@@ -1570,7 +1663,7 @@ START_TEST(tc_mdns_handle_data_as_answers) /* MARK: handle_data_as_answers */
 
     ptr = ((uint8_t *)packet + 12);
 
-    ret = pico_mdns_handle_data_as_answers_generic(&ptr, 2, packet, 0);
+    ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 0);
     fail_unless(0 == ret, "mdns_handle_data_as_answers failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1589,13 +1682,16 @@ START_TEST(tc_mdns_handle_data_as_authorities) /* MARK: handle_data_as_authoriti
         10, 10, 0, 1
     };
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    a = pico_mdns_record_create(url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    pico_stack_init(&S);
+
+    a = pico_mdns_record_create(S, url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 PICO_MDNS_RECORD_UNIQUE);
     fail_if(!a, "dns_record_create returned NULL!\n");
-    b = pico_mdns_record_create(url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    b = pico_mdns_record_create(S, url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 PICO_MDNS_RECORD_SHARED);
     fail_if(!a, "dns_record_create returned NULL!\n");
     pico_tree_insert(&rtree, a->record);
@@ -1607,7 +1703,7 @@ START_TEST(tc_mdns_handle_data_as_authorities) /* MARK: handle_data_as_authoriti
 
     ptr = ((uint8_t *)packet + 12);
 
-    ret = pico_mdns_handle_data_as_answers_generic(&ptr, 2, packet, 1);
+    ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 1);
     fail_unless(0 == ret, "mdns_handle_data_as_answers failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1632,13 +1728,16 @@ START_TEST(tc_mdns_sort_unicast_multicast) /* MARK: sort_unicast_multicast */
         10, 10, 0, 1
     };
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    a = pico_mdns_record_create(url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    pico_stack_init(&S);
+
+    a = pico_mdns_record_create(S, url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 PICO_MDNS_RECORD_UNIQUE);
     fail_if(!a, "mdns_record_create returned NULL!\n");
-    b = pico_mdns_record_create(url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    b = pico_mdns_record_create(S, url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 (PICO_MDNS_RECORD_SHARED | PICO_MDNS_RECORD_SEND_UNICAST));
     fail_if(!a, "mdns_record_create returned NULL!\n");
     pico_tree_insert(&antree, a);
@@ -1660,18 +1759,22 @@ START_TEST(tc_mdns_gather_additionals) /* MARK: gather_additionals */
     struct pico_tree_node *node = NULL;
     int ret = 0;
     char value[] =  "\0\0\0\0\0\x50\4host\5local";
+    struct pico_stack *S = NULL;
+
     printf("*********************** starting %s * \n", __func__);
 
-    add_records();
+    pico_stack_init(&S);
 
-    srv_record = pico_mdns_record_create("test._http._tcp.local",
+    add_records(S);
+
+    srv_record = pico_mdns_record_create(S, "test._http._tcp.local",
                                          value, 17,
                                          PICO_DNS_TYPE_SRV, 120,
                                          PICO_MDNS_RECORD_UNIQUE);
     fail_if(!srv_record, "Could not create SRV record!\n");
     pico_tree_insert(&antree, srv_record);
 
-    ret = pico_mdns_gather_additionals(&antree, &artree);
+    ret = pico_mdns_gather_additionals(S, &antree, &artree);
     fail_if(ret, "Gather Additionals returned error!\n");
     fail_unless(pico_tree_count(&antree) == 3, "ANtree should contain 3: %d",
                 pico_tree_count(&antree));
@@ -1712,13 +1815,16 @@ START_TEST(tc_mdns_apply_known_answer_suppression) /* MARK: apply_k_a_s */
     uint8_t *ptr = NULL;
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    a = pico_mdns_record_create(url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    pico_stack_init(&S);
+
+    a = pico_mdns_record_create(S, url, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 PICO_MDNS_RECORD_UNIQUE);
     fail_if(!a, "dns_record_create returned NULL!\n");
-    b = pico_mdns_record_create(url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
+    b = pico_mdns_record_create(S, url2, (void *)rdata, 4, PICO_DNS_TYPE_A, 120,
                                 PICO_MDNS_RECORD_SHARED);
     fail_if(!a, "dns_record_create returned NULL!\n");
 
@@ -1754,7 +1860,11 @@ START_TEST(tc_mdns_send_query_packet) /* MARK: send_query_packet */
     struct pico_dns_question *question2 = NULL;
     char url1[] = "foo.local";
     uint16_t len;
+    struct pico_stack *S = NULL;
+
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
 
     /* Create some questions */
     question1 = pico_dns_question_create(url1, &len, PICO_PROTO_IPV4,
@@ -1768,12 +1878,12 @@ START_TEST(tc_mdns_send_query_packet) /* MARK: send_query_packet */
     pico_tree_insert(&(a.qtree), question2);
     cookie.count = 2;
 
-    pico_stack_init();
-    mdns_init();
+    mdns_init(S);
 
     pico_mdns_send_query_packet(0, &cookie);
     cookie.type = PICO_MDNS_PACKET_TYPE_QUERY;
     cookie.qtree = qtree;
+    cookie.stack = S;
     pico_mdns_send_query_packet(0, &cookie);
     cookie.type++;
     cookie.status = PICO_MDNS_COOKIE_STATUS_CANCELLED;
@@ -1792,6 +1902,7 @@ START_TEST(tc_mdns_getrecord) /* MARK: getrecord */
     char url[] = "foo.local";
 #endif
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
@@ -1806,30 +1917,30 @@ START_TEST(tc_mdns_getrecord) /* MARK: getrecord */
      */
 
     /* Init */
-    pico_stack_init();
-    mdns_init();
+    pico_stack_init(&S);
+    mdns_init(S);
 
 #if PICO_MDNS_ALLOW_CACHING == 1
     /* Create an A record with URL */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 80,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 80,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record, "Record could not be created!\n");
 
-    ret = pico_mdns_cache_add_record(record);
+    ret = pico_mdns_cache_add_record(S, record);
     fail_unless(0 == ret,
                 "mdns_cache_add_record returned error!\n");
-    found = pico_tree_findKey(&Cache, record);
+    found = pico_tree_findKey(&S->MDNSCache, record);
     fail_if(found == NULL, "mdns_cache_add_record failed!\n");
 #endif
 
 #if PICO_MDNS_ALLOW_CACHING == 1
     amount_callback_executed = 0;
-    ret = pico_mdns_getrecord("foo.local", PICO_DNS_TYPE_A, callback, NULL);
+    ret = pico_mdns_getrecord(S, "foo.local", PICO_DNS_TYPE_A, callback, NULL);
     fail_unless(1 == amount_callback_executed, "mdns_getrecord failed with cache record, callback not executed (%d) !\n", amount_callback_executed);
     fail_unless(0 == ret, "mdns_getrecord failed with cache record!\n");
 #endif
 
-    ret = pico_mdns_getrecord("bar.local", PICO_DNS_TYPE_A, callback, NULL);
+    ret = pico_mdns_getrecord(S, "bar.local", PICO_DNS_TYPE_A, callback, NULL);
     fail_unless(0 == ret, "mdns_getrecord failed!\n");
     printf("*********************** ending %s * \n", __func__);
 }
@@ -1837,18 +1948,20 @@ END_TEST
 START_TEST(tc_mdns_send_announcement_packet) /* MARK: send_announcement_packet */
 {
     struct pico_mdns_cookie *cookie = NULL;
+    struct pico_stack *S = NULL;
     PICO_DNS_QTREE_DECLARE(qtree);
     PICO_MDNS_RTREE_DECLARE(antree);
     PICO_MDNS_RTREE_DECLARE(artree);
 
     printf("*********************** starting %s * \n", __func__);
 
-    cookie = pico_mdns_cookie_create(qtree, antree, artree, 2,
+    pico_stack_init(&S);
+
+    cookie = pico_mdns_cookie_create(S, qtree, antree, artree, 2,
                                      PICO_MDNS_PACKET_TYPE_ANNOUNCEMENT,
                                      callback, NULL);
 
-    pico_stack_init();
-    mdns_init();
+    mdns_init(S);
 
     pico_mdns_send_announcement_packet(0, cookie);
 
@@ -1857,12 +1970,16 @@ START_TEST(tc_mdns_send_announcement_packet) /* MARK: send_announcement_packet *
 END_TEST
 START_TEST(tc_mdns_announce) /* MARK: annonce */
 {
-    printf("*********************** starting %s * \n", __func__);
-    add_records();
-    pico_stack_init();
-    mdns_init();
+    struct pico_stack *S = NULL;
 
-    fail_unless(0 == pico_mdns_announce(callback, NULL),
+    printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
+    add_records(S);
+    mdns_init(S);
+
+    fail_unless(0 == pico_mdns_announce(S, callback, NULL),
                 "mdns_announce failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1871,18 +1988,20 @@ END_TEST
 START_TEST(tc_mdns_send_probe_packet) /* MARK: send_probe_packet */
 {
     struct pico_mdns_cookie *cookie = NULL;
+    struct pico_stack *S = NULL;
     PICO_DNS_QTREE_DECLARE(qtree);
     PICO_MDNS_RTREE_DECLARE(antree);
     PICO_MDNS_RTREE_DECLARE(artree);
 
     printf("*********************** starting %s * \n", __func__);
 
-    cookie = pico_mdns_cookie_create(qtree, antree, artree, 2,
+    pico_stack_init(&S);
+
+    cookie = pico_mdns_cookie_create(S, qtree, antree, artree, 2,
                                      PICO_MDNS_PACKET_TYPE_PROBE,
                                      callback, NULL);
 
-    pico_stack_init();
-    mdns_init();
+    mdns_init(S);
 
     pico_mdns_send_probe_packet(0, cookie);
 
@@ -1896,27 +2015,32 @@ START_TEST(tc_mdns_add_probe_question) /* MARK: add_probe_question */
     char arg[] = "\4host\5local";
     char arg1[] = "\4tree\5local";
     char arg2[] = "\x8host (2)\5local";
+    struct pico_stack *S = NULL;
+
     printf("*********************** starting %s * \n", __func__);
-    ret = pico_mdns_add_probe_question(&qtree, arg);
+
+    pico_stack_init(&S);
+
+    ret = pico_mdns_add_probe_question(S, &qtree, arg);
     fail_unless(0 == ret, "mdns_add_probe_question returned error!\n");
     fail_unless(1 == pico_tree_count(&qtree),
                 "New probe question didn't create!\n");
-    ret = pico_mdns_add_probe_question(&qtree, arg);
+    ret = pico_mdns_add_probe_question(S, &qtree, arg);
     fail_unless(0 == ret, "mdns_add_probe_question returned error!\n");
     fail_unless(1 == pico_tree_count(&qtree),
                 "Count should be 1, is: %d!\n", pico_tree_count(&qtree));
-    ret = pico_mdns_add_probe_question(&qtree, arg1);
+    ret = pico_mdns_add_probe_question(S, &qtree, arg1);
     fail_unless(0 == ret, "mdns_add_probe_question returned error!\n");
     fail_unless(2 == pico_tree_count(&qtree),
                 "New probe question didn't create!\n");
-    ret = pico_mdns_add_probe_question(&qtree, arg2);
+    ret = pico_mdns_add_probe_question(S, &qtree, arg2);
     fail_unless(0 == ret, "mdns_add_probe_question returned error!\n");
     fail_unless(3 == pico_tree_count(&qtree),
                 "New probe question didn't create!\n");
     PICO_DNS_QTREE_DESTROY(&qtree);
     fail_unless(0 == pico_tree_count(&qtree),
                 "Tree isn't properly destroyed %d!\n", pico_tree_count(&qtree));
-    ret = pico_mdns_add_probe_question(&qtree, arg2);
+    ret = pico_mdns_add_probe_question(S, &qtree, arg2);
     fail_unless(0 == ret, "mdns_add_probe_question returned error!\n");
     fail_unless(1 == pico_tree_count(&qtree),
                 "New probe question didn't create!\n");
@@ -1928,12 +2052,16 @@ START_TEST(tc_mdns_add_probe_question) /* MARK: add_probe_question */
 END_TEST
 START_TEST(tc_mdns_probe) /* MARK: probe */
 {
-    printf("*********************** starting %s * \n", __func__);
-    add_records();
-    pico_stack_init();
-    mdns_init();
+    struct pico_stack *S = NULL;
 
-    fail_unless(0 == pico_mdns_probe(callback, NULL),
+    printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
+    add_records(S);
+    mdns_init(S);
+
+    fail_unless(0 == pico_mdns_probe(S, callback, NULL),
                 "mdns_announce failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1949,13 +2077,17 @@ START_TEST(tc_mdns_claim) /* MARK: mdns_claim */
         long_be(0x00FFFFFF)
     };
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
     /* Create a record */
-    record = pico_mdns_record_create(url, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record = pico_mdns_record_create(S, url, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                      PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record, "Record could not be created!\n");
-    record1 = pico_mdns_record_create(url2, &rdata, 4, PICO_DNS_TYPE_A, 0,
+    record1 = pico_mdns_record_create(S, url2, &rdata, 4, PICO_DNS_TYPE_A, 0,
                                       PICO_MDNS_RECORD_UNIQUE);
     fail_if(!record1, "Record could not be created!\n");
 
@@ -1963,10 +2095,9 @@ START_TEST(tc_mdns_claim) /* MARK: mdns_claim */
     pico_tree_insert(&rtree, record);
     pico_tree_insert(&rtree, record1);
 
-    pico_stack_init();
-    mdns_init();
+    mdns_init(S);
 
-    ret = pico_mdns_claim(rtree, callback, NULL);
+    ret = pico_mdns_claim(S, rtree, callback, NULL);
     fail_unless(0 == ret, "mdns_claimed failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1975,12 +2106,13 @@ END_TEST
 START_TEST(tc_mdns_tryclaim_hostname) /* MARK: tryclaim_hostname */
 {
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
-    pico_stack_init();
-    mdns_init();
+    pico_stack_init(&S);
+    mdns_init(S);
 
-    ret = pico_mdns_tryclaim_hostname("test.local", NULL);
+    ret = pico_mdns_tryclaim_hostname(S, "test.local", NULL);
     fail_unless(0 == ret, "mdns_tryclaim_hostname failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1989,11 +2121,13 @@ END_TEST
 START_TEST(tc_mdns_get_hostname) /* MARK: get_hostname */
 {
     const char *c_hostname;
-    printf("*********************** starting %s * \n", __func__);
-    pico_stack_init();
-    mdns_init();
+    struct pico_stack *S = NULL;
 
-    c_hostname = pico_mdns_get_hostname();
+    printf("*********************** starting %s * \n", __func__);
+    pico_stack_init(&S);
+    mdns_init(S);
+
+    c_hostname = pico_mdns_get_hostname(S);
     printf(" hostname %s\n", c_hostname);
     printf("*********************** ending %s * \n", __func__);
 }

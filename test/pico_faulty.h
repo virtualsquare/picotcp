@@ -26,6 +26,7 @@
 #include <sys/time.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 extern uint32_t mm_failure_count;
 int pico_set_mm_failure(uint32_t nxt);

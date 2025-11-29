@@ -90,11 +90,12 @@ START_TEST (test_ipv6)
     struct pico_ipv6_link *l[IP_TST_SIZ];
     struct pico_ipv6_link *_link = NULL;
     struct pico_ipv6_route *_route = NULL;
+    struct pico_stack *S = NULL;
     char devname[8];
     int ret = 0;
     int i = 0;
 
-    pico_stack_init();
+    pico_stack_init(&S);
 
     /* pico_string_to_ipv6 and pico_ipv6_to_string */
     printf("pico_string_to_ipv6 valid conversion of %s\n", ipstr0);
@@ -223,7 +224,7 @@ START_TEST (test_ipv6)
     /*link_add*/
     for (i = 0; i < 10; ++i) {
         snprintf(devname, 8, "nul%d", i);
-        dev[i] = pico_null_create(devname);
+        dev[i] = pico_null_create(S, devname);
         a[i] = iphex_a;
         a[i].addr[4] = (uint8_t)(a[i].addr[4] + i);
         fail_if(pico_ipv6_link_add(dev[i], a[i], nm64) == NULL, "Error adding link");
@@ -232,24 +233,24 @@ START_TEST (test_ipv6)
     for (i = 0; i < 10; ++i) {
         gw[i] = iphex_gw;
         gw[i].addr[4] = (uint8_t)(gw[i].addr[4] + i);
-        fail_unless(pico_ipv6_link_find(&a[i]) == dev[i], "Error finding link");
-        l[i] = pico_ipv6_link_get(&a[i]);
+        fail_unless(pico_ipv6_link_find(S, &a[i]) == dev[i], "Error finding link");
+        l[i] = pico_ipv6_link_get(S, &a[i]);
         fail_if(l[i] == NULL, "Error getting link");
         r[i] = iphex_r;
         r[i].addr[4] = (uint8_t)(r[i].addr[4] + i);
-        fail_if(pico_ipv6_route_add(r[i], nm128, a[i], 1, l[i]) != 0, "Error adding route");
+        fail_if(pico_ipv6_route_add(S, r[i], nm128, a[i], 1, l[i]) != 0, "Error adding route");
     }
     /*get_gateway*/
     for (i = 0; i < 10; i++) {
-        _gw = pico_ipv6_route_get_gateway(&r[i]);
+        _gw = pico_ipv6_route_get_gateway(S, &r[i]);
         fail_if(memcmp(_gw.addr, a[i].addr, PICO_SIZE_IP6) != 0, "Error get gateway: returned wrong route");
-        source[i] = pico_ipv6_source_find(&r[i]);
+        source[i] = pico_ipv6_source_find(S, &r[i]);
         fail_if(memcmp(source[i]->addr, a[i].addr, PICO_SIZE_IP6) != 0, "Error find source: returned wrong route");
     }
     /*route_del + link_del*/
     for (i = 0; i < 10; i++) {
-        fail_if(pico_ipv6_route_del(r[i], nm128, a[i], 1, l[i]) != 0, "Error deleting route");
-        fail_if(pico_ipv6_link_del(dev[i], a[i]) != 0, "Error deleting link");
+        fail_if(pico_ipv6_route_del(S, r[i], nm128, a[i], 1, l[i]) != 0, "Error deleting route");
+        fail_if(pico_ipv6_link_del(S, dev[i], a[i]) != 0, "Error deleting link");
     }
     /* add 2 links to dev[0] */
     _link = pico_ipv6_link_add(dev[0], a[0], nm64);
@@ -257,13 +258,13 @@ START_TEST (test_ipv6)
     _link = pico_ipv6_link_add(dev[0], a[1], nm64);
     fail_if (!_link, "Error adding link");
     /* add 2 routes to each of the links */
-    ret = pico_ipv6_route_add(r[0], nm128, a[0], 1, l[0]);
+    ret = pico_ipv6_route_add(S, r[0], nm128, a[0], 1, l[0]);
     fail_if(ret != 0, "Error adding route");
-    ret = pico_ipv6_route_add(r[1], nm128, a[0], 1, l[0]);
+    ret = pico_ipv6_route_add(S, r[1], nm128, a[0], 1, l[0]);
     fail_if(ret != 0, "Error adding route");
-    ret = pico_ipv6_route_add(r[2], nm128, a[1], 1, l[1]);
+    ret = pico_ipv6_route_add(S, r[2], nm128, a[1], 1, l[1]);
     fail_if(ret != 0, "Error adding route");
-    ret = pico_ipv6_route_add(r[3], nm128, a[1], 1, l[1]);
+    ret = pico_ipv6_route_add(S, r[3], nm128, a[1], 1, l[1]);
     fail_if(ret != 0, "Error adding route");
 
     /* add 2 links to dev[1] */
@@ -272,42 +273,42 @@ START_TEST (test_ipv6)
     _link = pico_ipv6_link_add(dev[1], a[9], nm64);
     fail_if (!_link, "Error adding link");
     /* add 2 routes to each of the links */
-    ret = pico_ipv6_route_add(r[6], nm128, a[8], 1, l[8]);
+    ret = pico_ipv6_route_add(S, r[6], nm128, a[8], 1, l[8]);
     fail_if(ret != 0, "Error adding route");
-    ret = pico_ipv6_route_add(r[7], nm128, a[8], 1, l[8]);
+    ret = pico_ipv6_route_add(S, r[7], nm128, a[8], 1, l[8]);
     fail_if(ret != 0, "Error adding route");
-    ret = pico_ipv6_route_add(r[8], nm128, a[9], 1, l[9]);
+    ret = pico_ipv6_route_add(S, r[8], nm128, a[9], 1, l[9]);
     fail_if(ret != 0, "Error adding route");
-    ret = pico_ipv6_route_add(r[9], nm128, a[9], 1, l[9]);
+    ret = pico_ipv6_route_add(S, r[9], nm128, a[9], 1, l[9]);
     fail_if(ret != 0, "Error adding route");
 
     /* destroy device, should clean up all links and routes */
     pico_device_destroy(dev[0]);
-    _link = pico_ipv6_link_get(&a[0]);
+    _link = pico_ipv6_link_get(S, &a[0]);
     fail_if(_link != NULL, "Error destroying device");
-    _link = pico_ipv6_link_get(&a[1]);
+    _link = pico_ipv6_link_get(S, &a[1]);
     fail_if(_link != NULL, "Error destroying device");
-    _link = pico_ipv6_link_get(&a[8]);
+    _link = pico_ipv6_link_get(S, &a[8]);
     fail_if(_link == NULL, "Error destroying device");
-    _link = pico_ipv6_link_get(&a[9]);
+    _link = pico_ipv6_link_get(S, &a[9]);
     fail_if(_link == NULL, "Error destroying device");
 
-    _route = pico_ipv6_route_find(&r[0]);
+    _route = pico_ipv6_route_find(S, &r[0]);
     fail_if(_route != NULL, "Error destroying device");
-    _route = pico_ipv6_route_find(&r[1]);
+    _route = pico_ipv6_route_find(S, &r[1]);
     fail_if(_route != NULL, "Error destroying device");
-    _route = pico_ipv6_route_find(&r[2]);
+    _route = pico_ipv6_route_find(S, &r[2]);
     fail_if(_route != NULL, "Error destroying device");
-    _route = pico_ipv6_route_find(&r[3]);
+    _route = pico_ipv6_route_find(S, &r[3]);
     fail_if(_route != NULL, "Error destroying device");
 
-    _route = pico_ipv6_route_find(&r[6]);
+    _route = pico_ipv6_route_find(S, &r[6]);
     fail_if(_route == NULL, "Error destroying device");
-    _route = pico_ipv6_route_find(&r[7]);
+    _route = pico_ipv6_route_find(S, &r[7]);
     fail_if(_route == NULL, "Error destroying device");
-    _route = pico_ipv6_route_find(&r[8]);
+    _route = pico_ipv6_route_find(S, &r[8]);
     fail_if(_route == NULL, "Error destroying device");
-    _route = pico_ipv6_route_find(&r[9]);
+    _route = pico_ipv6_route_find(S, &r[9]);
     fail_if(_route == NULL, "Error destroying device");
 }
 END_TEST
@@ -345,7 +346,8 @@ START_TEST (test_mld_sockopts)
         0
     };
 
-    pico_stack_init();
+    struct pico_stack *S = NULL;
+    pico_stack_init(&S);
 
     printf("START MLD SOCKOPTS TEST\n");
 
@@ -389,17 +391,17 @@ START_TEST (test_mld_sockopts)
             mreq_source[(i * 8) + j].mcast_source_addr = inaddr_source[j];
         }
     }
-    dev = pico_null_create("dummy0");
+    dev = pico_null_create(S, "dummy0");
     ret_link = pico_ipv6_link_add(dev, inaddr_link[0].ip6, netmask);
     fail_if(ret_link == NULL, "link add failed");
-    dev = pico_null_create("dummy1");
+    dev = pico_null_create(S, "dummy1");
     ret_link = pico_ipv6_link_add(dev, inaddr_link[1].ip6, netmask);
     fail_if(ret_link == NULL, "link add failed");
 
 
-    s = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_UDP, NULL);
+    s = pico_socket_open(S, PICO_PROTO_IPV6, PICO_PROTO_UDP, NULL);
     fail_if(s == NULL, "UDP socket open failed");
-    s1 = pico_socket_open(PICO_PROTO_IPV6, PICO_PROTO_UDP, NULL);
+    s1 = pico_socket_open(S, PICO_PROTO_IPV6, PICO_PROTO_UDP, NULL);
     fail_if(s1 == NULL, "UDP socket open failed");
 
 
@@ -620,7 +622,7 @@ START_TEST (test_mld_sockopts)
     fail_if(ret < 0, "PICO_IP_ADD_SOURCE_MEMBERSHIP failed\n");
     i = 0;
 
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 2)
             fail("MCASTFilter (INCLUDE + INCLUDE) too many elements\n");
@@ -653,7 +655,7 @@ START_TEST (test_mld_sockopts)
     ret = pico_socket_setoption(s1, PICO_IP_BLOCK_SOURCE, &mreq_source[2]);
     fail_if(ret < 0, "PICO_IP_BLOCK_SOURCE failed\n");
     i = 0;
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 1)
             fail("MCASTFilter (INCLUDE + EXCLUDE) too many elements\n");
@@ -687,7 +689,7 @@ START_TEST (test_mld_sockopts)
     fail_if(ret < 0, "PICO_IP_ADD_SOURCE_MEMBERSHIP failed\n");
     i = 0;
 
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 2)
             fail("MCASTFilter (EXCLUDE + INCLUDE) too many elements\n");
@@ -728,7 +730,7 @@ START_TEST (test_mld_sockopts)
     ret = pico_socket_setoption(s1, PICO_IP_BLOCK_SOURCE, &mreq_source[6]);
     fail_if(ret < 0, "PICO_IP_BLOCK_SOURCE failed\n");
     i = 0;
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 2)
             fail("MCASTFilter (EXCLUDE + EXCLUDE) too many elements\n");

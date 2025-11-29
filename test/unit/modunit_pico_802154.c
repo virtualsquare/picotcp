@@ -5,7 +5,9 @@
 #include "pico_ipv6.h"
 #include "pico_6lowpan.h"
 #include "modules/pico_802154.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 #include <stdio.h>
 #include <string.h>
@@ -436,7 +438,6 @@ START_TEST(tc_802154_process_out)
     dev.hostvars.lowpan_flags = PICO_6LP_FLAG_LOWPAN;
 
     STARTING();
-    pico_stack_init();
 
     // TEST 1
     TRYING("Trying with bare frame\n");
@@ -484,7 +485,6 @@ START_TEST(tc_802154_process_in)
     f->dst.pan = dst;
 
     STARTING();
-    pico_stack_init();
 
     TRYING("Apply processing function on predefined buffer\n");
     ret = pico_802154_process_in(f);

@@ -767,12 +767,12 @@ static int pico_dns_client_getaddr_init(struct pico_stack *S, const char *url, u
     return 0;
 }
 
-int pico_dns_client_getaddr(struct pico_stack *S, const char *url, void (*callback)(char *, void *), void *arg)
+int MOCKABLE pico_dns_client_getaddr(struct pico_stack *S, const char *url, void (*callback)(char *, void *), void *arg)
 {
     return pico_dns_client_getaddr_init(S, url, PICO_PROTO_IPV4, callback, arg);
 }
 
-int pico_dns_client_getaddr6(struct pico_stack *S, const char *url, void (*callback)(char *, void *), void *arg)
+int MOCKABLE pico_dns_client_getaddr6(struct pico_stack *S, const char *url, void (*callback)(char *, void *), void *arg)
 {
     return pico_dns_client_getaddr_init(S, url, PICO_PROTO_IPV6, callback, arg);
 }

@@ -24,7 +24,7 @@ INCLUDES=`cat $filename |grep "\#include \"" |grep -v $MYSELF| cut -d '"' -f 2`
 echo includes are:
 echo $INCLUDES
 echo "#include \"$filename\"" >>./test/unit/modunit_$bname
-echo "#include \"check.h\"" >>./test/unit/modunit_$bname
+echo "#include <check.h>" >>./test/unit/modunit_$bname
 echo >> ./test/unit/modunit_$bname
 echo >> ./test/unit/modunit_$bname
 
