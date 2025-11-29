@@ -13,3 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: make
+      - name: Unit tests
+        run: |
+          sudo apt-get update
+          sudo apt-get install check
+          make clean
+          make units UNITS=1
+          ./test/units.sh
+        if: runner.os == 'Linux'

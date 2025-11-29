@@ -1,4 +1,6 @@
 #include "pico_tcp.c"
+#include "test/pico_rand.h"
+
 #include <check.h>
 
 Suite *pico_suite(void);

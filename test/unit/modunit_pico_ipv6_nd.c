@@ -8,14 +8,17 @@
 #include "pico_addressing.h"
 #include "pico_ipv6_nd.h"
 #include "pico_ethernet.h"
-#include "./modules/pico_ipv6_nd.c"
-#include "check.h"
+#include "pico_dev_null.c"
+#include "modules/pico_ipv6_nd.c"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 #ifdef PICO_SUPPORT_IPV6
 
 #define VALUE_BETWEEN_RANGE(val, min, max)      \
   (((val) > (min)) && ((val) < (max)))
-#define EXPIRE_TIME_RANGE_MS               (5)
+#define EXPIRE_TIME_RANGE_MS               (10) 
 #define TIME_CHECK(time, expected)         VALUE_BETWEEN_RANGE(time, expected-EXPIRE_TIME_RANGE_MS, expected+EXPIRE_TIME_RANGE_MS)
 
 enum ND_PACKET_TYPE {
@@ -107,6 +110,9 @@ static struct pico_frame *make_router_adv(struct pico_device *dev, enum ND_PACKE
   uint8_t *nxt_opt = NULL;
   uint8_t number_of_lladdr_options = 1;
   int i = 0;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   if (packet_type == PACKET_TYPE_DOUBLE_OPTION) {
     len = PICO_ICMP6HDR_ROUTER_ADV_SIZE + 2 * PICO_ICMP6_OPT_LLADDR_SIZE + sizeof(struct pico_icmp6_opt_prefix);
@@ -116,7 +122,7 @@ static struct pico_frame *make_router_adv(struct pico_device *dev, enum ND_PACKE
     number_of_lladdr_options = 1;
   }
 
-  adv = pico_proto_ipv6.alloc(&pico_proto_ipv6, dev, len);
+  adv = pico_proto_ipv6.alloc(S, &pico_proto_ipv6, dev, len);
   fail_if(!adv);
 
   adv->payload = adv->transport_hdr + len;
@@ -344,13 +350,16 @@ START_TEST(tc_pico_nd_get_oldest_queued_frame)
   };
   struct pico_ipv6_hdr hdr_0 = {0};
   struct pico_ipv6_hdr hdr_1 = {0};
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   hdr_0.dst = addr_0;
   hdr_1.dst = addr_1;
 
   /* No queued frames yet */
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_0) != NULL, "No queued frames yet, should have returned NULL");
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_1) != NULL, "No queued frames yet, should have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_0) != NULL, "No queued frames yet, should have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_1) != NULL, "No queued frames yet, should have returned NULL");
 
   a.timestamp = 0;
   b.timestamp = 1;
@@ -360,21 +369,21 @@ START_TEST(tc_pico_nd_get_oldest_queued_frame)
   b.net_hdr = (uint8_t *)&hdr_0;
   c.net_hdr = (uint8_t *)&hdr_0;
 
-  pico_tree_insert(&IPV6NQueue, &a);
-  pico_tree_insert(&IPV6NQueue, &b);
-  pico_tree_insert(&IPV6NQueue, &c);
+  pico_tree_insert(&S->IPV6NQueue, &a);
+  pico_tree_insert(&S->IPV6NQueue, &b);
+  pico_tree_insert(&S->IPV6NQueue, &c);
 
   /* Frames queued with same dest addresses */
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_0) != &a, "Queued frames in, shouldn't have returned NULL");
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_1) != NULL, "No queued frames for this dest yet, should have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_0) != &a, "Queued frames in, shouldn't have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_1) != NULL, "No queued frames for this dest yet, should have returned NULL");
 
   /* 2 packets with same timestamp */
   a.timestamp = 1;
   b.timestamp = 1;
   c.timestamp = 2;
 
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_0) != &a && pico_nd_get_oldest_queued_frame(&addr_0) != &b, "Queued frames in, shouldn't have returned NULL");
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_1) != NULL, "No queued frames for this dest yet, should have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_0) != &a && pico_nd_get_oldest_queued_frame(S, &addr_0) != &b, "Queued frames in, shouldn't have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_1) != NULL, "No queued frames for this dest yet, should have returned NULL");
 
   /* Frames queued with different dest addresses */
   a.timestamp = 0;
@@ -385,12 +394,12 @@ START_TEST(tc_pico_nd_get_oldest_queued_frame)
   b.net_hdr = (uint8_t *)&hdr_0;
   c.net_hdr = (uint8_t *)&hdr_0;
 
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_1) != &a, "No queued frames for this dest yet, should have returned NULL");
-  fail_if(pico_nd_get_oldest_queued_frame(&addr_0) != &b, "Queued frames in, shouldn't have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_1) != &a, "No queued frames for this dest yet, should have returned NULL");
+  fail_if(pico_nd_get_oldest_queued_frame(S, &addr_0) != &b, "Queued frames in, shouldn't have returned NULL");
 
-  pico_tree_delete(&IPV6NQueue, &a);
-  pico_tree_delete(&IPV6NQueue, &b);
-  pico_tree_delete(&IPV6NQueue, &c);
+  pico_tree_delete(&S->IPV6NQueue, &a);
+  pico_tree_delete(&S->IPV6NQueue, &b);
+  pico_tree_delete(&S->IPV6NQueue, &c);
 }
 END_TEST
 START_TEST(tc_ipv6_duplicate_detected)
@@ -405,33 +414,36 @@ START_TEST(tc_pico_get_neighbor_from_ncache)
   struct pico_ip6 a_addr = { 0 };
   struct pico_ip6 b_addr = { 0 };
   struct pico_ip6 c_addr = { 0 };
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   /* Init */
   a.address = a_addr;
 
   /* neighbor not in neighbour cache */
-  fail_if(pico_get_neighbor_from_ncache(&a_addr) != NULL, "Neighbor not registered yet but still found?");
+  fail_if(pico_get_neighbor_from_ncache(S, &a_addr) != NULL, "Neighbor not registered yet but still found?");
 
   /* Neighbor in neighbour cache*/
-  pico_tree_insert(&NCache, &a);
-  fail_if(pico_get_neighbor_from_ncache(&a_addr) != &a, "Neighbor registered in ncache but NOT found?");
+  pico_tree_insert(&S->IPV6NCache, &a);
+  fail_if(pico_get_neighbor_from_ncache(S, &a_addr) != &a, "Neighbor registered in ncache but NOT found?");
 
   /* Look for different neighbour */
   b_addr.addr[0] = 1;
   b.address = b_addr;
-  fail_if(pico_get_neighbor_from_ncache(&b_addr) != NULL, "Neighbor not registered in ncache but found?");
+  fail_if(pico_get_neighbor_from_ncache(S, &b_addr) != NULL, "Neighbor not registered in ncache but found?");
 
   /* Insert other neigbhour */
-  pico_tree_insert(&NCache, &b);
-  fail_if(pico_get_neighbor_from_ncache(&b_addr) != &b, "Neighbor registered in ncache but NOT found?");
+  pico_tree_insert(&S->IPV6NCache, &b);
+  fail_if(pico_get_neighbor_from_ncache(S, &b_addr) != &b, "Neighbor registered in ncache but NOT found?");
 
   /* Look for different neighbour when multiple neighbours in neigbhour cache*/
   c_addr.addr[0] = 2;
-  fail_if(pico_get_neighbor_from_ncache(&c_addr) != NULL, "Neighbor not registered in ncache but found?");
+  fail_if(pico_get_neighbor_from_ncache(S, &c_addr) != NULL, "Neighbor not registered in ncache but found?");
 
   /* Cleanup */
-  pico_tree_delete(&NCache, &a);
-  pico_tree_delete(&NCache, &b);
+  pico_tree_delete(&S->IPV6NCache, &a);
+  pico_tree_delete(&S->IPV6NCache, &b);
 }
 END_TEST
 START_TEST(tc_pico_get_router_from_rcache)
@@ -443,6 +455,9 @@ START_TEST(tc_pico_get_router_from_rcache)
   struct pico_ip6 a_addr = { 0 };
   struct pico_ip6 b_addr = { 0 };
   struct pico_ip6 c_addr = { 0 };
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   /* Init */
   a.router = &a_nb;
@@ -450,35 +465,35 @@ START_TEST(tc_pico_get_router_from_rcache)
   a_nb.address = a_addr;
 
   /* Router not in router cache */
-  fail_if(pico_get_router_from_rcache(&a_addr) != NULL, "Router not registered yet but still found?");
+  fail_if(pico_get_router_from_rcache(S, &a_addr) != NULL, "Router not registered yet but still found?");
 
   /* Router in router cache*/
-  pico_tree_insert(&RCache, &a);
-  fail_if(pico_get_router_from_rcache(&a_addr) != &a, "Router registered in rcache but NOT found?");
+  pico_tree_insert(&S->IPV6RCache, &a);
+  fail_if(pico_get_router_from_rcache(S, &a_addr) != &a, "Router registered in rcache but NOT found?");
 
   /* Look for different router */
   b_addr.addr[0] = 1;
   b_nb.address = b_addr;
-  fail_if(pico_get_router_from_rcache(&b_addr) != NULL, "Router not registered in rcache but found?");
+  fail_if(pico_get_router_from_rcache(S, &b_addr) != NULL, "Router not registered in rcache but found?");
 
   /* Insert other router */
-  pico_tree_insert(&RCache, &b);
-  fail_if(pico_get_router_from_rcache(&b_addr) != &b, "Router registered in rcache but NOT found?");
+  pico_tree_insert(&S->IPV6RCache, &b);
+  fail_if(pico_get_router_from_rcache(S, &b_addr) != &b, "Router registered in rcache but NOT found?");
 
   /* Look for different router when multiple router in router cache*/
   c_addr.addr[0] = 2;
-  fail_if(pico_get_router_from_rcache(&c_addr) != NULL, "Router not registered in rcache but found?");
+  fail_if(pico_get_router_from_rcache(S, &c_addr) != NULL, "Router not registered in rcache but found?");
 
   /* Failing malloc */
   pico_set_mm_failure(1);
-  fail_if(pico_get_router_from_rcache(&b_addr) != NULL, "Router registered in rcache but malloc failed and we don't return NULL?");
+  fail_if(pico_get_router_from_rcache(S, &b_addr) != NULL, "Router registered in rcache but malloc failed and we don't return NULL?");
 
   pico_set_mm_failure(1);
-  fail_if(pico_get_router_from_rcache(&c_addr) != NULL, "Router not registered in rcache and malloc failed, but we don't return NULL?");
+  fail_if(pico_get_router_from_rcache(S, &c_addr) != NULL, "Router not registered in rcache and malloc failed, but we don't return NULL?");
 
   /* Cleanup */
-  pico_tree_delete(&RCache, &a);
-  pico_tree_delete(&RCache, &b);
+  pico_tree_delete(&S->IPV6RCache, &a);
+  pico_tree_delete(&S->IPV6RCache, &b);
 }
 END_TEST
 START_TEST(tc_pico_nd_get_default_router)
@@ -489,6 +504,9 @@ START_TEST(tc_pico_nd_get_default_router)
   char ipstr0[] = "2001:0db8:130f:0000:0000:09c0:876a:130b";
   char ipstr1[] = "2001:1db8:130f:0000:0000:09c0:876a:130b";
   char ipstr2[] = "2001:b8:130f:0000:0000:09c0:876a:130b";
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   /* Setup of routers */
   r0.router = &n0;
@@ -502,22 +520,22 @@ START_TEST(tc_pico_nd_get_default_router)
   pico_string_to_ipv6(ipstr2, r2.router->address.addr);
 
   /* No routers in Cache */
-  fail_if(pico_nd_get_default_router() != NULL, "No router in RCache, should have returned NULL");
+  fail_if(pico_nd_get_default_router(S) != NULL, "No router in RCache, should have returned NULL");
 
   /* Routers in rcache, but don't flag it as default router */
-  pico_tree_insert(&RCache, &r0);
-  pico_tree_insert(&RCache, &r1);
-  pico_tree_insert(&RCache, &r2);
-  fail_if(pico_nd_get_default_router() != NULL, "No default router in RCache, should have returned NULL");
+  pico_tree_insert(&S->IPV6RCache, &r0);
+  pico_tree_insert(&S->IPV6RCache, &r1);
+  pico_tree_insert(&S->IPV6RCache, &r2);
+  fail_if(pico_nd_get_default_router(S) != NULL, "No default router in RCache, should have returned NULL");
 
   /* Flag one router as default */
   r1.is_default = 1;
-  fail_if(pico_nd_get_default_router() != &r1, "Default router in RCache, should have been returned");
+  fail_if(pico_nd_get_default_router(S) != &r1, "Default router in RCache, should have been returned");
 
   /* Cleanup */
-  pico_tree_delete(&RCache, &r0);
-  pico_tree_delete(&RCache, &r1);
-  pico_tree_delete(&RCache, &r2);
+  pico_tree_delete(&S->IPV6RCache, &r0);
+  pico_tree_delete(&S->IPV6RCache, &r1);
+  pico_tree_delete(&S->IPV6RCache, &r2);
 }
 END_TEST
 START_TEST(tc_pico_nd_set_new_expire_time)
@@ -595,15 +613,20 @@ START_TEST(tc_pico_ipv6_assign_default_router_on_link)
     0x09, 0x00, 0x27, 0x39, 0xd0, 0xc6
   };
   const char *name = "nd_test";
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
+
+  link0.dev = dummy_dev;
 
   /* Setup of routers */
-  n0 = pico_nd_create_entry(&addr_0, dummy_dev);
-  n1 = pico_nd_create_entry(&addr_1, dummy_dev);
-  n2 = pico_nd_create_entry(&addr_2, dummy_dev);
-  n3 = pico_nd_create_entry(&addr_3, dummy_dev);
+  n0 = pico_nd_create_entry(S, &addr_0, dummy_dev);
+  n1 = pico_nd_create_entry(S, &addr_1, dummy_dev);
+  n2 = pico_nd_create_entry(S, &addr_2, dummy_dev);
+  n3 = pico_nd_create_entry(S, &addr_3, dummy_dev);
 
   r0 = PICO_ZALLOC(sizeof(struct pico_ipv6_router));
   r1 = PICO_ZALLOC(sizeof(struct pico_ipv6_router));
@@ -620,29 +643,29 @@ START_TEST(tc_pico_ipv6_assign_default_router_on_link)
   r3->link = &link1;             /* One router with different link */
 
   /* No routers in Cache */
-  fail_if(pico_nd_get_default_router() != NULL, "No router in RCache, should have returned NULL");
+  fail_if(pico_nd_get_default_router(S) != NULL, "No router in RCache, should have returned NULL");
 
   /* Routers in rcache, but don't flag it as default router */
-  pico_tree_insert(&RCache, r0);
-  pico_tree_insert(&RCache, r1);
-  pico_tree_insert(&RCache, r2);
-  pico_tree_insert(&RCache, r3);
-  fail_if(pico_nd_get_default_router() != NULL, "No default router in RCache, should have returned NULL");
+  pico_tree_insert(&S->IPV6RCache, r0);
+  pico_tree_insert(&S->IPV6RCache, r1);
+  pico_tree_insert(&S->IPV6RCache, r2);
+  pico_tree_insert(&S->IPV6RCache, r3);
+  fail_if(pico_nd_get_default_router(S) != NULL, "No default router in RCache, should have returned NULL");
 
-  pico_ipv6_assign_router_on_link(0, &link0); /* Don't assign default router */
+  pico_ipv6_assign_router_on_link(S, 0, &link0); /* Don't assign default router */
 
-  fail_if(pico_nd_get_default_router() != NULL, "No default router in RCache, should have returned NULL");
+  fail_if(pico_nd_get_default_router(S) != NULL, "No default router in RCache, should have returned NULL");
 
-  pico_ipv6_assign_router_on_link(1, &link0); /* Assign default router */
+  pico_ipv6_assign_router_on_link(S, 1, &link0); /* Assign default router */
 
-  fail_if(pico_nd_get_default_router() == NULL, "Default router in RCache with link0, shouldn't have returned NULL");
-  fail_if(pico_nd_get_default_router() == r3, "Default router in RCache with link0, shouldn't have returned router with link1");
+  fail_if(pico_nd_get_default_router(S) == NULL, "Default router in RCache with link0, shouldn't have returned NULL");
+  fail_if(pico_nd_get_default_router(S) == r3, "Default router in RCache with link0, shouldn't have returned router with link1");
 
   /* Cleanup */
-  pico_nd_delete_entry(&n0->address);
-  pico_nd_delete_entry(&n1->address);
-  pico_nd_delete_entry(&n2->address);
-  pico_nd_delete_entry(&n3->address);
+  pico_nd_delete_entry(n0);
+  pico_nd_delete_entry(n1);
+  pico_nd_delete_entry(n2);
+  pico_nd_delete_entry(n3);
   pico_device_destroy(dummy_dev);
 }
 END_TEST
@@ -655,6 +678,15 @@ START_TEST(tc_pico_ipv6_set_router_link)
   char ipstr1[] = "2001:1db8:130f:0000:0000:09c0:876a:130b";
   char ipstr2[] = "2001:b8:130f:0000:0000:09c0:876a:130b";
   char ipstr3[] = "2001:8:130f:0000:0000:09c0:876a:130b";
+  struct pico_device *dev = NULL;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
+
+  dev = pico_null_create(S, "dummy");
+
+  link0.dev = dev;
+  link1.dev = dev;
 
   /* Setup of routers */
   r0.router = &n0;
@@ -666,8 +698,8 @@ START_TEST(tc_pico_ipv6_set_router_link)
   pico_string_to_ipv6(ipstr2, r2.router->address.addr);
   pico_string_to_ipv6(ipstr3, r3.router->address.addr);
 
-  /* NULL args */
-  pico_ipv6_set_router_link(NULL, NULL);
+  /* NULL arg */
+  pico_ipv6_set_router_link(NULL, &link0);
 
   /* No routers in RCache */
   pico_ipv6_set_router_link(&r0.router->address, &link0);
@@ -675,10 +707,10 @@ START_TEST(tc_pico_ipv6_set_router_link)
   fail_if(r0.link == &link0, "Router not yet in RCache, link should not have been set");
 
   /* Routers in RCache */
-  pico_tree_insert(&RCache, &r0);
-  pico_tree_insert(&RCache, &r1);
-  pico_tree_insert(&RCache, &r2);
-  pico_tree_insert(&RCache, &r3);
+  pico_tree_insert(&S->IPV6RCache, &r0);
+  pico_tree_insert(&S->IPV6RCache, &r1);
+  pico_tree_insert(&S->IPV6RCache, &r2);
+  pico_tree_insert(&S->IPV6RCache, &r3);
 
   /* Setting router links */
   pico_ipv6_set_router_link(&r0.router->address, &link0);
@@ -692,10 +724,10 @@ START_TEST(tc_pico_ipv6_set_router_link)
   fail_if(r3.link != &link1, "Router in RCache, link should have been set");
 
   /* Cleanup */
-  pico_tree_delete(&RCache, &r0);
-  pico_tree_delete(&RCache, &r1);
-  pico_tree_delete(&RCache, &r2);
-  pico_tree_delete(&RCache, &r3);
+  pico_tree_delete(&S->IPV6RCache, &r0);
+  pico_tree_delete(&S->IPV6RCache, &r1);
+  pico_tree_delete(&S->IPV6RCache, &r2);
+  pico_tree_delete(&S->IPV6RCache, &r3);
 }
 END_TEST
 START_TEST(tc_pico_ipv6_set_router_mtu)
@@ -708,6 +740,9 @@ START_TEST(tc_pico_ipv6_set_router_mtu)
   char ipstr1[] = "2001:1db8:130f:0000:0000:09c0:876a:130b";
   char ipstr2[] = "2001:b8:130f:0000:0000:09c0:876a:130b";
   char ipstr3[] = "2001:8:130f:0000:0000:09c0:876a:130b";
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   /* Setup of routers */
   r0.router = &n0;
@@ -725,47 +760,47 @@ START_TEST(tc_pico_ipv6_set_router_mtu)
   pico_string_to_ipv6(ipstr3, r3.router->address.addr);
 
   /* NULL args */
-  pico_ipv6_set_router_mtu(NULL, 0);
+  pico_ipv6_set_router_mtu(S, NULL, 0);
 
   /* No routers in RCache */
-  pico_ipv6_set_router_mtu(&r0.router->address, r0_mtu);
+  pico_ipv6_set_router_mtu(S, &r0.router->address, r0_mtu);
 
   fail_if(r0.link->mtu == r0_mtu, "Router not yet in RCache, mtu should not have been set");
 
   /* Routers in RCache */
-  pico_tree_insert(&RCache, &r0);
-  pico_tree_insert(&RCache, &r1);
-  pico_tree_insert(&RCache, &r2);
-  pico_tree_insert(&RCache, &r3);
+  pico_tree_insert(&S->IPV6RCache, &r0);
+  pico_tree_insert(&S->IPV6RCache, &r1);
+  pico_tree_insert(&S->IPV6RCache, &r2);
+  pico_tree_insert(&S->IPV6RCache, &r3);
 
   /* Setting router mtu */
   /* TODO: should link->mtu change if we change mtu of non-default router?  */
-  pico_ipv6_set_router_mtu(&r0.router->address, r0_mtu);
+  pico_ipv6_set_router_mtu(S, &r0.router->address, r0_mtu);
   fail_if(r0.link->mtu != r0_mtu, "Router in RCache, mtu should have been set");
-  pico_ipv6_set_router_mtu(&r1.router->address, r1_mtu);
+  pico_ipv6_set_router_mtu(S, &r1.router->address, r1_mtu);
   fail_if(r1.link->mtu != r1_mtu, "Router in RCache, mtu should have been set");
-  pico_ipv6_set_router_mtu(&r2.router->address, r2_mtu);
+  pico_ipv6_set_router_mtu(S, &r2.router->address, r2_mtu);
   fail_if(r2.link->mtu != r2_mtu, "Router in RCache, mtu should have been set");
-  pico_ipv6_set_router_mtu(&r3.router->address, r3_mtu);
+  pico_ipv6_set_router_mtu(S, &r3.router->address, r3_mtu);
   fail_if(r3.link->mtu != r3_mtu, "Router in RCache, mtu should have been set");
   /* r3 and r2 have different links so setting mtu for r3 shouldn't affect r2 */
   fail_if(r2.link->mtu != r2_mtu, "Router in RCache, mtu should have been set");
 
   /* Cleanup */
-  pico_tree_delete(&RCache, &r0);
-  pico_tree_delete(&RCache, &r1);
-  pico_tree_delete(&RCache, &r2);
-  pico_tree_delete(&RCache, &r3);
+  pico_tree_delete(&S->IPV6RCache, &r0);
+  pico_tree_delete(&S->IPV6RCache, &r1);
+  pico_tree_delete(&S->IPV6RCache, &r2);
+  pico_tree_delete(&S->IPV6RCache, &r3);
 }
 END_TEST
 
-static int frame_in_queued_frames(struct pico_frame *f)
+static int frame_in_queued_frames(struct pico_stack *S, struct pico_frame *f)
 {
   struct pico_tree_node *index = NULL;
   struct pico_frame *frame = NULL;
   int occurences = 0;
 
-  pico_tree_foreach(index,&IPV6NQueue) {
+  pico_tree_foreach(index,&S->IPV6NQueue) {
     frame = index->keyValue;
     if (memcmp(frame, f, sizeof(*f)) == 0) {
       occurences++;
@@ -795,24 +830,28 @@ START_TEST(tc_pico_ipv6_nd_postpone)
   };
   const char *name = "nd_test";
   int i = 0;
+  struct pico_ipv6_neighbor *n0, *n1;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
 
   /*
    * Init frames
    */
 
   for (i = 0; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    frames[i] = pico_proto_ipv6.alloc(&pico_proto_ipv6, dummy_dev, 1);
+    frames[i] = pico_proto_ipv6.alloc(S, &pico_proto_ipv6, dummy_dev, 1);
     frames[i]->timestamp = (pico_time)i;
     frames[i]->net_hdr = (uint8_t *)&hdrs[i];
     hdrs[i].dst = addr_0;
   }
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&IPV6NQueue), "Test hasn't started, tree should be empty!");
-  fail_unless(pico_tree_empty(&NCache), "Test hasn't started, no NCE should exist");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "Test hasn't started, tree should be empty!");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "Test hasn't started, no NCE should exist");
 
   {
     /*
@@ -824,36 +863,39 @@ START_TEST(tc_pico_ipv6_nd_postpone)
 
     /* Postpone first PICO_ND_MAX_FRAMES_QUEUED */
     for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      pico_ipv6_nd_postpone(frames[i]);
+      pico_ipv6_nd_postpone(S, frames[i]);
     }
 
     for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should just be in queued frames tree once");
+      fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should just be in queued frames tree once");
     }
 
     for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      fail_unless(frame_in_queued_frames(frames[i]) == 0, "Frame shouldn't be in queued frames tree");
+      fail_unless(frame_in_queued_frames(S, frames[i]) == 0, "Frame shouldn't be in queued frames tree");
     }
 
     /* Postpone next PICO_ND_MAX_FRAMES_QUEUED */
     for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      pico_ipv6_nd_postpone(frames[i]);
+      pico_ipv6_nd_postpone(S, frames[i]);
     }
 
     for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      fail_unless(frame_in_queued_frames(frames[i]) == 0, "Frame shouldn't be in queued frames tree");
+      fail_unless(frame_in_queued_frames(S, frames[i]) == 0, "Frame shouldn't be in queued frames tree");
     }
 
     for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree only once");
+      fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree only once");
     }
 
-    pico_nd_delete_entry(&addr_0);
+    n0 = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
+    n0->address = addr_0;
+    n0->stack = S;
+    pico_nd_delete_entry(n0);
   }
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&IPV6NQueue), "Test hasn't started, tree should be empty!");
-  fail_unless(pico_tree_empty(&NCache), "Test hasn't started, no NCE should exist");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "Test hasn't started, tree should be empty!");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "Test hasn't started, no NCE should exist");
 
   {
     /*
@@ -862,8 +904,11 @@ START_TEST(tc_pico_ipv6_nd_postpone)
      * - Postpone MAX frames for NCE 1
      * - Postpone MAX frames for NCE 2
      */
-    pico_nd_create_entry(&addr_0, dummy_dev);
-    pico_nd_create_entry(&addr_1, dummy_dev);
+    n0 = pico_nd_create_entry(S, &addr_0, dummy_dev);
+    n1 = pico_nd_create_entry(S, &addr_1, dummy_dev);
+
+    fail_if(n0 == NULL);
+    fail_if(n1 == NULL);
 
     for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
       hdrs[i].dst = addr_0;
@@ -875,19 +920,19 @@ START_TEST(tc_pico_ipv6_nd_postpone)
 
     /* Postpone all frames */
     for (i = 0; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      pico_ipv6_nd_postpone(frames[i]);
+      pico_ipv6_nd_postpone(S, frames[i]);
     }
 
     for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+      fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
     }
 
     for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-      fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+      fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
     }
 
-    pico_nd_delete_entry(&addr_0);
-    pico_nd_delete_entry(&addr_1);
+    pico_nd_delete_entry(n0);
+    pico_nd_delete_entry(n1);
   }
 
   /* Cleanup */
@@ -918,18 +963,22 @@ START_TEST(tc_pico_nd_clear_queued_packets)
   };
   const char *name = "nd_test";
   int i = 0;
+  struct pico_ipv6_neighbor *n0, *n1;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&IPV6NQueue), "Test hasn't started, tree should be empty!");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "Test hasn't started, tree should be empty!");
 
   /*
    * Init frames
    */
   for (i = 0; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    frames[i] = pico_proto_ipv6.alloc(&pico_proto_ipv6, dummy_dev, 1);
+    frames[i] = pico_proto_ipv6.alloc(S, &pico_proto_ipv6, dummy_dev, 1);
     frames[i]->timestamp = (pico_time)i;
     frames[i]->net_hdr = (uint8_t *)&hdrs[i];
     if (i < PICO_ND_MAX_FRAMES_QUEUED) {
@@ -937,29 +986,35 @@ START_TEST(tc_pico_nd_clear_queued_packets)
     } else {
       hdrs[i].dst = addr_1;
     }
-    pico_tree_insert(&IPV6NQueue, frames[i]);
+    pico_tree_insert(&S->IPV6NQueue, frames[i]);
   }
 
-  fail_if(pico_tree_empty(&IPV6NQueue), "Test started, tree shouldn't be empty!");
+  fail_if(pico_tree_empty(&S->IPV6NQueue), "Test started, tree shouldn't be empty!");
 
   for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
   }
 
   for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
   }
 
-  pico_nd_clear_queued_packets(&addr_0);
+  n0 = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
+  n0->address = addr_0;
+  n0->stack = S;
+  pico_nd_clear_queued_packets(n0);
 
   for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
   }
 
-  pico_nd_clear_queued_packets(&addr_1);
+  n1 = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
+  n1->address = addr_1;
+  n1->stack = S;
+  pico_nd_clear_queued_packets(n1);
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&IPV6NQueue), "Test is done, tree should be empty!");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "Test is done, tree should be empty!");
 
   pico_device_destroy(dummy_dev);
 
@@ -986,18 +1041,21 @@ START_TEST(tc_pico_ipv6_nd_trigger_queued_packets)
   };
   const char *name = "nd_test";
   int i = 0;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&IPV6NQueue), "Test hasn't started, tree should be empty!");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "Test hasn't started, tree should be empty!");
 
   /*
    * Init frames
    */
   for (i = 0; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    frames[i] = pico_proto_ipv6.alloc(&pico_proto_ipv6, dummy_dev, 1);
+    frames[i] = pico_proto_ipv6.alloc(S, &pico_proto_ipv6, dummy_dev, 1);
     frames[i]->timestamp = (pico_time)i;
     frames[i]->net_hdr = (uint8_t *)&hdrs[i];
     if (i < PICO_ND_MAX_FRAMES_QUEUED) {
@@ -1005,41 +1063,41 @@ START_TEST(tc_pico_ipv6_nd_trigger_queued_packets)
     } else {
       hdrs[i].dst = addr_1;
     }
-    pico_tree_insert(&IPV6NQueue, frames[i]);
+    pico_tree_insert(&S->IPV6NQueue, frames[i]);
   }
 
-  fail_if(pico_tree_empty(&IPV6NQueue), "Test started, tree shouldn't be empty!");
+  fail_if(pico_tree_empty(&S->IPV6NQueue), "Test started, tree shouldn't be empty!");
 
   for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
   }
 
   for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
   }
 
-  pico_nd_trigger_queued_packets(&addr_0);
+  pico_nd_trigger_queued_packets(S, &addr_0);
 
   for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 0, "Frame shouldn't be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 0, "Frame shouldn't be in queued frames tree");
   }
 
   for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 1, "Frame should be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 1, "Frame should be in queued frames tree");
   }
 
-  pico_nd_trigger_queued_packets(&addr_1);
+  pico_nd_trigger_queued_packets(S, &addr_1);
 
   for (i = 0; i < PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 0, "Frame shouldn't be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 0, "Frame shouldn't be in queued frames tree");
   }
 
   for (i = PICO_ND_MAX_FRAMES_QUEUED; i < 2 * PICO_ND_MAX_FRAMES_QUEUED; ++i) {
-    fail_unless(frame_in_queued_frames(frames[i]) == 0, "Frame shouldn't be in queued frames tree");
+    fail_unless(frame_in_queued_frames(S, frames[i]) == 0, "Frame shouldn't be in queued frames tree");
   }
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&IPV6NQueue), "Test is done, tree should be empty!");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "Test is done, tree should be empty!");
 
   pico_device_destroy(dummy_dev);
 
@@ -1062,27 +1120,30 @@ START_TEST(tc_pico_nd_create_entry)
   struct pico_tree_node *index = NULL, *_tmp = NULL;
   int i = 0;
   pico_time expected;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "Test hasn't started, no NCE should exist");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "Test hasn't started, no NCE should exist");
 
   /* Failing malloc */
   pico_set_mm_failure(1);
-  fail_if(pico_nd_create_entry(&addr[i], dummy_dev) != NULL, "Created entry but malloc failed, should have returned NULL?");
+  fail_if(pico_nd_create_entry(S, &addr[i], dummy_dev) != NULL, "Created entry but malloc failed, should have returned NULL?");
 
   /* Sanity check, tree must still be empty */
-  fail_unless(pico_tree_empty(&NCache), "Test started, but attempt to create NCE failed, tree should still be empty");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "Test started, but attempt to create NCE failed, tree should still be empty");
 
   for (i = 0; i < NUMBER_OF_NEIGHBORS; ++i) {
     addr[i].addr[0] = (uint8_t)i;
-    pico_nd_create_entry(&addr[i], dummy_dev);
+    pico_nd_create_entry(S, &addr[i], dummy_dev);
   }
   expected = PICO_TIME_MS() + ONE_MINUTE_MS;
 
-  pico_tree_foreach(index,&NCache) {
+  pico_tree_foreach(index,&S->IPV6NCache) {
     n = index->keyValue;
 
     for (i = 0; i < NUMBER_OF_NEIGHBORS; ++i) {
@@ -1101,15 +1162,15 @@ START_TEST(tc_pico_nd_create_entry)
 
   /* Cleanup */
   pico_device_destroy(dummy_dev);
-  pico_tree_foreach_safe(index, &NCache, _tmp)
+  pico_tree_foreach_safe(index, &S->IPV6NCache, _tmp)
   {
     n = index->keyValue;
-    pico_tree_delete(&NCache, n);
+    pico_tree_delete(&S->IPV6NCache, n);
     PICO_FREE(n);
   }
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "End of test, NCache should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "End of test, NCache should be empty");
 }
 END_TEST
 START_TEST(tc_pico_nd_delete_entry)
@@ -1128,14 +1189,17 @@ START_TEST(tc_pico_nd_delete_entry)
     0x09, 0x00, 0x27, 0x39, 0xd0, 0xc6
   };
   const char *name = "nd_test";
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "Test hasn't started, no NCE should exist");
-  fail_unless(pico_tree_empty(&RCache), "Test hasn't started, no RCE should exist");
-  fail_unless(pico_tree_empty(&IPV6NQueue), "Test hasn't started, no queued frames should exist");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "Test hasn't started, no NCE should exist");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test hasn't started, no RCE should exist");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "Test hasn't started, no queued frames should exist");
 
   /* Test 1
    * Create NUMBER_OF_NEIGHBORS NCE entries, then delete them
@@ -1144,21 +1208,22 @@ START_TEST(tc_pico_nd_delete_entry)
     neighbors[i] = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
     addr[i].addr[0] = (uint8_t)i;
     neighbors[i]->address = addr[i];
+    neighbors[i]->stack = S;
 
-    pico_tree_insert(&NCache, neighbors[i]);
+    pico_tree_insert(&S->IPV6NCache, neighbors[i]);
   }
 
   for (i = 0; i < NUMBER_OF_NEIGHBORS; ++i) {
-    pico_nd_delete_entry(&addr[i]);
+    pico_nd_delete_entry(neighbors[i]);
   }
 
-  pico_tree_foreach(index, &NCache)
+  pico_tree_foreach(index, &S->IPV6NCache)
   {
     number_of_nce++;
   }
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "NCE created and deleted, NCache should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "NCE created and deleted, NCache should be empty");
   fail_if(number_of_nce, "All NCE should have been deleted");
 
   /* Reset */
@@ -1179,16 +1244,17 @@ START_TEST(tc_pico_nd_delete_entry)
     addr[i].addr[0] = (uint8_t)i;
     neighbors[i]->address = addr[i];
     neighbors[i]->is_router = 1;
+    neighbors[i]->stack = S;
 
-    pico_tree_insert(&NCache, neighbors[i]);
-    pico_tree_insert(&RCache, routers[i]);
+    pico_tree_insert(&S->IPV6NCache, neighbors[i]);
+    pico_tree_insert(&S->IPV6RCache, routers[i]);
   }
 
-  pico_tree_foreach(index, &NCache)
+  pico_tree_foreach(index, &S->IPV6NCache)
   {
     number_of_nce++;
   }
-  pico_tree_foreach(index, &RCache)
+  pico_tree_foreach(index, &S->IPV6RCache)
   {
     number_of_rce++;
   }
@@ -1197,12 +1263,12 @@ START_TEST(tc_pico_nd_delete_entry)
   fail_unless(number_of_rce == NUMBER_OF_NEIGHBORS, "RCEs should have been created");
 
   for (i = 0; i < NUMBER_OF_NEIGHBORS; ++i) {
-    pico_nd_delete_entry(&addr[i]);
+    pico_nd_delete_entry(neighbors[i]);
   }
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "NCE created and deleted, NCache should be empty");
-  fail_unless(pico_tree_empty(&RCache), "RCE created and deleted, NCache should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "NCE created and deleted, NCache should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "RCE created and deleted, NCache should be empty");
 
   /* Reset */
   number_of_nce = 0;
@@ -1219,24 +1285,25 @@ START_TEST(tc_pico_nd_delete_entry)
 
     addr[i].addr[0] = (uint8_t)i;
     neighbors[i]->address = addr[i];
+    neighbors[i]->stack = S;
 
-    pico_tree_insert(&NCache, neighbors[i]);
+    pico_tree_insert(&S->IPV6NCache, neighbors[i]);
 
 
-    frames[i] = pico_proto_ipv6.alloc(&pico_proto_ipv6, dummy_dev, 1);
+    frames[i] = pico_proto_ipv6.alloc(S, &pico_proto_ipv6, dummy_dev, 1);
     frames[i]->timestamp = (pico_time)i;
     frames[i]->net_hdr = (uint8_t *)&hdrs[i];
     hdrs[i].dst = addr[i];
 
-    pico_tree_insert(&IPV6NQueue, frames[i]);
+    pico_tree_insert(&S->IPV6NQueue, frames[i]);
   }
 
-  pico_tree_foreach(index, &NCache)
+  pico_tree_foreach(index, &S->IPV6NCache)
   {
     number_of_nce++;
   }
 
-  pico_tree_foreach(index, &IPV6NQueue)
+  pico_tree_foreach(index, &S->IPV6NQueue)
   {
     number_of_frames++;
   }
@@ -1245,12 +1312,12 @@ START_TEST(tc_pico_nd_delete_entry)
   fail_unless(number_of_frames == NUMBER_OF_NEIGHBORS, "Frames should be in Queue tree");
 
   for (i = 0; i < NUMBER_OF_NEIGHBORS; ++i) {
-    pico_nd_delete_entry(&addr[i]);
+    pico_nd_delete_entry(neighbors[i]);
   }
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "All NCEs should have been deleted");
-  fail_unless(pico_tree_empty(&IPV6NQueue), "All queued frames should have been deleted");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "All NCEs should have been deleted");
+  fail_unless(pico_tree_empty(&S->IPV6NQueue), "All queued frames should have been deleted");
 
   pico_device_destroy(dummy_dev);
 }
@@ -1259,24 +1326,28 @@ START_TEST(tc_pico_nd_create_rce)
 {
   struct pico_ipv6_neighbor *n = NULL;
   struct pico_ipv6_router *r = NULL;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   /* Test 1: NULL args */
   fail_unless(pico_nd_create_rce(NULL) == NULL, "Providing NULL should return NULL");
 
   /* Test 2: Normal case */
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&RCache), "Test hasn't started, tree should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test hasn't started, tree should be empty");
 
   n = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
+  n->stack = S;
 
   r = pico_nd_create_rce(n);
 
   fail_unless(r, "RCE should have been created");
   fail_unless(n->is_router, "is_router flag should have been set");
-  fail_if(pico_tree_empty(&RCache), "Test done, RCE should have been created");
+  fail_if(pico_tree_empty(&S->IPV6RCache), "Test done, RCE should have been created");
 
   /* Cleanup */
-  pico_tree_delete(&RCache, r);
+  pico_tree_delete(&S->IPV6RCache, r);
   PICO_FREE(r);
   n->is_router = 0;
 
@@ -1284,13 +1355,13 @@ START_TEST(tc_pico_nd_create_rce)
   pico_set_mm_failure(1);
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&RCache), "Test hasn't started, tree should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test hasn't started, tree should be empty");
 
   r = pico_nd_create_rce(n);
 
   fail_if(r, "RCE shouldn't have been created");
   fail_if(n->is_router, "is_router flag shouldn't have been set");
-  fail_unless(pico_tree_empty(&RCache), "Test done, RCE shouldn't have been created");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test done, RCE shouldn't have been created");
 
   /* Cleanup */
   n->is_router = 0;
@@ -1299,12 +1370,12 @@ START_TEST(tc_pico_nd_create_rce)
   pico_set_mm_failure(2);
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&RCache), "Test hasn't started, tree should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test hasn't started, tree should be empty");
 
   r = pico_nd_create_rce(n);
 
   fail_if(n->is_router, "is_router flag shouldn't have been set");
-  fail_unless(pico_tree_empty(&RCache), "Test done, RCE shouldn't have been created");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test done, RCE shouldn't have been created");
 
   PICO_FREE(n);
 }
@@ -1313,6 +1384,9 @@ START_TEST(tc_pico_nd_delete_rce)
 {
   struct pico_ipv6_neighbor *n = NULL;
   struct pico_ipv6_router *r = NULL;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   /* Test 1: NULL args
    * This mustn't produce any side-effects
@@ -1321,22 +1395,23 @@ START_TEST(tc_pico_nd_delete_rce)
 
   /* Test 2: Normal case */
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&RCache), "Test hasn't started, tree should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test hasn't started, tree should be empty");
 
   n = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
   r = PICO_ZALLOC(sizeof(struct pico_ipv6_router));
 
   r->router = n;
   n->is_router = 1;
-  pico_tree_insert(&RCache, r);
+  n->stack = S;
+  pico_tree_insert(&S->IPV6RCache, r);
 
   /* Sanity check */
-  fail_if(pico_tree_empty(&RCache), "Test started, RCE should have been created");
+  fail_if(pico_tree_empty(&S->IPV6RCache), "Test started, RCE should have been created");
 
   pico_nd_delete_rce(r);
 
   fail_if(n->is_router, "is_router flag should have been cleared");
-  fail_unless(pico_tree_empty(&RCache), "Test done, tree should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test done, tree should be empty");
 
   PICO_FREE(n);
 }
@@ -1422,13 +1497,16 @@ START_TEST(tc_get_neigh_option)
   };
   struct pico_ip6 temp = { 0 };
   struct redirect_s opt_redirect = { 0 };
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   pico_string_to_ipv6(router_addr_s, ipv6_hdr.src.addr);
   pico_string_to_ipv6(all_node_multicast_addr_s, ipv6_hdr.dst.addr);
   ipv6_hdr.hop = 255;
 
   dummy_device = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_device, name, mac);
+  pico_device_init(S, dummy_device, name, mac);
 
   /* Setup */
   f = make_router_adv(dummy_device, PACKET_TYPE_NORMAL);
@@ -1507,9 +1585,12 @@ START_TEST(tc_pico_ipv6_neighbor_update)
     0x09, 0x00, 0x27, 0x39, 0xd0, 0xc6
   };
   const char *name = "nd_test";
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
 
   n.address = addr_0;
   memcpy(&n.hwaddr.mac, &initial_mac, PICO_SIZE_ETH);
@@ -1547,9 +1628,12 @@ START_TEST(tc_pico_ipv6_neighbor_compare_stored)
     0x09, 0x00, 0x27, 0x39, 0xd0, 0xc6
   };
   const char *name = "nd_test";
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
 
   n.address = addr_0;
   memcpy(&n.hwaddr.mac, &initial_mac, PICO_SIZE_ETH);
@@ -1580,10 +1664,14 @@ START_TEST(tc_neigh_adv_reconfirm_router_option)
       0x20, 0x01, 0x0d, 0xb8, 0x13, 0x0f, 0x00, 0x00, 0x00, 0x00, 0x09, 0xc0, 0x87, 0x6a, 0x13, 0x0b
     }
   };
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   n = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
   n->address = addr_0;
   n->is_router = 1;
+  n->stack = S;
 
   r = PICO_ZALLOC(sizeof(struct pico_ipv6_router));
   r->router = n;
@@ -1598,30 +1686,30 @@ START_TEST(tc_neigh_adv_reconfirm_router_option)
   n->is_router = 1;
 
   /* Sanity check, tree must be empty */
-  fail_unless(pico_tree_empty(&RCache), "Test hasn't started, RCache should be empty");
-  pico_tree_insert(&RCache, r);
-  fail_if(pico_tree_empty(&RCache), "Test started, RCache shouldn't be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test hasn't started, RCache should be empty");
+  pico_tree_insert(&S->IPV6RCache, r);
+  fail_if(pico_tree_empty(&S->IPV6RCache), "Test started, RCache shouldn't be empty");
 
   neigh_adv_reconfirm_router_option(n, 0);
 
   fail_if(n->is_router, "is_router flag should be cleared");
-  fail_unless(pico_tree_empty(&RCache), "RCE should be deleted");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "RCE should be deleted");
 
   /* Test 3: Setting of is_router flag */
   n->is_router = 0;
 
-  fail_unless(pico_tree_empty(&RCache), "Test hasn't started, RCache should be empty");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "Test hasn't started, RCache should be empty");
 
   neigh_adv_reconfirm_router_option(n, 1);
 
   fail_unless(n->is_router, "is_router flag should be set");
-  fail_if(pico_tree_empty(&RCache), "RCE should have been created");
+  fail_if(pico_tree_empty(&S->IPV6RCache), "RCE should have been created");
 
   /* Test 4 (cleanup): clearing of is_router flag */
   neigh_adv_reconfirm_router_option(n, 0);
 
   fail_if(n->is_router, "is_router flag should be cleared");
-  fail_unless(pico_tree_empty(&RCache), "RCE should have been deleted");
+  fail_unless(pico_tree_empty(&S->IPV6RCache), "RCE should have been deleted");
 
   PICO_FREE(n);
 }
@@ -1807,9 +1895,12 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   struct pico_device *dummy_dev = NULL;
   pico_time now = 0;
   pico_time expected;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_dev, name, mac);
+  pico_device_init(S, dummy_dev, name, mac);
   dummy_dev->hostvars.retranstime = 1000;
 
   n = PICO_ZALLOC(sizeof(struct pico_ipv6_neighbor));
@@ -1823,6 +1914,7 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = 0;
   n->expire = 0;
+  n->stack = S;
 
   now = PICO_TIME_MS();
   pico_ipv6_nd_timer_elapsed(0, n);
@@ -1846,6 +1938,7 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = 0;
   n->expire = 0;
+  n->stack = S;
 
   pico_ipv6_nd_timer_elapsed(0, n);
   expected = PICO_TIME_MS() + n->dev->hostvars.retranstime;
@@ -1869,6 +1962,7 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = 0;
   n->expire = 0;
+  n->stack = S;
 
   pico_ipv6_nd_timer_elapsed(0, n);
 
@@ -1891,6 +1985,7 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = 0;
   n->expire = 0;
+  n->stack = S;
 
   pico_ipv6_nd_timer_elapsed(0, n);
   expected = PICO_TIME_MS() + PICO_ND_DELAY_FIRST_PROBE_TIME;
@@ -1914,6 +2009,7 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = 0;
   n->expire = 0;
+  n->stack = S;
 
   pico_ipv6_nd_timer_elapsed(0, n);
 
@@ -1936,6 +2032,7 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = 0;
   n->expire = 0;
+  n->stack = S;
 
   pico_ipv6_nd_timer_elapsed(0, n);
   expected = PICO_TIME_MS() + n->dev->hostvars.retranstime;
@@ -1961,17 +2058,18 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = PICO_ND_MAX_MULTICAST_SOLICIT;
   n->expire = 0;
-  pico_tree_insert(&NCache, n);
+  n->stack = S;
+  pico_tree_insert(&S->IPV6NCache, n);
 
   /* Sanity check, tree must NOT be empty */
-  fail_if(pico_tree_empty(&NCache), "There should be an NCE");
+  fail_if(pico_tree_empty(&S->IPV6NCache), "There should be an NCE");
 
   pico_ipv6_nd_timer_elapsed(0, n);
 
   fail_unless(pico_ns_count == 0, "When in state PROBE (and failure counters of NCE==0), NS should have been sent only once");
 
   /* Tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "NCE should have been deleted");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "NCE should have been deleted");
 
   /* Reset */
   pico_ns_solicited_count = 0;
@@ -1991,17 +2089,18 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = 0;
   n->failure_multi_count = PICO_ND_MAX_MULTICAST_SOLICIT;
   n->expire = 0;
-  pico_tree_insert(&NCache, n);
+  n->stack = S;
+  pico_tree_insert(&S->IPV6NCache, n);
 
   /* Sanity check, tree must NOT be empty */
-  fail_if(pico_tree_empty(&NCache), "There should be an NCE");
+  fail_if(pico_tree_empty(&S->IPV6NCache), "There should be an NCE");
 
   pico_ipv6_nd_timer_elapsed(0, n);
 
   fail_unless(pico_ns_count == 0, "When in state PROBE (and failure counters of NCE==0), NS should have been sent only once");
 
   /* Tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "NCE should have been deleted");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "NCE should have been deleted");
 
   /* Reset */
   pico_ns_solicited_count = 0;
@@ -2020,17 +2119,18 @@ START_TEST(tc_pico_ipv6_nd_timer_elapsed)
   n->failure_uni_count = PICO_ND_MAX_MULTICAST_SOLICIT;
   n->failure_multi_count = 0;
   n->expire = 0;
-  pico_tree_insert(&NCache, n);
+  n->stack = S;
+  pico_tree_insert(&S->IPV6NCache, n);
 
   /* Sanity check, tree must NOT be empty */
-  fail_if(pico_tree_empty(&NCache), "There should be an NCE");
+  fail_if(pico_tree_empty(&S->IPV6NCache), "There should be an NCE");
 
   pico_ipv6_nd_timer_elapsed(0, n);
 
   fail_unless(pico_ns_count == 0, "When in state PROBE (and failure counters of NCE==0), NS should have been sent only once");
 
   /* Tree must be empty */
-  fail_unless(pico_tree_empty(&NCache), "NCE should have been deleted");
+  fail_unless(pico_tree_empty(&S->IPV6NCache), "NCE should have been deleted");
 
   /* Reset */
   pico_ns_solicited_count = 0;
@@ -2067,8 +2167,11 @@ START_TEST(tc_pico_nd_mtu)
     0x0d, 0xb8, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
+    struct pico_stack *S = NULL;
 
-    pico_device_init(dummy_device, name, mac);
+    pico_stack_init(&S);
+
+    pico_device_init(S, dummy_device, name, mac);
     f = pico_frame_alloc(sizeof(pkt15));
     memcpy(f->buffer, pkt15, sizeof(pkt15));
     f->dev = dummy_device;
@@ -2081,12 +2184,12 @@ START_TEST(tc_pico_nd_mtu)
 
     {
     const struct pico_ipv6_hdr *hdr = (const struct pico_ipv6_hdr *)(pkt15 + PICO_SIZE_ETHHDR);
-    struct pico_ipv6_router *test_router = pico_get_router_from_rcache(&(hdr->src));
+    struct pico_ipv6_router *test_router = pico_get_router_from_rcache(S, &(hdr->src));
     fail_if(test_router->link->mtu != 1500);
 
     /* Cleanup */
+    pico_nd_delete_entry(test_router->router);
     pico_device_destroy(dummy_device);
-    pico_nd_delete_entry(&(hdr->src));
     }
 }
 END_TEST
@@ -2104,13 +2207,17 @@ START_TEST(tc_pico_recv_ra)
   };
   const char *name = "nd_test";
   const char router_addr_s[] = "fe80::200:ff:fe00:a0a0";
+  struct pico_ipv6_neighbor *n = NULL;
+  struct pico_stack *S = NULL;
+
+  pico_stack_init(&S);
 
   pico_string_to_ipv6(router_addr_s, ipv6_hdr.src.addr);
   pico_string_to_ipv6(all_node_multicast_addr_s, ipv6_hdr.dst.addr);
   ipv6_hdr.hop = 255;
 
   dummy_device = PICO_ZALLOC(sizeof(struct pico_device));
-  pico_device_init(dummy_device, name, mac);
+  pico_device_init(S, dummy_device, name, mac);
 
   f = make_router_adv(dummy_device, PACKET_TYPE_NORMAL);
   f->net_hdr = (uint8_t *)&ipv6_hdr;
@@ -2121,12 +2228,13 @@ START_TEST(tc_pico_recv_ra)
 
   fail_if(pico_ipv6_nd_recv(f) != 0, "We passed a valid packet, should have returned SUCCESS");
 
-  fail_if(pico_get_neighbor_from_ncache(&ipv6_hdr.src) == NULL, "RA recvd, NCE should have been created");
-  fail_if(pico_get_router_from_rcache(&ipv6_hdr.src) == NULL, "RA recvd, RCE should have been created");
-  fail_if(pico_nd_get_default_router() == NULL, "RA recvd, default router should have been set");
+  n = pico_get_neighbor_from_ncache(S, &ipv6_hdr.src);
+  fail_if(n == NULL, "RA recvd, NCE should have been created");
+  fail_if(pico_get_router_from_rcache(S, &ipv6_hdr.src) == NULL, "RA recvd, RCE should have been created");
+  fail_if(pico_nd_get_default_router(S) == NULL, "RA recvd, default router should have been set");
 
   /* Cleanup */
-  pico_nd_delete_entry(&(ipv6_hdr.src));
+  pico_nd_delete_entry(n);
   pico_device_destroy(dummy_device);
 }
 END_TEST

@@ -73,6 +73,8 @@
 #include "unit_ipv6.c"
 #include "unit_pico_device.c"
 
+#include "pico_rand.h"
+
 Suite *pico_suite(void);
 
 START_TEST (test_frame)
@@ -98,8 +100,8 @@ END_TEST
 
 START_TEST (test_tick)
 {
-    pico_tick = (uint64_t)-1;
-    fail_if(pico_tick != 0xFFFFFFFFFFFFFFFF, "Failed to assign (uint64_t)-1 to pico_tick\n");
+    volatile pico_time unit_pico_tick = (uint64_t)-1;
+    fail_if(unit_pico_tick != 0xFFFFFFFFFFFFFFFF, "Failed to assign (uint64_t)-1 to pico_tick\n");
 }
 END_TEST
 

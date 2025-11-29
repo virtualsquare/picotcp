@@ -474,7 +474,7 @@ struct pico_frame *pico_stack_recv_new_frame(struct pico_device *dev, uint8_t *b
 /* Device driver will call this function which returns immediately.
  * Incoming packet will be processed later on in the dev loop.
  */
-int32_t pico_stack_recv(struct pico_device *dev, uint8_t *buffer, uint32_t len)
+int32_t MOCKABLE pico_stack_recv(struct pico_device *dev, uint8_t *buffer, uint32_t len)
 {
     struct pico_frame *f = pico_stack_recv_new_frame (dev, buffer, len);
     int32_t ret;

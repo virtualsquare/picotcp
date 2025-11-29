@@ -173,7 +173,7 @@ static int pico_ipv6_hex_to_dec(char c)
     return 0;
 }
 
-int pico_ipv6_to_string(char *ipbuf, const uint8_t ip[PICO_SIZE_IP6])
+int MOCKABLE pico_ipv6_to_string(char *ipbuf, const uint8_t ip[PICO_SIZE_IP6])
 {
     uint8_t dec = 0, i = 0;
 
@@ -200,7 +200,7 @@ int pico_ipv6_to_string(char *ipbuf, const uint8_t ip[PICO_SIZE_IP6])
     return 0;
 }
 
-int pico_string_to_ipv6(const char *ipstr, uint8_t *ip)
+int MOCKABLE pico_string_to_ipv6(const char *ipstr, uint8_t *ip)
 {
     uint8_t buf[PICO_SIZE_IP6] = {
         0

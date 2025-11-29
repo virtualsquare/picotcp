@@ -1,4 +1,3 @@
-//#include "pico_config.h"
 #include "pico_stack.h"
 #include "pico_ipv4.h"
 #include "pico_ipv6.h"
@@ -7,7 +6,9 @@
 #include "pico_arp.h"
 #include "pico_ethernet.h"
 #include "modules/pico_ethernet.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 #define STARTING()                                                             \
             printf("*********************** STARTING %s ***\n", __func__);     \
@@ -37,11 +38,12 @@ Suite *pico_suite(void);
 
 START_TEST(tc_destination_is_bcast)
 {
-    /* test this: static int destination_is_bcast(struct pico_frame *f) */
+    /* test this: static int destination_is_bcast(struct pico_stack *S, struct pico_frame *f) */
     struct pico_ip6 addr = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9 }};
     struct pico_frame *f = pico_frame_alloc(sizeof(struct pico_ipv6_hdr));
     struct pico_ipv6_hdr *h = (struct pico_ipv6_hdr *)f->buffer;
     struct pico_ipv4_hdr *h4 = NULL;
+    struct pico_stack *S = NULL;
 
     /* Test parameters */
     int ret = 0, count = 0;
@@ -51,9 +53,11 @@ START_TEST(tc_destination_is_bcast)
 
     STARTING();
 
+    pico_stack_init(&S);
+
     TRYING("With wrong protocol -> IPv6\n");
     memcpy(h->dst.addr, addr.addr, PICO_SIZE_IP6);
-    ret = destination_is_bcast(f);
+    ret = destination_is_bcast(S, f);
     CHECKING(count);
     fail_unless(0 == ret, "Should've returned 0 since IPv6 frame\n");
     SUCCESS();
@@ -64,14 +68,14 @@ START_TEST(tc_destination_is_bcast)
     f->net_hdr = (uint8_t *)h4;
     f->buffer[0] = 0x40; /* IPv4 */
     TRYING("With right protocol -> IPv4\n");
-    ret = destination_is_bcast(f);
+    ret = destination_is_bcast(S, f);
     CHECKING(count);
     fail_unless(0 == ret, "Should've returned 0 since not a mcast address\n");
     SUCCESS();
     pico_frame_discard(f);
 
     BREAKING();
-    ret = destination_is_bcast(NULL);
+    ret = destination_is_bcast(S, NULL);
     CHECKING(count);
     fail_unless(0 == ret, "Should've returned 0 since NULL-pointer\n");
     SUCCESS();
@@ -88,6 +92,7 @@ START_TEST(tc_destination_is_mcast)
     struct pico_frame *f = pico_frame_alloc(sizeof(struct pico_ipv6_hdr));
     struct pico_ipv6_hdr *h = (struct pico_ipv6_hdr *)f->buffer;
     struct pico_ipv4_hdr *h4 = (struct pico_ipv4_hdr *)f->buffer;
+    struct pico_stack *S = NULL;
     /* Test parameters */
     int ret = 0, count = 0;
 
@@ -95,6 +100,8 @@ START_TEST(tc_destination_is_mcast)
     f->buffer[0] = 0x60; /* Ipv6 */
 
     STARTING();
+
+    pico_stack_init(&S);
 
     pico_string_to_ipv4("232.1.1.0", &(mcast4.addr)); /* 0 */
     pico_string_to_ipv4("10.20.0.1", &(addr4.addr));
@@ -124,7 +131,7 @@ START_TEST(tc_destination_is_mcast)
 
     TRYING("With IPv4 unicast addr\n");
     h4->dst = addr4;
-    ret = destination_is_bcast(f);
+    ret = destination_is_bcast(S, f);
     CHECKING(count);
     fail_unless(0 == ret, "Should've returned 0 since not an IPv4 mcast address\n");
     SUCCESS();
@@ -138,7 +145,7 @@ START_TEST(tc_destination_is_mcast)
     pico_frame_discard(f);
 
     BREAKING();
-    ret = destination_is_bcast(NULL);
+    ret = destination_is_bcast(S, NULL);
     CHECKING(count);
     fail_unless(0 == ret, "Should've returned 0 since NULL-pointer\n");
     SUCCESS();
@@ -152,8 +159,11 @@ START_TEST(tc_pico_ipv4_ethernet_receive)
     struct pico_frame *f = NULL;
     struct pico_ipv4_hdr *h4 = NULL;
     int ret = 0, count = 0;
+    struct pico_stack *S = NULL;
 
     STARTING();
+
+    pico_stack_init(&S);
 
     f = pico_frame_alloc(sizeof(struct pico_ipv4_hdr));
     h4 = (struct pico_ipv4_hdr *)f->buffer;
@@ -161,7 +171,7 @@ START_TEST(tc_pico_ipv4_ethernet_receive)
     f->buffer[0] = 0x40; /* IPv4 */
 
     TRYING("With IPv4 frame\n");
-    ret = pico_ipv4_ethernet_receive(f);
+    ret = pico_ipv4_ethernet_receive(S, f);
     CHECKING(count);
     fail_unless(ret > 0, "Was correct frame should've returned size of frame\n");
     SUCCESS();
@@ -178,14 +188,17 @@ START_TEST(tc_pico_ipv6_ethernet_receive)
    /* test this: static int32_t pico_ipv6_ethernet_receive(struct pico_frame *f) */
     struct pico_frame *f = NULL;
     struct pico_ipv6_hdr *h = NULL;
-
+    struct pico_stack *S = NULL;
     int ret = 0, count = 0;
 
     STARTING();
+
+    pico_stack_init(&S);
+
     f = pico_frame_alloc(sizeof(struct pico_ipv6_hdr));
     h = (struct pico_ipv6_hdr *)f->buffer;
     f->net_hdr = (uint8_t*) h;
-    f->buffer[0] = 0x40; /* Ipv6 */
+    f->buffer[0] = 0x40; /* Ipv4 */
 
     TRYING("With wrong network type\n");
     ret = pico_ipv6_ethernet_receive(f);
@@ -196,7 +209,7 @@ START_TEST(tc_pico_ipv6_ethernet_receive)
     f = pico_frame_alloc(sizeof(struct pico_ipv6_hdr));
     h = (struct pico_ipv6_hdr *)f->buffer;
     f->net_hdr = (uint8_t*) h;
-    f->buffer[0] = 0x60;
+    f->buffer[0] = 0x60; /* Ipv6 */
     TRYING("With correct network type\n");
     ret = pico_ipv6_ethernet_receive(f);
     CHECKING(count);
@@ -214,9 +227,12 @@ START_TEST(tc_pico_eth_receive)
 {
     struct pico_frame *f = NULL;
     struct pico_eth_hdr *eth = NULL;
+    struct pico_stack *S = NULL;
     int ret = 0, count = 0;
 
     STARTING();
+
+    pico_stack_init(&S);
 
     f = pico_frame_alloc(sizeof(struct pico_ipv6_hdr) + sizeof(struct pico_eth_hdr));
     f->datalink_hdr = f->buffer;
@@ -228,7 +244,7 @@ START_TEST(tc_pico_eth_receive)
     eth->proto = PICO_IDETH_IPV6;
 
     TRYING("With wrong network type\n");
-    ret = pico_eth_receive(f);
+    ret = pico_eth_receive(S, f);
     CHECKING(count);
     fail_unless(ret == -1, "Wrong type should've returned an error\n");
     SUCCESS();
@@ -242,7 +258,7 @@ START_TEST(tc_pico_eth_receive)
     /* ETHERNET PROTOCOL : IPV6 */
     eth->proto = PICO_IDETH_IPV6;
     TRYING("With correct network type\n");
-    ret = pico_eth_receive(f);
+    ret = pico_eth_receive(S, f);
     CHECKING(count);
     fail_unless(ret == (int32_t)f->buffer_len, "Was correct frame, should've returned success\n");
     SUCCESS();
@@ -259,7 +275,7 @@ START_TEST(tc_pico_eth_receive)
     ((uint8_t *)(f->net_hdr))[0] = 0x40; /* Ipv4 */
 
     TRYING("With wrong frame type\n");
-    ret = pico_eth_receive(f);
+    ret = pico_eth_receive(S, f);
     CHECKING(count);
     fail_unless(ret == -1, "should've returned -1 wrong ethernet protocol\n");
     SUCCESS();
@@ -272,7 +288,7 @@ START_TEST(tc_pico_eth_receive)
     eth->proto = PICO_IDETH_IPV4;
 
     TRYING("With IPv4 frame\n");
-    ret = pico_eth_receive(f);
+    ret = pico_eth_receive(S, f);
     CHECKING(count);
     fail_unless(ret > 0, "Was correct frame should've returned size of frame\n");
     SUCCESS();
@@ -322,11 +338,14 @@ START_TEST(tc_pico_ethsend_local)
     uint8_t dummy_mac_1[6] = {
         0x02, 0x02, 0x03, 0x04, 0x05, 0x06
     };
+    struct pico_stack *S = NULL;
 
     STARTING();
 
+    pico_stack_init(&S);
+
     dummy_dev = PICO_ZALLOC(sizeof(struct pico_device));
-    pico_device_init(dummy_dev, name, dummy_mac_0);
+    pico_device_init(S, dummy_dev, name, dummy_mac_0);
 
     /* Setup of frame */
     f = init_frame(dummy_dev, PICO_IDETH_IPV4);
@@ -334,20 +353,20 @@ START_TEST(tc_pico_ethsend_local)
 
     /* Check if NULL parameters are handled correctly */
     CHECKING(count);
-    fail_unless(pico_ethsend_local(f, NULL) == 0);
+    fail_unless(pico_ethsend_local(S, f, NULL) == 0);
     SUCCESS();
     CHECKING(count);
-    fail_unless(pico_ethsend_local(NULL, eth) == 0);
+    fail_unless(pico_ethsend_local(S, NULL, eth) == 0);
     SUCCESS();
     CHECKING(count);
-    fail_unless(pico_ethsend_local(NULL, NULL) == 0);
+    fail_unless(pico_ethsend_local(S, NULL, NULL) == 0);
     SUCCESS();
 
     /* Check when packet is meant for us (send addr == destination addr) */
     CHECKING(count);
     memcpy(eth->saddr, dummy_mac_0, PICO_SIZE_ETH);
     memcpy(eth->daddr, dummy_mac_0, PICO_SIZE_ETH);
-    fail_unless(pico_ethsend_local(f, eth) == 1);
+    fail_unless(pico_ethsend_local(S, f, eth) == 1);
     SUCCESS();
 
     /* Setup of frame, normally it was discarded by pico_ethsend_local() (on success) */
@@ -358,7 +377,7 @@ START_TEST(tc_pico_ethsend_local)
     CHECKING(count);
     memcpy(eth->saddr, dummy_mac_0, PICO_SIZE_ETH);
     memcpy(eth->daddr, dummy_mac_1, PICO_SIZE_ETH);
-    fail_unless(pico_ethsend_local(f, eth) == 0);
+    fail_unless(pico_ethsend_local(S, f, eth) == 0);
     SUCCESS();
 
     ENDING(count);

@@ -7,7 +7,9 @@
 #include "pico_dns_common.h"
 #include "pico_tree.h"
 #include "modules/pico_dns_common.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 
@@ -193,14 +195,17 @@ START_TEST(tc_dns_record_cmp) /* MARK: dns_record_cmp */
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create test records */
-    a = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    a = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!a, "Record A could not be created!\n");
-    b = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!b, "Record B could not be created!\n");
 
@@ -211,10 +216,10 @@ START_TEST(tc_dns_record_cmp) /* MARK: dns_record_cmp */
     pico_dns_record_delete((void **)&b);
 
     /* Create different test records */
-    a = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
+    a = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!a, "Record A could not be created!\n");
-    b = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!b, "Record B could not be created!\n");
 
@@ -225,10 +230,10 @@ START_TEST(tc_dns_record_cmp) /* MARK: dns_record_cmp */
     pico_dns_record_delete((void **)&b);
 
     /* Create different test records */
-    a  = pico_dns_record_create(url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    a  = pico_dns_record_create(S, url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                 PICO_DNS_CLASS_IN, 0);
     fail_if(!a, "Record A could not be created!\n");
-    b  = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b  = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                 PICO_DNS_CLASS_IN, 0);
     fail_if(!b, "Record B could not be created!\n");
 
@@ -252,14 +257,17 @@ START_TEST(tc_dns_rtree_insert) /* MARK: dns_rtree_insert*/
         0
     };
     uint16_t len = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create test records */
-    a = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
+    a = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!a, "Record A could not be created!\n");
-    b = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!b, "Record B could not be created!\n");
 
@@ -270,7 +278,7 @@ START_TEST(tc_dns_rtree_insert) /* MARK: dns_rtree_insert*/
     fail_unless(pico_tree_count(&rtree) == 0,
                 "Record tree not properly destroyed!\n");
 
-    c = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    c = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!c, "Record C could not be created!\n");
     pico_tree_insert(&rtree2, c);
@@ -293,14 +301,17 @@ START_TEST(tc_dns_record_cmp_name_type) /* MARK: dns_record_cmp_name_type */
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create different test records */
-    a = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
+    a = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_AAAA,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!a, "Record A could not be created!\n");
-    b = pico_dns_record_create(url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b = pico_dns_record_create(S, url1, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 0);
     fail_if(!b, "Record B could not be created!\n");
 
@@ -311,10 +322,10 @@ START_TEST(tc_dns_record_cmp_name_type) /* MARK: dns_record_cmp_name_type */
     pico_dns_record_delete((void **)&b);
 
     /* Create exactly the same test records */
-    a  = pico_dns_record_create(url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    a  = pico_dns_record_create(S, url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                 PICO_DNS_CLASS_IN, 0);
     fail_if(!a, "Record A could not be created!\n");
-    b  = pico_dns_record_create(url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
+    b  = pico_dns_record_create(S, url3, &rdata, 4, &len, PICO_DNS_TYPE_A,
                                 PICO_DNS_CLASS_IN, 0);
     fail_if(!b, "Record B could not be created!\n");
 
@@ -410,11 +421,14 @@ START_TEST(tc_pico_dns_fill_packet_rr_sections) /* MARK: dns_fill_packet_rr_sect
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
+
     /* Create a new A record */
-    record = pico_dns_record_create(rname, rdata, 4, &len, PICO_DNS_TYPE_A,
+    record = pico_dns_record_create(S, rname, rdata, 4, &len, PICO_DNS_TYPE_A,
                                     PICO_DNS_CLASS_IN, 120);
     fail_if(!record, "dns_record_create failed!\n");
 
@@ -471,8 +485,11 @@ START_TEST(tc_pico_dns_fill_packet_question_section) /* MARK: dns_fill_packet_qu
         0x00u, 0x01u
     };                                     /* 4 */
     uint16_t len = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
 
     /* Create DNS questions and a vector of them */
     a = pico_dns_question_create(qurl, &len, PICO_PROTO_IPV4, PICO_DNS_TYPE_A,
@@ -814,10 +831,13 @@ START_TEST(tc_pico_dns_record_copy_flat) /* MARK: dns_record_copy_flat */
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    record = pico_dns_record_create(url, (void *)rdata, 4,
+    pico_stack_init(&S);
+
+    record = pico_dns_record_create(S, url, (void *)rdata, 4,
                                     &len, PICO_DNS_TYPE_A,
                                     PICO_DNS_CLASS_IN, 120);
     fail_if(!record, "dns_record_create failed!\n");
@@ -844,8 +864,11 @@ START_TEST(tc_pico_dns_record_copy) /* MARK: dns_record_copy */
         10, 10, 0, 1
     };
     uint16_t len = 0;
+    struct pico_stack *S = NULL;
 
-    a = pico_dns_record_create(url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
+    pico_stack_init(&S);
+
+    a = pico_dns_record_create(S, url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 120);
     fail_if(!a, "dns_record_create failed!\n");
 
@@ -883,11 +906,13 @@ START_TEST(tc_pico_dns_record_delete) /* MARK: dns_record_delete */
     };
     uint16_t len = 0;
     int ret = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
+    pico_stack_init(&S);
 
-    a = pico_dns_record_create(url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
+    a = pico_dns_record_create(S, url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 120);
     fail_if(!a, "dns_record_create failed!\n");
 
@@ -906,10 +931,13 @@ START_TEST(tc_pico_dns_record_create) /* MARK: dns_record_create */
         10, 10, 0, 1
     };
     uint16_t len = 0;
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    a = pico_dns_record_create(url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
+    pico_stack_init(&S);
+
+    a = pico_dns_record_create(S, url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 120);
     fail_if(!a, "dns_record_create returned NULL!\n");
     fail_unless(strcmp(a->rname, "\x7picotcp\x3com"),
@@ -966,13 +994,16 @@ START_TEST(tc_pico_dns_answer_create) /* MARK: dns_answer_create */
         0x00u, 0x04u,
         0x0Au, 0x0Au, 0x00u, 0x01u
     };
+    struct pico_stack *S = NULL;
 
     printf("*********************** starting %s * \n", __func__);
 
-    a = pico_dns_record_create(url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
+    pico_stack_init(&S);
+
+    a = pico_dns_record_create(S, url, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 120);
     fail_if(!a, "dns_record_create returned NULL!\n");
-    b = pico_dns_record_create(url2, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
+    b = pico_dns_record_create(S, url2, (void *)rdata, 4, &len, PICO_DNS_TYPE_A,
                                PICO_DNS_CLASS_IN, 120);
     fail_if(!a, "dns_record_create returned NULL!\n");
 

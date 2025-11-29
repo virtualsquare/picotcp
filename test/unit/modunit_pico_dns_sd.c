@@ -8,11 +8,13 @@
 #include "pico_tree.h"
 #include "pico_dev_mock.c"
 #include "modules/pico_dns_sd.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 void callback( pico_mdns_rtree *tree, char *str, void *arg);
-int dns_sd_init(void);
+int dns_sd_init(struct pico_stack *S);
 char text[] = "textvers";
 char text2[] = "pass";
 char text3[] = "color";
@@ -22,22 +24,25 @@ void callback( pico_mdns_rtree *tree,
                char *str,
                void *arg )
 {
+    struct pico_stack *S = NULL;
     kv_vector vector = {
         0
     };
+
+    pico_stack_init(&S);
 
     /* This doesn't even gets called, tests exit before possible callback */
     IGNORE_PARAMETER(str);
     IGNORE_PARAMETER(arg);
     IGNORE_PARAMETER(tree);
-    fail_unless(pico_dns_sd_register_service("Hello World!",
+    fail_unless(pico_dns_sd_register_service(S, "Hello World!",
                                              "_kerberos._udp",
                                              88, &vector, 120,
                                              callback, NULL) == 0,
                 "dns_sd_register_service failed!\n");
 }
 
-int dns_sd_init()
+int dns_sd_init(struct pico_stack *S)
 {
     struct mock_device *mock = NULL;
 
@@ -48,14 +53,14 @@ int dns_sd_init()
         .addr = long_be(0xffffff00)
     };
 
-    mock = pico_mock_create(NULL);
+    mock = pico_mock_create(S, NULL);
     if (!mock)
         return -1;
 
-    pico_ipv4_link_add(mock->dev, local, netmask);
+    pico_ipv4_link_add(S, mock->dev, local, netmask);
 
     /* Try to initialise the mDNS module right */
-    return pico_dns_sd_init("host.local", local, callback, NULL);
+    return pico_dns_sd_init(S, "host.local", local, callback, NULL);
 }
 
 START_TEST(tc_dns_sd_kv_vector_strlen)
@@ -77,6 +82,7 @@ END_TEST
 START_TEST(tc_dns_sd_srv_record_create)
 {
     struct pico_mdns_record *record = NULL;
+    struct pico_stack *S = NULL;
 
     uint8_t buf[19] = {
         0, 0, 0, 0, 0, 80,
@@ -85,7 +91,9 @@ START_TEST(tc_dns_sd_srv_record_create)
         0
     };
 
-    record = pico_dns_sd_srv_record_create("test.local", 0, 0, 80,
+    pico_stack_init(&S);
+
+    record = pico_dns_sd_srv_record_create(S, "test.local", 0, 0, 80,
                                            "hitex.local", 10,
                                            PICO_MDNS_RECORD_UNIQUE);
 
@@ -107,6 +115,7 @@ END_TEST
 START_TEST(tc_dns_sd_txt_record_create)
 {
     struct pico_mdns_record *record = NULL;
+    struct pico_stack *S = NULL;
     kv_vector pairs = {
         0
     };
@@ -117,11 +126,13 @@ START_TEST(tc_dns_sd_txt_record_create)
         6, 'c', 'o', 'l', 'o', 'r', '='
     };
 
+    pico_stack_init(&S);
+
     pico_dns_sd_kv_vector_add(&pairs, text, value);
     pico_dns_sd_kv_vector_add(&pairs, text2, NULL);
     pico_dns_sd_kv_vector_add(&pairs, text3, value3);
 
-    record = pico_dns_sd_txt_record_create("test.local", pairs, 10,
+    record = pico_dns_sd_txt_record_create(S, "test.local", pairs, 10,
                                            PICO_MDNS_RECORD_UNIQUE);
 
     fail_unless(strcmp(record->record->rname, "\4test\5local") == 0,
@@ -248,15 +259,19 @@ START_TEST(tc_dns_sd_create_service_url)
 END_TEST
 START_TEST(tc_dns_sd_init)
 {
-    pico_stack_init();
-    fail_unless(dns_sd_init() == 0,
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+    fail_unless(dns_sd_init(S) == 0,
                 "dns_sd_init failed!\n");
 }
 END_TEST
 START_TEST(tc_dns_sd_register_service)
 {
-    pico_stack_init();
-    dns_sd_init();
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+    dns_sd_init(S);
 }
 END_TEST
 START_TEST(tc_dns_sd_browse_service)

@@ -52,13 +52,6 @@
 /* maximum size of a DHCP message */
 #define DHCP_CLIENT_MAXMSGZISE         (PICO_IP_MRU - PICO_SIZE_IP4HDR)
 
-/* Mockables */
-#if defined UNIT_TEST
-#   define MOCKABLE __attribute__((weak))
-#else
-#   define MOCKABLE
-#endif
-
 enum dhcp_client_state {
     DHCP_CLIENT_STATE_INIT_REBOOT = 0,
     DHCP_CLIENT_STATE_REBOOTING,

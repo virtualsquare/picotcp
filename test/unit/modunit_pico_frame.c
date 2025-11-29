@@ -2,7 +2,8 @@
 #include "pico_protocol.h"
 #include "pico_frame.h"
 #include "stack/pico_frame.c"
-#include "check.h"
+
+#include <check.h>
 
 volatile pico_err_t pico_err;
 

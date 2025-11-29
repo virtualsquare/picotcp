@@ -3,11 +3,12 @@
 #include "pico_stack.h"
 #include "pico_frame.h"
 #include "pico_ipv6.h"
+#include "pico_dev_null.c"
 #include "pico_dev_radiotest.c"
 #include "modules/pico_6lowpan_ll.c"
 #include "modules/pico_6lowpan.c"
+#include "test/pico_rand.h"
 #include "pico_6lowpan_ll.h"
-#include "check.h"
 
 #include "pico_config.h"
 #include "pico_frame.h"
@@ -34,9 +35,11 @@
 #include "pico_socket.h"
 #include "heap.h"
 
+#include <check.h>
+
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*******************************************************************************
 *  MACROS
@@ -178,15 +181,20 @@ START_TEST(tc_ctx_lookup)
     int test = 1, ret = 0;
     struct pico_ip6 a, b;
     struct iphc_ctx *found = NULL;
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     pico_string_to_ipv6("2aaa:1234:5678:9123:0:0ff:fe00:0105", a.addr);
     pico_string_to_ipv6("2aaa:1234:5678:9145:0102:0304:0506:0708", b.addr);
 
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+
     STARTING();
-    pico_stack_init();
 
     TRYING("To find a prefix in the context tree\n");
-    ret = ctx_insert(a, 13, 54, 0, PICO_IPHC_CTX_COMPRESS, NULL);
-    found = ctx_lookup(b);
+    ret = ctx_insert(a, 13, 54, 0, PICO_IPHC_CTX_COMPRESS, dev);
+    found = ctx_lookup(S, b);
     RESULTS();
     FAIL_UNLESS(!ret, test, "Inserting should've succeeded, return 0. ret = %d", ret);
     FAIL_UNLESS(found, test, "Should've found the context");
@@ -517,14 +525,15 @@ START_TEST(tc_addr_comp_mode)
     struct pico_ip6 local3;
     union pico_ll_addr addr = { .pan = { .addr.data = {1,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_SHORT }};
     struct pico_device dev = { .mode = LL_MODE_IEEE802154 };
+    struct pico_stack *S = NULL;
     pico_string_to_ipv6("ff00:0:0:0:0:0:e801:100", ip.addr);
     pico_string_to_ipv6("fe80:0:0:0:0102:0304:0506:0708", local.addr);
     pico_string_to_ipv6("fe80:0:0:0:0:0ff:fe00:0105", local3.addr);
     pico_string_to_ipv6("fe80:0:0:0:0:0ff:fe00:0102", local2.addr);
 
-    STARTING();
+    pico_stack_init(&S);
 
-    pico_stack_init();
+    STARTING();
 
     TRYING("With MAC derived address\n");
     ret = addr_comp_mode(iphc, &local2, addr, &dev, SRC_SHIFT);
@@ -565,38 +574,42 @@ START_TEST(tc_addr_comp_prefix)
     struct pico_ip6 ip;
     struct pico_ip6 local;
     struct pico_ip6 local3;
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     pico_string_to_ipv6("ff00:0:0:0:0:0:e801:100", ip.addr);
     pico_string_to_ipv6("fe80:0:0:0:0102:0304:0506:0708", local.addr);
     pico_string_to_ipv6("2aaa:0:0:0:0:0ff:fe00:0105", local3.addr);
 
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+
     STARTING();
 
-    pico_stack_init();
-
     TRYING("With MCAST address\n");
-    ret = addr_comp_prefix(iphc, &ip, 1);
+    ret = addr_comp_prefix(S, iphc, &ip, 1);
     RESULTS();
     FAIL_UNLESS(COMP_MULTICAST == ret, test, "Should've returned COMP_MULTICAST, ret = %d", ret);
     FAIL_UNLESS(!iphc[1], test, "Shouldn't have set any IPHC bytes, iphc = %02X", iphc[1]);
     memset(iphc, 0, 3);
 
     TRYING("With link local destination address\n");
-    ret = addr_comp_prefix(iphc, &local, 0);
+    ret = addr_comp_prefix(S, iphc, &local, 0);
     RESULTS();
     FAIL_UNLESS(COMP_LINKLOCAL == ret, test, "Should've returned COMP_LINKLOCAL, ret = %d", ret);
     FAIL_UNLESS(!iphc[1], test, "Shouldn't have set any IPHC bytes, iphc = %02X", iphc[1]);
     memset(iphc, 0, 3);
 
     TRYING("With a unicast address where there's no context available for\n");
-    ret = addr_comp_prefix(iphc, &local3, 0);
+    ret = addr_comp_prefix(S, iphc, &local3, 0);
     RESULTS();
     FAIL_UNLESS(COMP_STATELESS == ret, test, "Should've return COMP_STATELESS, ret = %d", ret);
     FAIL_UNLESS(!iphc[1], test, "Shouldn't have set any IPHC bytes, iphc = %02X", iphc[1]);
     memset(iphc, 0,3);
 
     TRYING("With a unicast address where there's context available for\n");
-    ctx_insert(local3, 13, 64, 0, PICO_IPHC_CTX_COMPRESS, NULL);
-    ret = addr_comp_prefix(iphc, &local3, 0);
+    ctx_insert(local3, 13, 64, 0, PICO_IPHC_CTX_COMPRESS, dev);
+    ret = addr_comp_prefix(S, iphc, &local3, 0);
     FAIL_UNLESS(13 == ret, test, "Should've returned CTX ID of 13, ret = %d", ret);
     FAIL_UNLESS(iphc[1] & DST_STATEFUL, test, "Should've set DAC correctly, iphc = %02X", iphc[1]);
     FAIL_UNLESS(iphc[1] & CTX_EXTENSION, test, "Should've set CTX extension bit correctly, iphc = %02X", iphc[1]);
@@ -615,18 +628,22 @@ START_TEST(tc_compressor_src)
     struct pico_ip6 ip_ctx = {{0x2a,0xaa,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
     struct pico_ip6 ip_stateless = {{0x2a,0xbb,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
     union pico_ll_addr mac = { .pan = {.addr.data = {3,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_EXT } };
-    struct pico_device dev = { 0 };
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     int ret = 0;
 
     uint8_t iphc[3] = { 0, 0, 0 };
     uint8_t buf[PICO_SIZE_IP6] = { 0 };
 
-    dev.mode = LL_MODE_IEEE802154;
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+    dev->mode = LL_MODE_IEEE802154;
+
     STARTING();
-    pico_stack_init();
 
     TRYING("With unspecified source address, should: set SAC, clear SAM\n");
-    ret = compressor_src(unspec.addr, buf, iphc, &mac, NULL, &dev);
+    ret = compressor_src(unspec.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(iphc, 3);
     dbg_buffer(buf, PICO_SIZE_IP6);
@@ -636,14 +653,14 @@ START_TEST(tc_compressor_src)
     FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == 0, test, "Should've cleared SAM");
 
     TRYING("With invalid device, should indicate error\n");
-    dev.mode = LL_MODE_ETHERNET;
-    ret = compressor_src(ll_mac.addr, buf, iphc, &mac, NULL, &dev);
+    dev->mode = LL_MODE_ETHERNET;
+    ret = compressor_src(ll_mac.addr, buf, iphc, &mac, NULL, dev);
     RESULTS();
     FAIL_UNLESS(-1 == ret, test, "Should've indicated error, invalid device, ret = %d",ret);
 
     TRYING("With mac derived address, should elide fully\n");
-    dev.mode = LL_MODE_IEEE802154;
-    ret = compressor_src(ll_mac.addr, buf, iphc, &mac, NULL, &dev);
+    dev->mode = LL_MODE_IEEE802154;
+    ret = compressor_src(ll_mac.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(iphc,3);
     dbg_buffer(buf, PICO_SIZE_IP6);
@@ -653,7 +670,7 @@ START_TEST(tc_compressor_src)
     FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == SRC_COMPRESSED, test, "Should set SAM to '11', iphc = %02X", iphc[1]);
 
     TRYING("With non mac derived 16-bit derivable address\n");
-    ret = compressor_src(ll_nmac_16.addr, buf, iphc, &mac, NULL, &dev);
+    ret = compressor_src(ll_nmac_16.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(iphc,3);
     dbg_buffer(buf, PICO_SIZE_IP6);
@@ -664,7 +681,7 @@ START_TEST(tc_compressor_src)
     FAIL_UNLESS(0 == memcmp(buf, ll_nmac_16.addr + 14, 2), test, "Should've copied 16 bit of source address inline");
 
     TRYING("With non mac derived 64-bit derivable address\n");
-    ret = compressor_src(ll_nmac_64.addr, buf, iphc, &mac, NULL, &dev);
+    ret = compressor_src(ll_nmac_64.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(iphc,3);
     dbg_buffer(buf, PICO_SIZE_IP6);
@@ -675,9 +692,8 @@ START_TEST(tc_compressor_src)
     FAIL_UNLESS(0 == memcmp(buf, ll_nmac_64.addr + 8, 8), test, "Should've copied IID of source address inline");
 
     TRYING("With context derived address\n");
-    pico_stack_init();
-    ctx_insert(ip_ctx, 13, 64, 0, PICO_IPHC_CTX_COMPRESS, NULL);
-    ret = compressor_src(ip_ctx.addr, buf, iphc, &mac, NULL, &dev);
+    ctx_insert(ip_ctx, 13, 64, 0, PICO_IPHC_CTX_COMPRESS, dev);
+    ret = compressor_src(ip_ctx.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(iphc, 3);
     dbg_buffer(buf, PICO_SIZE_IP6);
@@ -688,7 +704,7 @@ START_TEST(tc_compressor_src)
     FAIL_UNLESS((iphc[2] >> SRC_SHIFT) == 13, test, "Should've filled in the context extension correctly, ctx = %02X", iphc[2]);
 
     TRYING("With stateless compression\n");
-    ret = compressor_src(ip_stateless.addr, buf, iphc, &mac, NULL, &dev);
+    ret = compressor_src(ip_stateless.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(iphc, 3);
     dbg_buffer(buf, PICO_SIZE_IP6);
@@ -708,7 +724,8 @@ START_TEST(tc_decompressor_src)
     int ret = 0;
 
     union pico_ll_addr mac = { .pan = {.addr.data = {3,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_EXT } };
-    struct pico_device dev;
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
 
     /* Stateless compression */
     uint8_t iphc1[] = {0x00, 0x00, 0x00};
@@ -741,13 +758,16 @@ START_TEST(tc_decompressor_src)
     struct pico_ip6 ip6 = {{0x2a,0xaa,0,0,0,0,0,0  ,0,0,0,0xff,0xfe,0,0x12,0x34}};
 
     uint8_t buf[PICO_SIZE_IP6] = { 0 };
-    dev.mode = LL_MODE_IEEE802154;
+    
+    pico_stack_init(&S);
 
-    pico_stack_init();
+    dev = pico_null_create(S, "dummy");
+    dev->mode = LL_MODE_IEEE802154;
+
     STARTING();
 
     TRYING("With statelessly compressed address\n");
-    ret = decompressor_src(buf, buf1, iphc1, &mac, NULL, &dev);
+    ret = decompressor_src(buf, buf1, iphc1, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -756,9 +776,8 @@ START_TEST(tc_decompressor_src)
     memset(buf, 0, PICO_SIZE_IP6);
 
     TRYING("With context\n");
-    pico_stack_init();
-    ctx_insert(ip2, 13, 64, 0, PICO_IPHC_CTX_COMPRESS, NULL);
-    ret = decompressor_src(buf, buf2, iphc2, &mac, NULL, &dev);
+    ctx_insert(ip2, 13, 64, 0, PICO_IPHC_CTX_COMPRESS, dev);
+    ret = decompressor_src(buf, buf2, iphc2, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -767,7 +786,7 @@ START_TEST(tc_decompressor_src)
     memset(buf, 0, PICO_SIZE_IP6);
 
     TRYING("With link-local non-mac 16-bit derivable address\n");
-    ret = decompressor_src(buf, buf3, iphc3, &mac, NULL, &dev);
+    ret = decompressor_src(buf, buf3, iphc3, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -776,7 +795,7 @@ START_TEST(tc_decompressor_src)
     memset(buf, 0, PICO_SIZE_IP6);
 
     TRYING("With link-local non-mac 64-bit derivable address\n");
-    ret = decompressor_src(buf, buf4, iphc4, &mac, NULL, &dev);
+    ret = decompressor_src(buf, buf4, iphc4, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -785,7 +804,7 @@ START_TEST(tc_decompressor_src)
     memset(buf, 0, PICO_SIZE_IP6);
 
     TRYING("With link-local mac based address\n");
-    ret = decompressor_src(buf, buf5, iphc5, &mac, NULL, &dev);
+    ret = decompressor_src(buf, buf5, iphc5, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -794,7 +813,7 @@ START_TEST(tc_decompressor_src)
     memset(buf, 0, PICO_SIZE_IP6);
 
     TRYING("Context based non-mac 16-bit derivable address\n");
-    ret = decompressor_src(buf, buf6, iphc6, &mac, NULL, &dev);
+    ret = decompressor_src(buf, buf6, iphc6, &mac, NULL, dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -831,7 +850,6 @@ START_TEST(tc_compressor_dst)
 
     dev.mode = LL_MODE_IEEE802154;
     STARTING();
-    pico_stack_init();
 
     TRYING("48-bit derivable mcast address\n");
     ret = compressor_dst(mcast1.addr, buf, iphc, NULL, &mac, &dev);
@@ -900,7 +918,6 @@ START_TEST(tc_decompressor_dst)
 
     dev.mode = LL_MODE_IEEE802154;
     STARTING();
-    pico_stack_init();
 
     TRYING("48-bit compressed address\n");
     ret = decompressor_dst(buf,buf1,iphc1,NULL, &mac,&dev);
@@ -959,20 +976,24 @@ START_TEST(tc_compressor_iphc)
     union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
     union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
     int compressed_len = 0;
-    struct pico_device dev;
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     uint8_t *buf = NULL;
     uint8_t nh;
 
-    dev.mode = LL_MODE_IEEE802154;
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+    dev->mode = LL_MODE_IEEE802154;
+
     memcpy(f->buffer, ipv6_frame, 61);
     f->net_hdr = f->buffer;
     f->transport_hdr = f->buffer + 48;
-    f->dev = &dev;
+    f->dev = dev;
     f->src = src;
     f->dst = dst;
 
     STARTING();
-    pico_stack_init();
 
     TRYING("To compress a IPv6 frame from a sample capture\n");
     buf = compressor_iphc(f, &compressed_len, &nh);
@@ -994,7 +1015,8 @@ START_TEST(tc_decompressor_iphc)
     struct pico_frame *f = pico_frame_alloc(2);
     union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
     union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
-    struct pico_device dev;
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     int compressed_len = 0;
     uint8_t *buf = NULL;
     uint8_t hdr[40] = {
@@ -1003,15 +1025,19 @@ START_TEST(tc_decompressor_iphc)
     0x02, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00, /* ........ */
     0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
     0x00, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x65, 0x63 };
-    dev.mode = LL_MODE_IEEE802154;
+
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+    dev->mode = LL_MODE_IEEE802154;
+    
     memcpy(f->buffer, lowpan_frame, 2);
     f->net_hdr = f->buffer;
-    f->dev = &dev;
+    f->dev = dev;
     f->src = src;
     f->dst = dst;
 
     STARTING();
-    pico_stack_init();
 
     TRYING("To decompress a 6LoWPAN frame from a sampel capture\n");
     buf = decompressor_iphc(f, &compressed_len);
@@ -1233,22 +1259,26 @@ START_TEST(tc_pico_iphc_compress)
     struct pico_frame *f = pico_frame_alloc(61);
     union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
     union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
-    struct pico_device dev;
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     struct pico_frame *new = NULL;
 
-    dev.mode = LL_MODE_IEEE802154;
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+    dev->mode = LL_MODE_IEEE802154;
+    
     memcpy(f->buffer, ipv6_frame, 61);
     f->net_hdr = f->buffer;
     f->net_len = 48;
     f->transport_hdr = f->buffer + 48;
     f->transport_len = 8;
     f->len = 61;
-    f->dev = &dev;
+    f->dev = dev;
     f->src = src;
     f->dst = dst;
 
     STARTING();
-    pico_stack_init();
 
     TRYING("Trying to compress an IPv6 frame from an example capture\n");
     new = pico_iphc_compress(f);
@@ -1269,20 +1299,24 @@ START_TEST(tc_pico_iphc_decompress)
     struct pico_frame *f = pico_frame_alloc(61);
     union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
     union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
-    struct pico_device dev;
+    struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     struct pico_frame *new = NULL;
 
-    dev.mode = LL_MODE_IEEE802154;
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+    dev->mode = LL_MODE_IEEE802154;
+
     memcpy(f->buffer, comp_frame, 22);
     f->net_hdr = f->buffer;
     f->net_len = 22;
     f->len = 22;
-    f->dev = &dev;
+    f->dev = dev;
     f->src = src;
     f->dst = dst;
 
     STARTING();
-    pico_stack_init();
 
     TRYING("Trying to decompress a 6LoWPAN frame from an example capture\n");
     new = pico_iphc_decompress(f);
@@ -1361,9 +1395,11 @@ static void cb_ping6(struct pico_icmp6_stats *s)
 static void ping_abort_timer(pico_time now, void *_id)
 {
     int *id = (int *) _id;
+    struct pico_stack *S = NULL;
     IGNORE_PARAMETER(now);
     printf("Ping: aborting...\n");
-    pico_icmp6_ping_abort(*id);
+    pico_stack_init(&S);
+    pico_icmp6_ping_abort(S, *id);
 }
 
 /* Copy a string until the separator,
@@ -1394,7 +1430,7 @@ static char *cpy_arg(char **dst, char *str)
     return nxt;
 }
 
-static void app_ping(char *arg)
+static void app_ping(struct pico_stack *S, char *arg)
 {
     char *dest = NULL;
     char *next = NULL;
@@ -1439,7 +1475,7 @@ static void app_ping(char *arg)
                 printf("Initial delay: %u seconds\n", initial_delay);
                 initial_delay = PICO_TIME_MS() + (initial_delay * 1000);
                 while (PICO_TIME_MS() < initial_delay) {
-                    pico_stack_tick();
+                    pico_stack_tick(S);
                     usleep(10000);
                 }
             }
@@ -1447,10 +1483,10 @@ static void app_ping(char *arg)
     }
     printf("Starting ping.\n");
 
-    id = pico_icmp6_ping(dest, NUM_PING, 1000, 10000, size, cb_ping6, NULL);
+    id = pico_icmp6_ping(S, dest, NUM_PING, 1000, 10000, size, cb_ping6, NULL);
     if (timeout > 0) {
         printf("Adding abort timer after %d seconds for id %d\n", timeout, id);
-        if (!pico_timer_add((pico_time)(timeout * 1000), ping_abort_timer, &id)) {
+        if (!pico_timer_add(S, (pico_time)(timeout * 1000), ping_abort_timer, &id)) {
             printf("Failed to set ping abort timeout, aborting ping\n");
             ping_abort_timer((pico_time)0, &id);
             exit(1);
@@ -1469,6 +1505,7 @@ START_TEST(tc_tx_rx)
 {
     int test = 0;
     struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     uint8_t n_id, n_area0, n_area1;
     struct pico_ip6 myaddr, pan, netmask;
     const char pan_addr[] = "2aaa:abcd::0";
@@ -1487,7 +1524,7 @@ START_TEST(tc_tx_rx)
     n_area1 = (uint8_t) atoi(area1);
 
     /* Initialize picoTCP */
-    pico_stack_init();
+    pico_stack_init(&S);
 
     pico_string_to_ipv6(pan_addr, myaddr.addr);
     pico_string_to_ipv6(pan_addr, pan.addr);
@@ -1498,7 +1535,7 @@ START_TEST(tc_tx_rx)
     myaddr.addr[15] = n_id;
 
     printf("%d:%d:%d\n", n_id, n_area0, n_area1);
-    dev = pico_radiotest_create(n_id, n_area0, n_area1, 1, (char *)dump);
+    dev = pico_radiotest_create(S, n_id, n_area0, n_area1, 1, (char *)dump);
     if (!dev) {
         exit(1);
     }
@@ -1509,11 +1546,11 @@ START_TEST(tc_tx_rx)
     pico_ipv6_link_add(dev, myaddr, netmask);
 
     /* Start ping-application */
-    app_ping((char *)arg);
+    app_ping(S, (char *)arg);
 
     printf("%s: launching PicoTCP loop\n", __FUNCTION__);
     while(!rx) {
-        pico_stack_tick();
+        pico_stack_tick(S);
         usleep(2000);
     }
     OUTPUT();

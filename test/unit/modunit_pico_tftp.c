@@ -3,8 +3,11 @@
 #include <pico_socket.h>
 #include <pico_tftp.h>
 #include "modules/pico_tftp.c"
-#include "check.h"
+#include "test/pico_rand.h"
 
+#include <check.h>
+
+#include "../../build/include/pico_socket.h"
 
 Suite *pico_suite(void);
 int tftp_user_cb(struct pico_tftp_session *session, uint16_t err, uint8_t *block, int32_t len, void *arg);
@@ -48,8 +51,9 @@ int tftp_user_cb(struct pico_tftp_session *session, uint16_t err, uint8_t *block
     return 0;
 }
 
-uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void *arg)
+uint32_t pico_timer_add(struct pico_stack *S, pico_time expire, void (*timer)(pico_time, void *), void *arg)
 {
+    (void)S;
     (void)expire;
     (void)timer;
     (void)arg;
@@ -57,8 +61,9 @@ uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void
     return ++called_pico_timer_add;
 }
 
-void pico_timer_cancel(uint32_t t)
+void pico_timer_cancel(struct pico_stack *S, uint32_t t)
 {
+    (void)S;
     (void)t;
     called_pico_timer_cancel++;
 }
@@ -81,18 +86,25 @@ void pico_timer_cancel(uint32_t t)
 
 START_TEST(tc_find_session_by_socket)
 {
-    tftp_sessions = (struct pico_tftp_session *)PICO_ZALLOC(sizeof(struct pico_tftp_session));
-    tftp_sessions->socket = &example_socket;
-    tftp_sessions->next = (struct pico_tftp_session *)PICO_ZALLOC(sizeof(struct pico_tftp_session));
-    tftp_sessions->socket = NULL;
-    tftp_sessions->next = NULL;
-    fail_if(find_session_by_socket(&example_socket) != tftp_sessions->next);
+    struct pico_stack *S;
+    pico_stack_init(&S);
+    S->tftp_sessions = (struct pico_tftp_session *)PICO_ZALLOC(sizeof(struct pico_tftp_session));
+    S->tftp_sessions->socket = &example_socket;
+    S->tftp_sessions->next = (struct pico_tftp_session *)PICO_ZALLOC(sizeof(struct pico_tftp_session));
+    S->tftp_sessions->socket = NULL;
+    S->tftp_sessions->next = NULL;
+    example_socket.stack = S;
+    fail_if(find_session_by_socket(&example_socket) != S->tftp_sessions->next);
 }
 END_TEST
 
 START_TEST(tc_tftp_finish)
 {
-    tftp_sessions = 0;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    S->tftp_sessions = 0;
 
     /* Test case: client */
     example_session.socket = &example_socket;
@@ -232,13 +244,18 @@ END_TEST
 START_TEST(tc_pico_tftp_abort)
 {
     int ret;
-    server.listen_socket = NULL;
+    struct pico_stack * S;
+
+    pico_stack_init(&S);
+
+    S->tftp_server.listen_socket = NULL;
 
     /*first case: no session and no listening socket*/
     ret = pico_tftp_abort(NULL, TFTP_ERR_EUSR, "test");
     fail_if(ret != -1);
     /*second case: no session but listening socket*/
-    server.listen_socket = example_session.socket = &example_socket;
+    example_socket.stack = S;
+    S->tftp_server.listen_socket = example_session.socket = &example_socket;
     pico_tftp_abort(NULL, TFTP_ERR_EUSR, "test");
     fail_if(ret != -1);
     /*tirdh case: session non into list*/
@@ -291,9 +308,13 @@ START_TEST(tc_tftp_cb)
 END_TEST
 START_TEST(tc_tftp_socket_open)
 {
-    /* TODO: test this: static int tftp_socket_open(uint16_t family, union pico_address *a, uint16_t port) */
-    fail_if(tftp_socket_open(0xFFFF, 21) != NULL);
-    fail_if(tftp_socket_open(0xFFFF, 0xFFFF) != NULL);
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    /* TODO: test this: static int tftp_socket_open(struct pico_stack *S, uint16_t family, union pico_address *a, uint16_t port) */
+    fail_if(tftp_socket_open(S, 0xFFFF, 21) != NULL);
+    fail_if(tftp_socket_open(S, 0xFFFF, 0xFFFF) != NULL);
 }
 END_TEST
 

@@ -14,8 +14,9 @@ START_TEST (test_ipv4)
 
     struct pico_frame *f_NULL = NULL;
     struct pico_ip4 *dst_NULL = NULL;
+    struct pico_stack *S = NULL;
 
-    pico_stack_init();
+    pico_stack_init(&S);
 
     nm16.addr = long_be(0xFFFF0000);
     nm32.addr = long_be(0xFFFFFFFF);
@@ -23,32 +24,32 @@ START_TEST (test_ipv4)
     /*link_add*/
     for (i = 0; i < IP_TST_SIZ; i++) {
         snprintf(devname, 8, "nul%d", i);
-        dev[i] = pico_null_create(devname);
+        dev[i] = pico_null_create(S, devname);
         a[i].addr = long_be(0x0a000001u + (i << 16));
         d[i].addr = long_be(0x0a000002u + (i << 16));
-        fail_if(pico_ipv4_link_add(dev[i], a[i], nm16) != 0, "Error adding link");
+        fail_if(pico_ipv4_link_add(dev[i]->stack, dev[i], a[i], nm16) != 0, "Error adding link");
     }
     /*link_find + link_get + route_add*/
     for (i = 0; i < IP_TST_SIZ; i++) {
         gw[i].addr = long_be(0x0a0000f0u + (i << 16));
         r[i].addr = long_be(0x0c00001u + (i << 16));
-        fail_unless(pico_ipv4_link_find(&a[i]) == dev[i], "Error finding link");
-        l[i] = pico_ipv4_link_get(&a[i]);
+        fail_unless(pico_ipv4_link_find(dev[i]->stack, &a[i]) == dev[i], "Error finding link");
+        l[i] = pico_ipv4_link_get(dev[i]->stack, &a[i]);
         fail_if(l[i] == NULL, "Error getting link");
-        fail_if(pico_ipv4_route_add(r[i], nm32, gw[i], 1, l[i]) != 0, "Error adding route");
-        fail_if(pico_ipv4_route_add(d[i], nm32, gw[i], 1, l[i]) != 0, "Error adding route");
+        fail_if(pico_ipv4_route_add(dev[i]->stack, r[i], nm32, gw[i], 1, l[i]) != 0, "Error adding route");
+        fail_if(pico_ipv4_route_add(dev[i]->stack, d[i], nm32, gw[i], 1, l[i]) != 0, "Error adding route");
     }
     /*get_gateway + source_find*/
     for (i = 0; i < IP_TST_SIZ; i++) {
-        ret = pico_ipv4_route_get_gateway(&r[i]);
+        ret = pico_ipv4_route_get_gateway(dev[i]->stack, &r[i]);
         fail_if(ret.addr != gw[i].addr, "Error get gateway: returned wrong route");
-        source[i] = pico_ipv4_source_find(&d[i]);
+        source[i] = pico_ipv4_source_find(dev[i]->stack, &d[i]);
         fail_if(source[i]->addr != a[i].addr, "Error find source: returned wrong route");
     }
     /*route_del + link_del*/
     for (i = 0; i < IP_TST_SIZ; i++) {
-        fail_if(pico_ipv4_route_del(r[i], nm32, 1) != 0, "Error deleting route");
-        fail_if(pico_ipv4_link_del(dev[i], a[i]) != 0, "Error deleting link");
+        fail_if(pico_ipv4_route_del(dev[i]->stack, r[i], nm32, 1) != 0, "Error deleting route");
+        fail_if(pico_ipv4_link_del(dev[i]->stack, dev[i], a[i]) != 0, "Error deleting link");
     }
     /*string_to_ipv4 + ipv4_to_string*/
     pico_string_to_ipv4(ipstr, &(ipaddr.addr));
@@ -66,10 +67,10 @@ START_TEST (test_ipv4)
     fail_if((pico_ipv4_is_unicast(long_be(0xe0000001))) != 0, "Error checking unicast");
 
     /*rebound*/
-    fail_if(pico_ipv4_rebound(f_NULL) != -1, "Error rebound frame");
+    fail_if(pico_ipv4_rebound(S, f_NULL) != -1, "Error rebound frame");
 
     /*frame_push*/
-    fail_if(pico_ipv4_frame_push(f_NULL, dst_NULL, PICO_PROTO_TCP) != -1, "Error push frame");
+    fail_if(pico_ipv4_frame_push(S, f_NULL, dst_NULL, PICO_PROTO_TCP) != -1, "Error push frame");
 }
 END_TEST
 
@@ -78,11 +79,22 @@ START_TEST (test_nat_enable_disable)
     struct pico_ipv4_link link = {
         .address = {.addr = long_be(0x0a320001)}
     };                                                                       /* 10.50.0.1 */
-    struct pico_frame *f = pico_ipv4_alloc(&pico_proto_ipv4, NULL, PICO_UDPHDR_SIZE);
-    struct pico_ipv4_hdr *net = (struct pico_ipv4_hdr *)f->net_hdr;
-    struct pico_udp_hdr *udp = (struct pico_udp_hdr *)f->transport_hdr;
+    struct pico_frame *f = NULL;
+    struct pico_ipv4_hdr *net = NULL;
+    struct pico_udp_hdr *udp = NULL;
+    struct pico_stack *S = NULL;
     const char *raw_data = "ello";
+    struct mock_device *mock = NULL;
 
+    pico_stack_init(&S);
+
+    mock = pico_mock_create(S, NULL);
+
+    link.dev = mock->dev;
+
+    f = pico_ipv4_alloc(S, &pico_proto_ipv4, NULL, PICO_UDPHDR_SIZE);
+
+    net = (struct pico_ipv4_hdr *)f->net_hdr;
     net->vhl = 0x45; /* version = 4, hdr len = 5 (32-bit words) */
     net->tos = 0;
     net->len = short_be(32); /* hdr + data (bytes) */
@@ -94,6 +106,7 @@ START_TEST (test_nat_enable_disable)
     net->src.addr = long_be(0x0a280008); /* 10.40.0.8 */
     net->dst.addr = long_be(0x0a320001); /* 10.50.0.1 */
 
+    udp = (struct pico_udp_hdr *)f->transport_hdr;
     udp->trans.sport = short_be(5555);
     udp->trans.dport = short_be(6667);
     udp->len = 12;
@@ -103,14 +116,13 @@ START_TEST (test_nat_enable_disable)
     memcpy(f->payload, raw_data, 4);
 
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> NAT ENABLE/DISABLE TEST\n");
-    pico_stack_init();
 
     fail_if(pico_ipv4_nat_enable(&link));
     fail_unless(nat_link->address.addr == link.address.addr);
     fail_unless(pico_ipv4_nat_is_enabled(&link.address));
 
-    fail_if(pico_ipv4_nat_outbound(f, &net->dst));
-    pico_ipv4_nat_table_cleanup(pico_tick, NULL);
+    fail_if(pico_ipv4_nat_outbound(S, f, &net->dst));
+    pico_ipv4_nat_table_cleanup(S->pico_tick, S);
 
     fail_if(pico_ipv4_nat_disable());
     fail_if(pico_ipv4_nat_is_enabled(&link.address));
@@ -122,9 +134,10 @@ START_TEST (test_nat_translation)
     struct pico_ipv4_link link = {
         .address = {.addr = long_be(0x0a320001)}
     };                                                                       /* 10.50.0.1 */
-    struct pico_frame *f = pico_ipv4_alloc(&pico_proto_ipv4, NULL, PICO_UDPHDR_SIZE);
-    struct pico_ipv4_hdr *net = (struct pico_ipv4_hdr *)f->net_hdr;
-    struct pico_udp_hdr *udp = (struct pico_udp_hdr *)f->transport_hdr;
+    struct pico_frame *f = NULL;
+    struct pico_ipv4_hdr *net = NULL;
+    struct pico_udp_hdr *udp = NULL;
+    struct pico_stack *S = NULL;
     struct pico_ip4 src_ori = {
         .addr = long_be(0x0a280008)
     };                                                      /* 10.40.0.8 */
@@ -138,7 +151,17 @@ START_TEST (test_nat_translation)
     uint16_t sport_ori = short_be(5555);
     uint16_t dport_ori = short_be(6667);
     uint16_t nat_port = 0;
+    struct mock_device *mock = NULL;
 
+    pico_stack_init(&S);
+
+    mock = pico_mock_create(S, NULL);
+
+    link.dev = mock->dev;
+
+    f = pico_ipv4_alloc(S, &pico_proto_ipv4, NULL, PICO_UDPHDR_SIZE);
+
+    net = (struct pico_ipv4_hdr *)f->net_hdr;
     net->vhl = 0x45; /* version = 4, hdr len = 5 (32-bit words) */
     net->tos = 0;
     net->len = short_be(32); /* hdr + data (bytes) */
@@ -150,6 +173,7 @@ START_TEST (test_nat_translation)
     net->src = src_ori;
     net->dst = dst_ori;
 
+    udp = (struct pico_udp_hdr *)f->transport_hdr;
     udp->trans.sport = sport_ori;
     udp->trans.dport = dport_ori;
     udp->len = 12;
@@ -159,18 +183,18 @@ START_TEST (test_nat_translation)
     memcpy(f->payload, raw_data, 4);
 
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> NAT TRANSLATION TEST\n");
-    pico_stack_init();
+
     fail_if(pico_ipv4_nat_enable(&link));
 
     /* perform outbound translation, check if source IP got translated */
-    fail_if(pico_ipv4_nat_outbound(f, &nat_link->address));
+    fail_if(pico_ipv4_nat_outbound(S, f, &nat_link->address));
     fail_if(net->src.addr != link.address.addr, "source address not translated");
 
     /* perform outbound translation of same packet, check if source IP and PORT got translated the same as previous packet */
     nat_port = udp->trans.sport;
     net->src = src_ori; /* restore original src */
     udp->trans.sport = sport_ori; /* restore original sport */
-    fail_if(pico_ipv4_nat_outbound(f, &nat_link->address));
+    fail_if(pico_ipv4_nat_outbound(S, f, &nat_link->address));
     fail_if(net->src.addr != link.address.addr, "source address not translated");
     fail_if(udp->trans.sport != nat_port, "frames with the same source IP, source PORT and PROTO did not get translated the same");
 
@@ -178,7 +202,7 @@ START_TEST (test_nat_translation)
     nat_port = udp->trans.sport;
     net->src = src_ori; /* restore original src */
     udp->trans.sport = short_be(5556); /* change sport */
-    fail_if(pico_ipv4_nat_outbound(f, &nat_link->address));
+    fail_if(pico_ipv4_nat_outbound(S, f, &nat_link->address));
     fail_if(net->src.addr != link.address.addr, "source address not translated");
     fail_if(udp->trans.sport == short_be(sport_ori), "two frames with different sport get translated the same");
 
@@ -188,10 +212,10 @@ START_TEST (test_nat_translation)
     net->dst = nat;
     udp->trans.sport = sport_ori;
     udp->trans.dport = nat_port;
-    fail_if(pico_ipv4_nat_inbound(f, &nat_link->address));
+    fail_if(pico_ipv4_nat_inbound(S, f, &nat_link->address));
     fail_if(net->dst.addr != src_ori.addr, "destination address not translated correctly");
     fail_if(udp->trans.dport != short_be(5556), "ports not translated correctly");
-    pico_ipv4_nat_table_cleanup(pico_tick, NULL);
+    pico_ipv4_nat_table_cleanup(S->pico_tick, S);
 
     fail_if(pico_ipv4_nat_disable());
 }
@@ -202,9 +226,10 @@ START_TEST (test_nat_port_forwarding)
     struct pico_ipv4_link link = {
         .address = {.addr = long_be(0x0a320001)}
     };                                                                       /* 10.50.0.1 */
-    struct pico_frame *f = pico_ipv4_alloc(&pico_proto_ipv4, NULL, PICO_UDPHDR_SIZE);
-    struct pico_ipv4_hdr *net = (struct pico_ipv4_hdr *)f->net_hdr;
-    struct pico_udp_hdr *udp = (struct pico_udp_hdr *)f->transport_hdr;
+    struct pico_frame *f = NULL;
+    struct pico_ipv4_hdr *net = NULL;
+    struct pico_udp_hdr *udp = NULL;
+    struct pico_stack *S = NULL;
     struct pico_ip4 src_addr = {
         .addr = long_be(0x0a280008)
     };                                                       /* 10.40.0.8 */
@@ -218,7 +243,17 @@ START_TEST (test_nat_port_forwarding)
     uint16_t sport_ori = short_be(5555);
     uint16_t fport_pub = short_be(80);
     uint16_t fport_priv = short_be(8080);
+    struct mock_device *mock = NULL;
 
+    pico_stack_init(&S);
+
+    mock = pico_mock_create(S, NULL);
+
+    link.dev = mock->dev;
+
+    f = pico_ipv4_alloc(S, &pico_proto_ipv4, NULL, PICO_UDPHDR_SIZE);
+
+    net = (struct pico_ipv4_hdr *)f->net_hdr;
     net->vhl = 0x45; /* version = 4, hdr len = 5 (32-bit words) */
     net->tos = 0;
     net->len = short_be(32); /* hdr + data (bytes) */
@@ -230,6 +265,7 @@ START_TEST (test_nat_port_forwarding)
     net->src = dst_addr;
     net->dst = nat_addr;
 
+    udp = (struct pico_udp_hdr *)f->transport_hdr;
     udp->trans.sport = sport_ori;
     udp->trans.dport = fport_pub;
     udp->len = 12;
@@ -239,23 +275,24 @@ START_TEST (test_nat_port_forwarding)
     memcpy(f->payload, raw_data, 4);
 
     printf(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> NAT PORT FORWARD TEST\n");
-    pico_stack_init();
+
     fail_if(pico_ipv4_nat_enable(&link));
 
-    fail_if(pico_ipv4_port_forward(nat_addr, fport_pub, src_addr, fport_priv, 17, PICO_NAT_PORT_FORWARD_ADD));
+    fail_if(pico_ipv4_port_forward(S, nat_addr, fport_pub, src_addr, fport_priv, 17, PICO_NAT_PORT_FORWARD_ADD));
 
-    fail_if(pico_ipv4_nat_inbound(f, &nat_link->address));
+    fail_if(pico_ipv4_nat_inbound(S, f, &nat_link->address));
     fail_if(net->dst.addr != src_addr.addr, "destination address not translated correctly");
     fail_if(udp->trans.dport != fport_priv, "destination port not translated correctly");
 
-    fail_if(pico_ipv4_port_forward(nat_addr, fport_pub, src_addr, fport_priv, 17, PICO_NAT_PORT_FORWARD_DEL));
-    pico_ipv4_nat_table_cleanup(pico_tick, NULL);
+    fail_if(pico_ipv4_port_forward(S, nat_addr, fport_pub, src_addr, fport_priv, 17, PICO_NAT_PORT_FORWARD_DEL));
+    pico_ipv4_nat_table_cleanup(S->pico_tick, S);
 }
 END_TEST
 
 START_TEST (test_ipfilter)
 {
     struct pico_device *dev = NULL;
+    struct pico_stack *S = NULL;
     uint8_t proto = 0, tos = 0;
     uint16_t sport = 0, dport = 0;
     int8_t priority = 0;
@@ -276,7 +313,7 @@ START_TEST (test_ipfilter)
 
     enum filter_action action = 1;
 
-    uint32_t filter_id1;
+    uint32_t filter_id1, filter_id2;
 
     /* 192.168.1.2:16415 -> 192.168.1.109:1222 [sending a TCP syn] */
     uint8_t ipv4_buf[] = {
@@ -290,36 +327,42 @@ START_TEST (test_ipfilter)
 
     struct pico_frame *f;
 
+    pico_stack_init(&S);
+
+    dev = pico_null_create(S, "dummy");
+
     printf("IP Filter> Adding a new filter...\n");
     filter_id1 = pico_ipv4_filter_add(dev, proto, &src_addr, &saddr_netmask, &dst_addr, &daddr_netmask, sport, dport, priority, tos, action);
-    fail_if(filter_id1 <= 0, "Error adding filter\n");
+    fail_if(filter_id1 == 0, "Error adding filter\n");
     printf("filter_id1 = %d\n", filter_id1);
 
     printf("IP Filter> Trying to add the same filter...\n");
-    filter_id1 = pico_ipv4_filter_add(dev, proto, &src_addr, &saddr_netmask, &dst_addr, &daddr_netmask, sport, dport, priority, tos, action);
-    fail_if(ret > 0, "Error adding filter\n");
+    filter_id2 = pico_ipv4_filter_add(dev, proto, &src_addr, &saddr_netmask, &dst_addr, &daddr_netmask, sport, dport, priority, tos, action);
+    fail_if(filter_id2 > 0, "Error adding filter\n");
 
     printf("IP Filter> Deleting added filter...\n");
-    ret = pico_ipv4_filter_del(filter_id1);
+    ret = pico_ipv4_filter_del(S, filter_id1);
     fail_if(ret != 0, "Error deleting the filter\n");
 
     printf("IP Filter> Trying to delete the same filter\n");
-    ret = pico_ipv4_filter_del(filter_id1);
+    ret = pico_ipv4_filter_del(S, filter_id1);
     fail_if(ret != -1, "Deleting non existing filter failed\n");
 
     f = (struct pico_frame *)PICO_ZALLOC(200);
     f->buffer = PICO_ZALLOC(20);
     f->usage_count = PICO_ZALLOC(sizeof(uint32_t));
     f->buffer = ipv4_buf;
+    f->buffer_len = sizeof(ipv4_buf);
     f->net_hdr = ipv4_buf + 14u; /* shifting to IP layer */
     f->transport_hdr = ipv4_buf + 34u; /* shifting to Transport layer */
+    f->dev = dev;
 
     /* adding exact filter */
     pico_string_to_ipv4("192.168.1.109", &src_addr.addr);
     pico_string_to_ipv4("255.255.255.255", &saddr_netmask.addr);
     sport = 1222u;
     filter_id1 = pico_ipv4_filter_add(dev, proto, &src_addr, &saddr_netmask, &dst_addr, &daddr_netmask, sport, dport, priority, tos, FILTER_REJECT);
-    fail_if(filter_id1 <= 0, "Error adding exact filter\n");
+    fail_if(filter_id1 == 0, "Error adding exact filter\n");
     printf("Filter is added\n");
     sync();
     sleep(1);
@@ -328,7 +371,7 @@ START_TEST (test_ipfilter)
     fail_if(ret != 1, "Frame wasn't filtered\n");
 
     printf("IP Filter> Deleting added filter...\n");
-    ret = pico_ipv4_filter_del(filter_id1);
+    ret = pico_ipv4_filter_del(S, filter_id1);
     fail_if(ret != 0, "Error deleting the filter\n");
 
     printf("IP Filter> Adding masked filter...\n");
@@ -337,19 +380,21 @@ START_TEST (test_ipfilter)
     sport = 1222u;
 
     filter_id1 = pico_ipv4_filter_add(dev, proto, &src_addr, &saddr_netmask, &dst_addr, &daddr_netmask, sport, dport, priority, tos, FILTER_DROP);
-    fail_if(filter_id1 <= 0, "Error adding masked filter\n");
+    fail_if(filter_id1 == 0, "Error adding masked filter\n");
 
     f = (struct pico_frame *)PICO_ZALLOC(200);
     f->buffer = PICO_ZALLOC(20);
     f->usage_count = PICO_ZALLOC(sizeof(uint32_t));
     f->buffer = ipv4_buf;
+    f->buffer_len = sizeof(ipv4_buf);
     f->net_hdr = ipv4_buf + 14u; /* shifting to IP layer */
     f->transport_hdr = ipv4_buf + 34u; /* shifting to Transport layer */
+    f->dev = dev;
     ret = ipfilter(f);
     fail_if(ret != 1, "Mask filter failed to filter\n");
 
     printf("IP Filter> Deleting added filter...\n");
-    ret = pico_ipv4_filter_del(filter_id1);
+    ret = pico_ipv4_filter_del(S, filter_id1);
     fail_if(ret != 0, "Error deleting the filter\n");
 
     printf("IP Filter> Adding bad filter..\n");
@@ -357,19 +402,21 @@ START_TEST (test_ipfilter)
     pico_string_to_ipv4("255.255.255.0", &saddr_netmask.addr);
     sport = 1991u;
     filter_id1 = pico_ipv4_filter_add(dev, proto, &src_addr, &saddr_netmask, &dst_addr, &daddr_netmask, sport, dport, priority, tos, FILTER_DROP);
-    fail_if(filter_id1 <= 0, "Error adding bad filter\n");
+    fail_if(filter_id1 == 0, "Error adding bad filter\n");
 
     f = (struct pico_frame *)PICO_ZALLOC(200);
     f->buffer = PICO_ZALLOC(20);
     f->usage_count = PICO_ZALLOC(sizeof(uint32_t));
     f->buffer = ipv4_buf;
+    f->buffer_len = sizeof(ipv4_buf);
     f->net_hdr = ipv4_buf + 14u; /* shifting to IP layer */
     f->transport_hdr = ipv4_buf + 34u; /* shifting to Transport layer */
+    f->dev = dev;
     ret = ipfilter(f);
     fail_if(ret != 0, "Filter shouldn't have filtered this frame\n");
 
     printf("IP Filter> Deleting added filter...\n");
-    ret = pico_ipv4_filter_del(filter_id1);
+    ret = pico_ipv4_filter_del(S, filter_id1);
     fail_if(ret != 0, "Error deleting the filter\n");
 
 }
@@ -399,6 +446,7 @@ START_TEST (test_igmp_sockopts)
     struct pico_ip_mreq _mreq = {0}, mreq[16] = {0};
     struct pico_ip_mreq_source mreq_source[128] = {0};
     struct pico_tree_node *index = NULL;
+    struct pico_stack *S = NULL;
 
     int ttl = 64;
     int getttl = 0;
@@ -408,7 +456,7 @@ START_TEST (test_igmp_sockopts)
         0
     };
 
-    pico_stack_init();
+    pico_stack_init(&S);
 
     printf("START IGMP SOCKOPTS TEST\n");
 
@@ -452,19 +500,19 @@ START_TEST (test_igmp_sockopts)
             mreq_source[(i * 8) + j].mcast_source_addr = inaddr_source[j];
         }
     }
-    dev = pico_null_create("dummy0");
+    dev = pico_null_create(S, "dummy0");
     netmask.ip4.addr = long_be(0xFFFF0000);
-    ret = pico_ipv4_link_add(dev, inaddr_link[0].ip4, netmask.ip4);
+    ret = pico_ipv4_link_add(S, dev, inaddr_link[0].ip4, netmask.ip4);
     fail_if(ret < 0, "link add failed");
 
-    dev = pico_null_create("dummy1");
+    dev = pico_null_create(S, "dummy1");
     netmask.ip4.addr = long_be(0xFFFF0000);
-    ret = pico_ipv4_link_add(dev, inaddr_link[1].ip4, netmask.ip4);
+    ret = pico_ipv4_link_add(S, dev, inaddr_link[1].ip4, netmask.ip4);
     fail_if(ret < 0, "link add failed");
 
-    s = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, NULL);
+    s = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, NULL);
     fail_if(s == NULL, "UDP socket open failed");
-    s1 = pico_socket_open(PICO_PROTO_IPV4, PICO_PROTO_UDP, NULL);
+    s1 = pico_socket_open(S, PICO_PROTO_IPV4, PICO_PROTO_UDP, NULL);
     fail_if(s1 == NULL, "UDP socket open failed");
 
     /* argument validation tests */
@@ -684,7 +732,7 @@ START_TEST (test_igmp_sockopts)
     ret = pico_socket_setoption(s1, PICO_IP_ADD_SOURCE_MEMBERSHIP, &mreq_source[1]);
     fail_if(ret < 0, "PICO_IP_ADD_SOURCE_MEMBERSHIP failed\n");
     i = 0;
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 2)
             fail("MCASTFilter (INCLUDE + INCLUDE) too many elements\n");
@@ -715,7 +763,7 @@ START_TEST (test_igmp_sockopts)
     ret = pico_socket_setoption(s1, PICO_IP_BLOCK_SOURCE, &mreq_source[2]);
     fail_if(ret < 0, "PICO_IP_BLOCK_SOURCE failed\n");
     i = 0;
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 1)
             fail("MCASTFilter (INCLUDE + EXCLUDE) too many elements\n");
@@ -748,7 +796,7 @@ START_TEST (test_igmp_sockopts)
     ret = pico_socket_setoption(s1, PICO_IP_ADD_SOURCE_MEMBERSHIP, &mreq_source[4]);
     fail_if(ret < 0, "PICO_IP_ADD_SOURCE_MEMBERSHIP failed\n");
     i = 0;
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 2)
             fail("MCASTFilter (EXCLUDE + INCLUDE) too many elements\n");
@@ -789,7 +837,7 @@ START_TEST (test_igmp_sockopts)
     ret = pico_socket_setoption(s1, PICO_IP_BLOCK_SOURCE, &mreq_source[6]);
     fail_if(ret < 0, "PICO_IP_BLOCK_SOURCE failed\n");
     i = 0;
-    pico_tree_foreach(index, &MCASTFilter)
+    pico_tree_foreach(index, &S->MCASTFilter)
     {
         if (++i > 2)
             fail("MCASTFilter (EXCLUDE + EXCLUDE) too many elements\n");
@@ -826,8 +874,9 @@ START_TEST (test_slaacv4)
     uint8_t macaddr1[6] = {
         0xc3, 0, 0, 0xa, 0xc, 0xf
     };
+    struct pico_stack *S = NULL;
 
-
+    pico_stack_init(&S);
 
     /* verify min boundary*/
     tmp = SLAACV4_CREATE_IPV4(0);
@@ -841,11 +890,11 @@ START_TEST (test_slaacv4)
     fail_if(long_be(tmp) > (long_be(SLAACV4_NETWORK) | 0x0000FEFF));
 
     /* verify case where dev->eth is NULL */
-    dev = pico_null_create("dummy");
+    dev = pico_null_create(S, "dummy");
     tmp = pico_slaacv4_getip(dev, 0);
     fail_if(long_be(tmp) != (long_be(SLAACV4_NETWORK) | SLAACV4_MINRANGE));
     /* verify nominal case; two runs of slaacv4_get_ip need to return same value */
-    mock = pico_mock_create(macaddr1);
+    mock = pico_mock_create(S, macaddr1);
     tmp = pico_slaacv4_getip(mock->dev, 0);
     fail_if(tmp != pico_slaacv4_getip(mock->dev, 0));
 

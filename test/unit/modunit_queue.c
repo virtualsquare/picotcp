@@ -2,8 +2,8 @@
 #include "pico_queue.h"
 #include "stack/pico_frame.c"
 #include "pico_stack.h"
-#include "check.h"
 
+#include <check.h>
 
 Suite *pico_suite(void);
 

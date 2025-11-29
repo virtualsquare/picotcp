@@ -1,23 +1,9 @@
 #include "pico_config.h"
-#include "pico_frame.h"
-#include "pico_device.h"
-#include "pico_protocol.h"
+#include "pico_constants.h"
 #include "pico_stack.h"
-#include "pico_addressing.h"
-#include "pico_dns_client.h"
-#include "pico_eth.h"
-#include "pico_arp.h"
-#include "pico_ipv4.h"
-#include "pico_ipv6.h"
-#include "pico_icmp4.h"
-#include "pico_igmp.h"
-#include "pico_udp.h"
-#include "pico_tcp.h"
-#include "pico_socket.h"
-#include "heap.h"
-#include "stack/pico_stack.c"
-#include "check.h"
+#include "test/pico_rand.h"
 
+#include <check.h>
 
 Suite *pico_suite(void);
 void fake_timer(pico_time __attribute__((unused)) now, void __attribute__((unused)) *n);
@@ -77,19 +63,18 @@ void fake_timer(pico_time __attribute__((unused)) now, void __attribute__((unuse
 
 START_TEST(tc_stack_generic)
 {
+    struct pico_stack *S = NULL;
 #ifdef PICO_FAULTY
-    printf("Testing with faulty memory in pico_stack_init (11)\n");
-    pico_set_mm_failure(13);
-    fail_if(pico_stack_init() != -1);
+    printf("Testing with faulty memory in pico_stack_init (16)\n");
+    pico_set_mm_failure(16);
+    fail_if(pico_stack_init(&S) != -1);
 #endif
-    pico_stack_init();
+    pico_stack_init(&S);
 #ifdef PICO_FAULTY
     printf("Testing with faulty memory in pico_timer_add (1)\n");
     pico_set_mm_failure(1);
-    fail_if(pico_timer_add(0, fake_timer, NULL) != 0);
+    fail_if(pico_timer_add(S, 0, fake_timer, NULL) != 0);
 #endif
-
-
 }
 END_TEST
 

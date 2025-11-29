@@ -7,13 +7,16 @@
 #include "pico_queue.h"
 #include "pico_tree.h"
 #include "modules/pico_tcp.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 
 static uint32_t timers_added = 0;
-uint32_t pico_timer_add(pico_time expire, void (*timer)(pico_time, void *), void *arg)
+uint32_t pico_timer_add(struct pico_stack *S, pico_time expire, void (*timer)(pico_time, void *), void *arg)
 {
+    IGNORE_PARAMETER(S);
     IGNORE_PARAMETER(expire);
     IGNORE_PARAMETER(timer);
     IGNORE_PARAMETER(arg);
@@ -97,9 +100,14 @@ START_TEST(tc_segment_compare)
 END_TEST
 START_TEST(tc_tcp_discard_all_segments)
 {
-    struct pico_socket_tcp *t = (struct pico_socket_tcp *)pico_tcp_open(PICO_PROTO_IPV4);
+    struct pico_socket_tcp *t;
     struct pico_frame *f = pico_frame_alloc(80);
     struct tcp_input_segment *is;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    t = (struct pico_socket_tcp *)pico_tcp_open(S, PICO_PROTO_IPV4);
     fail_if(!t);
     fail_if(!f);
 
@@ -171,11 +179,16 @@ END_TEST
 
 START_TEST(tc_release_until)
 {
-    struct pico_socket_tcp *t = (struct pico_socket_tcp *)pico_tcp_open(PICO_PROTO_IPV6);
+    struct pico_socket_tcp *t;
     struct pico_frame *f;
     uint32_t i = 0;
     int ret = 0;
     struct tcp_input_segment *is;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    t = (struct pico_socket_tcp *)pico_tcp_open(S, PICO_PROTO_IPV6);
     fail_if(!t);
     ret = release_until(&t->tcpq_out, 0);
     fail_unless(ret == 0);
@@ -224,12 +237,17 @@ END_TEST
 
 START_TEST(tc_release_all_until)
 {
-    struct pico_socket_tcp *t = (struct pico_socket_tcp *)pico_tcp_open(PICO_PROTO_IPV4);
+    struct pico_socket_tcp *t;
     struct pico_frame *f;
     uint32_t i = 0;
     int ret = 0;
     struct tcp_input_segment *is;
     pico_time tm;
+    struct pico_stack *S;
+
+    pico_stack_init(&S);
+
+    t = (struct pico_socket_tcp *)pico_tcp_open(S, PICO_PROTO_IPV4);
     fail_if(!t);
     ret = release_all_until(&t->tcpq_out, 0, &tm);
     fail_unless(ret == 0);

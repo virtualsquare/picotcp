@@ -1,11 +1,11 @@
 #include "pico_protocol.h"
 #include "pico_tree.h"
 #include "stack/pico_protocol.c"
-#include "check.h"
+#include "test/pico_rand.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
-
-volatile pico_err_t pico_err = 0;
 
 static int protocol_passby = 0;
 
@@ -44,8 +44,10 @@ START_TEST(tc_pico_proto_cmp)
 }
 END_TEST
 
-static int modunit_proto_loop_cb_in(struct pico_protocol *self, struct pico_frame *p)
+static int modunit_proto_loop_cb_in(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p)
 {
+    IGNORE_PARAMETER(S);
+
     if (!p)
         protocol_passby = -1; /* Error! */
 
@@ -60,8 +62,10 @@ static int modunit_proto_loop_cb_in(struct pico_protocol *self, struct pico_fram
     return 1; /* One frame processed! */
 }
 
-static int modunit_proto_loop_cb_out(struct pico_protocol *self, struct pico_frame *p)
+static int modunit_proto_loop_cb_out(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *p)
 {
+    IGNORE_PARAMETER(S);
+
     if (!p)
         protocol_passby = -1; /* Error! */
 
@@ -81,14 +85,18 @@ START_TEST(tc_proto_loop_in)
     struct pico_protocol p = {
         .process_in = modunit_proto_loop_cb_in, .q_in = &q
     };
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
     protocol_passby = 0;
     pico_enqueue(p.q_in, &f);
-    fail_if(proto_loop_in(&p, 1) != 0);
+    fail_if(proto_loop_in(S, &p, 1) != 0);
     fail_if(protocol_passby != KEY_IN);
 
     /* Try to dequeue from empty queue, get same loop_score */
     protocol_passby = 0;
-    fail_if(proto_loop_in(&p, 1) != 1);
+    fail_if(proto_loop_in(S, &p, 1) != 1);
     fail_if(protocol_passby != 0);
 }
 END_TEST
@@ -99,14 +107,18 @@ START_TEST(tc_proto_loop_out)
     struct pico_protocol p = {
         .process_out = modunit_proto_loop_cb_out, .q_out = &q
     };
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
     protocol_passby = 0;
     pico_enqueue(p.q_out, &f);
-    fail_if(proto_loop_out(&p, 1) != 0);
+    fail_if(proto_loop_out(S, &p, 1) != 0);
     fail_if(protocol_passby != KEY_OUT);
 
     /* Try to dequeue from empty queue, get same loop_score */
     protocol_passby = 0;
-    fail_if(proto_loop_out(&p, 1) != 1);
+    fail_if(proto_loop_out(S, &p, 1) != 1);
     fail_if(protocol_passby != 0);
 }
 END_TEST
@@ -119,14 +131,18 @@ START_TEST(tc_proto_loop)
         .q_in = &q,
         .q_out = &q
     };
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
+
     protocol_passby = 0;
     pico_enqueue(p.q_in, &f);
-    fail_if(proto_loop(&p, 1, PICO_LOOP_DIR_IN) != 0);
+    fail_if(proto_loop(S, &p, 1, PICO_LOOP_DIR_IN) != 0);
     fail_if(protocol_passby != KEY_IN);
 
     protocol_passby = 0;
     pico_enqueue(p.q_out, &f);
-    fail_if(proto_loop(&p, 1, PICO_LOOP_DIR_OUT) != 0);
+    fail_if(proto_loop(S, &p, 1, PICO_LOOP_DIR_OUT) != 0);
     fail_if(protocol_passby != KEY_OUT);
 
 }
@@ -160,10 +176,13 @@ START_TEST(tc_pico_protocol_generic_loop)
         0
     };
     int ret = 0;
+    struct pico_stack *S = NULL;
+
+    pico_stack_init(&S);
 
     rr.node_in = &NODE_IN;
     rr.node_out = &NODE_OUT;
-    ret = pico_protocol_generic_loop(&rr, 0, PICO_LOOP_DIR_IN);
+    ret = pico_protocol_generic_loop(S, &rr, 0, PICO_LOOP_DIR_IN);
 
     fail_if(ret != 0);
 }

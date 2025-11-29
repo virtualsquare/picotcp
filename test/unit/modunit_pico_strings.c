@@ -1,5 +1,6 @@
 #include "modules/pico_strings.c"
-#include "check.h"
+
+#include <check.h>
 
 Suite *pico_suite(void);
 

@@ -6,6 +6,7 @@
 
 #include "pico_mm.c"
 #include "pico_tree.c"
+
 #include <check.h>
 
 volatile pico_err_t pico_err;
