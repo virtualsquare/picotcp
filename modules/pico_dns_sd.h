@@ -45,6 +45,11 @@ typedef struct
     kv_vector (name) = {0}
 
 /* ****************************************************************************
+ *  Maximum length of a key-value pair.
+ * ****************************************************************************/
+#define PICO_DNS_SD_KV_MAXLEN (0xFFFFu)
+
+/* ****************************************************************************
  *  Just calls pico_mdns_init in it's turn to initialise the mDNS-module.
  *  See pico_mdns.h for description.
  * ****************************************************************************/
