@@ -68,6 +68,54 @@ START_TEST(tc_dns_sd_kv_vector_strlen)
     kv_vector pairs = {
         0
     };
+    uint16_t len;
+    char *long_key = NULL;
+    char *long_value = NULL;
+
+    /* NULL vector */
+    len = pico_dns_sd_kv_vector_strlen(NULL);
+    fail_unless(len == 0, "dns_sd_kv_vector_strlen returned wrong length for a NULL vector!\n");
+
+    /* Empty vector */
+    len = pico_dns_sd_kv_vector_strlen(&pairs);
+    fail_unless(len == 0, "dns_sd_kv_vector_strlen returned wrong length for empty vector!\n");
+
+    /* Wrong vector count with empty vector */
+    pairs.count = 1;
+    len = pico_dns_sd_kv_vector_strlen(&pairs);
+    fail_unless(len == 0, "dns_sd_kv_vector_strlen returned wrong length for a vector with a wrong count!\n");
+    pairs.count = 0;
+
+    /* Wrong vector key */
+    pico_dns_sd_kv_vector_add(&pairs, text, value);
+    pairs.pairs[0]->key = NULL;
+    len = pico_dns_sd_kv_vector_strlen(&pairs);
+    fail_unless(len == 0, "dns_sd_kv_vector_strlen returned wrong length for a vector with a wrong key!\n");
+    pico_dns_sd_kv_vector_erase(&pairs);
+
+    /* Oversize key */
+    long_key = malloc(PICO_DNS_SD_KV_MAXLEN + 1);
+    for (uint16_t i = 0; i < PICO_DNS_SD_KV_MAXLEN; i++) {
+        long_key[i] = '1';
+    }
+    long_key[PICO_DNS_SD_KV_MAXLEN] = '\0';
+    pico_dns_sd_kv_vector_add(&pairs, long_key, value);
+    len = pico_dns_sd_kv_vector_strlen(&pairs);
+    fail_unless(len == 0, "dns_sd_kv_vector_strlen returned wrong length for a vector with an oversize key!\n");
+    pico_dns_sd_kv_vector_erase(&pairs);
+    free(long_key);
+
+    /* Oversize value */
+    long_value = malloc(PICO_DNS_SD_KV_MAXLEN + 1);
+    for (uint16_t i = 0; i < PICO_DNS_SD_KV_MAXLEN; i++) {
+        long_value[i] = '1';
+    }
+    long_value[PICO_DNS_SD_KV_MAXLEN] = '\0';
+    pico_dns_sd_kv_vector_add(&pairs, text, long_value);
+    len = pico_dns_sd_kv_vector_strlen(&pairs);
+    fail_unless(len == 0, "dns_sd_kv_vector_strlen returned wrong length for a vector with an oversize value!\n");
+    pico_dns_sd_kv_vector_erase(&pairs);
+    free(long_value);
 
     pico_dns_sd_kv_vector_add(&pairs, text, value);
     pico_dns_sd_kv_vector_add(&pairs, text2, NULL);
@@ -116,6 +164,7 @@ START_TEST(tc_dns_sd_txt_record_create)
 {
     struct pico_mdns_record *record = NULL;
     struct pico_stack *S = NULL;
+    char *long_value = NULL;
     kv_vector pairs = {
         0
     };
@@ -127,6 +176,35 @@ START_TEST(tc_dns_sd_txt_record_create)
     };
 
     pico_stack_init(&S);
+
+    /* Empty pair */
+    record = pico_dns_sd_txt_record_create(S, "test.local", pairs, 10,
+                                           PICO_MDNS_RECORD_UNIQUE);
+    fail_unless(record == NULL,
+                "pico_dns_sd_txt_record_create shouldn't have a record!\n");
+
+    /* Pair with an empty value */
+    pico_dns_sd_kv_vector_add(&pairs, text, NULL);
+    record = pico_dns_sd_txt_record_create(S, "test.local", pairs, 10,
+                                       PICO_MDNS_RECORD_UNIQUE);
+    fail_unless(record != NULL,
+                "pico_dns_sd_txt_record_create should have a record!\n");
+    pico_dns_sd_kv_vector_erase(&pairs);
+    pico_mdns_record_delete((void **)&record);
+
+    /* Pair with an oversize value */
+    long_value = malloc(PICO_DNS_SD_KV_MAXLEN + 1);
+    for (uint16_t i = 0; i < PICO_DNS_SD_KV_MAXLEN; i++) {
+        long_value[i] = '1';
+    }
+    long_value[PICO_DNS_SD_KV_MAXLEN] = '\0';
+    pico_dns_sd_kv_vector_add(&pairs, text, long_value);
+    record = pico_dns_sd_txt_record_create(S, "test.local", pairs, 10,
+                                       PICO_MDNS_RECORD_UNIQUE);
+    fail_unless(record == NULL,
+                "pico_dns_sd_txt_record_create shouldn't have a record!\n");
+    pico_dns_sd_kv_vector_erase(&pairs);
+    free(long_value);
 
     pico_dns_sd_kv_vector_add(&pairs, text, value);
     pico_dns_sd_kv_vector_add(&pairs, text2, NULL);
