@@ -73,9 +73,26 @@ pico_dns_sd_kv_vector_strlen( kv_vector *vector )
     /* Iterate over the key-value pairs */
     for (i = 0; i < vector->count; i++) {
         iterator = pico_dns_sd_kv_vector_get(vector, i);
+
+        if (!iterator || !iterator->key) {
+            pico_err = PICO_ERR_EINVAL;
+            return 0;
+        }
+
+        if (len + 1u + strlen(iterator->key) > PICO_DNS_SD_KV_MAXLEN) {
+            pico_err = PICO_ERR_EINVAL;
+            return 0;
+        }
+
         len = (uint16_t) (len + 1u + /* Length byte */
                           strlen(iterator->key) /* Length of the key */);
+
         if (iterator->value) {
+            if (len + 1u + strlen(iterator->value) > PICO_DNS_SD_KV_MAXLEN) {
+                pico_err = PICO_ERR_EINVAL;
+                return 0;
+            }
+
             len = (uint16_t) (len + 1u /* '=' char */ +
                               strlen(iterator->value) /* Length of value */);
         }
