@@ -72,7 +72,7 @@
 #define MLD_EVENT_QUERY_RECV             (0x3)
 #define MLD_EVENT_REPORT_RECV            (0x4)
 #define MLD_EVENT_TIMER_EXPIRED          (0x5)
-/* (default) Variabels for times/counters */
+/* (default) Variables for times/counters */
 /* ALL IN SECONDS */
 #define MLD_ROBUSTNESS                      (2)
 #define MLD_QUERY_INTERVAL                  (125)

@@ -111,7 +111,7 @@ static uint8_t *pico_mld_fill_hopbyhop(struct pico_ipv6_hbhoption *hbh)
     *(p++) = PICO_IPV6_EXTHDR_OPT_ROUTER_ALERT_DATALEN;
     *(p++) = 0;
     *(p++) = 0;
-    /* PadN allignment with N=2 */
+    /* PadN alignment with N=2 */
     *(p++) = 1;
     *(p++) = 0; /* N-2 */
     return p;
@@ -1134,7 +1134,7 @@ static int mld_discard(struct mcast_parameters *p)
 
 /* finite state machine table */
 static const mld_callback mld_state_diagram[3][6] =
-{ /* event                    | Stop Listening | Start Listening | Update Group |Query reveive |Report receive |Timer expired */
+{ /* event                    | Stop Listening | Start Listening | Update Group |Query receive |Report receive |Timer expired */
 /* none listener*/
     { mld_discard,    mld_srsfst,         mld_srsfst,  mld_discard,    mld_discard,    mld_discard},
 /* idle listener */ { mld_stsdifs,    mld_mrsrrt,         mld_mrsrrt,  mld_rtimrtct,   mld_stcl,       mld_srsf },

@@ -169,7 +169,7 @@ struct pico_mem_manager
     struct pico_mem_page*first_page;
     struct pico_mem_manager_extra*manager_extra;  /* this is a pointer to a page with extra heap space used by the manager */
 };
-/* Housekeeping additionnal memory manager heap pages */
+/* Housekeeping additional memory manager heap pages */
 struct pico_mem_manager_extra
 {
     struct pico_mem_manager_extra*next;
@@ -767,7 +767,7 @@ static uint32_t _pico_mem_determine_max_free_space(struct pico_mem_page*page)
     byteptr = (uint8_t*) page + sizeof(struct pico_mem_page);
     mem_block = (struct pico_mem_block*) byteptr;   /* reset mem_block to first block in the heap */
 
-    /* Determine max free space by iterating trough the list */
+    /* Determine max free space by iterating through the list */
     /* while(mem_block != NULL && mem_block->type == HEAP_BLOCK_TYPE) */
     while(mem_block->type == HEAP_BLOCK_TYPE)
     {

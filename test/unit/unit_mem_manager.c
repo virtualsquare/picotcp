@@ -1782,7 +1782,7 @@ START_TEST (test_zalloc)
     byteptr = pico_mem_zalloc(slabsize);
     block = (struct pico_mem_block*) (byteptr - sizeof(struct pico_mem_block));
     ck_assert(block->internals.slab_block.page->slab_size < PICO_MEM_DEFAULT_SLAB_SIZE);
-    /* Scenario 8: A request for a heap block of less than PICO_MEM_MINIMUM_OBJECT_SIZE will have its size enlargened */
+    /* Scenario 8: A request for a heap block of less than PICO_MEM_MINIMUM_OBJECT_SIZE will have its size enlarged */
     printf("SCENARIO 8\n");
     oldHeapSize = manager->first_page->heap_max_free_space;
     byteptr = pico_mem_zalloc(1);

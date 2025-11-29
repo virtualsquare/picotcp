@@ -634,7 +634,7 @@ START_TEST(tc_pico_ipv6_frag_match)
     struct pico_ip6 addr_1 = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9 }};
     struct pico_ip6 addr_2 = {{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8 }};
 
-    /* Inital setup */
+    /* Initial setup */
     a = pico_frame_alloc(sizeof(struct pico_ipv6_hdr));
     fail_if(!a);
     printf("Allocated frame, %p\n", a);
@@ -663,7 +663,7 @@ START_TEST(tc_pico_ipv6_frag_match)
     hb = (struct pico_ipv6_hdr *)b->net_hdr;
 
     /* Case 2: src addr are different*/
-    /* Init a and b net hdr adresses */
+    /* Init a and b net hdr addresses */
     memcpy(ha->src.addr, addr_1.addr, PICO_SIZE_IP6);
     memcpy(ha->dst.addr, addr_2.addr, PICO_SIZE_IP6);
     memcpy(hb->src.addr, addr_2.addr, PICO_SIZE_IP6);
@@ -672,7 +672,7 @@ START_TEST(tc_pico_ipv6_frag_match)
     fail_if(pico_ipv6_frag_match(a, b) != 1);
 
     /* Case 3: dst addr are different*/
-    /* Init a and b net hdr adresses */
+    /* Init a and b net hdr addresses */
     memcpy(ha->src.addr, addr_1.addr, PICO_SIZE_IP6);
     memcpy(ha->dst.addr, addr_2.addr, PICO_SIZE_IP6);
     memcpy(hb->src.addr, addr_1.addr, PICO_SIZE_IP6);
@@ -681,7 +681,7 @@ START_TEST(tc_pico_ipv6_frag_match)
     fail_if(pico_ipv6_frag_match(a, b) != 2);
 
     /* Case 4: fragments are the same (src and dst are the same)*/
-    /* Init a and b net hdr adresses */
+    /* Init a and b net hdr addresses */
     memcpy(ha->src.addr, addr_1.addr, PICO_SIZE_IP6);
     memcpy(ha->dst.addr, addr_2.addr, PICO_SIZE_IP6);
     memcpy(hb->src.addr, addr_1.addr, PICO_SIZE_IP6);
@@ -744,7 +744,7 @@ START_TEST(tc_pico_ipv4_frag_match)
     hb = (struct pico_ipv4_hdr *)b->net_hdr;
 
     /* Case 3: src addr are different*/
-    /* Init a and b net hdr adresses */
+    /* Init a and b net hdr addresses */
     ha->src = addr_1;
     ha->dst = addr_2;
     hb->src = addr_2;
@@ -753,7 +753,7 @@ START_TEST(tc_pico_ipv4_frag_match)
     fail_if(pico_ipv4_frag_match(a, b) != 1);
 
     /* Case 4: dst addr are different*/
-    /* Init a and b net hdr adresses */
+    /* Init a and b net hdr addresses */
     ha->src = addr_1;
     ha->dst = addr_2;
     hb->src = addr_1;
@@ -762,7 +762,7 @@ START_TEST(tc_pico_ipv4_frag_match)
     fail_if(pico_ipv4_frag_match(a, b) != 2);
 
     /* Case 5: fragments are the same (src and dst are the same)*/
-    /* Init a and b net hdr adresses */
+    /* Init a and b net hdr addresses */
     ha->src = addr_1;
     ha->dst = addr_2;
     hb->src = addr_1;

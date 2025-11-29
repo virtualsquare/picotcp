@@ -887,7 +887,7 @@ pico_mdns_record_am_i_lexi_later( struct pico_mdns_record *my_record,
 
     /* Third compare binary content of rdata (no regard for meaning or structure) */
 
-    /* When using name compression, names MUST be uncompressed before comparison. See secion 8.2 in RFC6762
+    /* When using name compression, names MUST be uncompressed before comparison. See section 8.2 in RFC6762
        This is already the case, but we won't check for it here.
        The current execution stack to get here is:
        > pico_mdns_handle_data_as_answers_generic
@@ -1199,7 +1199,7 @@ pico_mdns_cookie_resolve_conflict( struct pico_mdns_cookie *cookie,
     S = cookie->stack;
 
     /* Find the first question in the cookie with the name for which
-     * the conflict occured. When found, generate a new name.
+     * the conflict occurred. When found, generate a new name.
      *
      * DNS conflict is case-insensitive. However, we want to keep the original
      * capitalisation for the new probe. */
@@ -1762,7 +1762,7 @@ pico_mdns_send_packet(struct pico_stack *S,  pico_dns_packet *packet, uint16_t l
 }
 
 /* ****************************************************************************
- *  Sends a Unicast packet on the wire to the mDNS destination port of specific
+ *  Sends an Unicast packet on the wire to the mDNS destination port of specific
  *  peer in the network
  *
  *  @param packet Packet buffer in memory
@@ -1893,7 +1893,7 @@ pico_mdns_multicast_reply(struct pico_stack *S,  pico_dns_rtree *multicast_tree,
  *
  *  @param dest Destination tree to merge the other tree in.
  *  @param src  Source tree to get the node from to insert into the dest-tree.
- *  @return Returns 0 when properly merged, or not..
+ *  @return Returns 0 when properly merged, or not...
  * ****************************************************************************/
 static int
 pico_tree_merge( struct pico_tree *dest, struct pico_tree *src )
@@ -2224,7 +2224,7 @@ pico_mdns_handle_data_as_answers_generic(struct pico_stack *S,
             mdns_answer.record->rname_length = (uint16_t)(pico_dns_strlen(answer.rname) + 1u);
             mdns_answer.stack = S;
 
-            /* Handle a single aswer */
+            /* Handle a single answer */
             switch (type) {
                 case 1:
                     pico_mdns_handle_single_authority(S, &mdns_answer);
@@ -2280,14 +2280,14 @@ pico_mdns_sort_unicast_multicast( pico_mdns_rtree *answers,
             if (IS_UNICAST_REQUESTED(record)) {
                 if (record->record){
                 	if (pico_tree_insert(unicast_tree, record->record) == &LEAF) {
-                        mdns_dbg("MDNS: Failed to instert unicast record in tree\n");
+                        mdns_dbg("MDNS: Failed to insert unicast record in tree\n");
                         return -1;
 					}
                 }
             } else {
                 if (record->record){
                 	if (pico_tree_insert(multicast_tree, record->record) == &LEAF) {
-                        mdns_dbg("MDNS: Failed to instert multicast record in tree\n");
+                        mdns_dbg("MDNS: Failed to insert multicast record in tree\n");
                         return -1;
 					}
                 }
@@ -2463,7 +2463,7 @@ pico_mdns_additionals_add_host(struct pico_stack *S,  pico_mdns_rtree *artree )
     }
 
     return 0;
-} /* Satic path count: 4 */
+} /* Static path count: 4 */
 
 static void
 pico_rtree_add_copy( pico_mdns_rtree *tree, struct pico_mdns_record *record )
@@ -3149,7 +3149,7 @@ pico_mdns_send_announcement_packet( pico_time now, void *arg )
                by at least a factor of two with every response sent.
                Starting at 1 second.
                So we bithsift to get our powers of two and we multiply by 1000 to
-               get our miliseconds.
+               get our milliseconds.
              */
             if (!pico_mdns_timer_add(cookie->stack, (pico_time)((1 << (PICO_MDNS_ANNOUNCEMENT_COUNT - cookie->count - 1))
                                        * 1000), pico_mdns_send_announcement_packet, cookie)) {

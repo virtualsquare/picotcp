@@ -271,7 +271,7 @@ int MOCKABLE pico_string_to_ipv6(const char *ipstr, uint8_t *ip)
             return -1;
         }
     }
-    if (colons < 2) /* valid IPv6 has atleast two colons */
+    if (colons < 2) /* valid IPv6 has at least two colons */
         return -1;
 
     /* account for leftout :: zeros */

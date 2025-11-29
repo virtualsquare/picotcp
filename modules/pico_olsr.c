@@ -275,7 +275,7 @@ static uint8_t seconds2olsr(uint32_t seconds)
         }
     }
     /* olsr_dbg("b=%u", b); */
-    /* compute the expression 16*(T/(C*(2^b))-1), which may not be a
+    /* compute the expression 16*(T/(C*(2^b))-1), which may not be an
        integer, and round it up.  This results in the value for 'a' */
     /* a = (T / ( C * (1u << b) ) ) - 1u; */
     {

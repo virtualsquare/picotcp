@@ -233,7 +233,7 @@ frag_find(uint16_t dgram_size, uint16_t tag, struct pico_frame *frame)
     return pico_tree_findKey(&frame->dev->stack->LPReassemblyTree, &f);
 }
 
-/* Stores a fragmentation cookie in either the fragmentetion cookie tree or
+/* Stores a fragmentation cookie in either the fragmentation cookie tree or
  * in the reassembly tree */
 static int32_t
 frag_store(struct pico_frame *f, uint16_t dgram_size, uint16_t tag,
@@ -262,7 +262,7 @@ frag_store(struct pico_frame *f, uint16_t dgram_size, uint16_t tag,
     } else {
         return (-1);
     }
-    return (1); // Succes for 'proto_loop_out'
+    return (1); // Success for 'proto_loop_out'
 }
 
 /*******************************************************************************
@@ -816,7 +816,7 @@ compressor_nhc_udp(struct pico_frame *f, int32_t *compressed_len)
         }
         /* Length MUST be compressed checksum carried inline.
          * RFC6282: .., a compressor in the source transport endpoint MAY elide
-         * the UDP checksum if it is autorized by the upper layer. The compressor
+         * the UDP checksum if it is authorized by the upper layer. The compressor
          * MUST NOT set the C bit unless it has received such authorization */
         buf_move(inline_buf + *compressed_len, (uint8_t *)hdr + 6, 2);
         *compressed_len += 2;
@@ -1006,7 +1006,7 @@ ext_compressed_length(uint8_t *buf, uint8_t eid, int32_t *compressed_len, int32_
             len = 8;
             *compressed_len = len;
             return len;
-        default: // Something went wrong, bail out..
+        default: // Something went wrong, bail out...
             return -1;
     }
 }
@@ -1146,7 +1146,7 @@ pico_iphc_compress(struct pico_frame *f)
             default: /* Intentional fall-through */
                 loop = 0;
         }
-        /* Check if an error occured */
+        /* Check if an error occurred */
         if (!chunks[i])
             return pico_iphc_bail_out(chunks, i);
         /* Increment total compressed_len and increase iterator */
@@ -1211,7 +1211,7 @@ pico_iphc_decompress(struct pico_frame *f)
             default: /* Intentional fall-through */
                 loop = 0;
         }
-        /* Check if an error occured */
+        /* Check if an error occurred */
         if (!chunks[i])
             return pico_iphc_bail_out(chunks, i);
 
@@ -1236,7 +1236,7 @@ pico_iphc_decompress(struct pico_frame *f)
 static void
 pico_iphc_no_comp(struct pico_frame *f)
 {
-    f->net_hdr--; // Only need one bytes
+    f->net_hdr--; // Only need one byte
     f->start--;
     f->len++;
     f->net_len++;
@@ -1373,7 +1373,7 @@ frag_1st(struct pico_frame *f, uint16_t dgram_size, uint8_t dgram_off, uint16_t 
     }
 }
 
-/* Send the first fragment of a uncompressed IPv6 datagram */
+/* Send the first fragment of an uncompressed IPv6 datagram */
 static int32_t
 frag_1st_no_comp(struct pico_frame *f, uint16_t dgram_size, int32_t available)
 {
@@ -1452,7 +1452,7 @@ static int32_t
 pico_6lowpan_send(struct pico_frame *f)
 {
     int32_t avail = 0;
-    pico_iphc_no_comp(f); // Add uncrompressed dispatch header ...
+    pico_iphc_no_comp(f); // Add uncompressed dispatch header ...
 
     /* Try to push frame to link layer */
     avail = pico_6lowpan_ll_push(f);

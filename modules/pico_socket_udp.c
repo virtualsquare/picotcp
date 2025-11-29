@@ -100,7 +100,7 @@ static int pico_socket_udp_deliver_ipv4_mcast(struct pico_socket *s, struct pico
     if (pico_socket_udp_deliver_ipv4_mcast_initial_checks(s, f) < 0)
         return 0;
 
-    if ((s_local.addr == PICO_IPV4_INADDR_ANY) || /* If our local ip is ANY, or.. */
+    if ((s_local.addr == PICO_IPV4_INADDR_ANY) || /* If our local ip is ANY, or... */
         (dev == f->dev)) {     /* the source of the bcast packet is a neighbor... */
         cpy = pico_frame_copy(f);
         if (!cpy)
@@ -161,7 +161,7 @@ static inline int pico_socket_udp_deliver_ipv6_mcast(struct pico_socket *s, stru
     }
 
 
-    if (pico_ipv6_is_unspecified(s->local_addr.ip6.addr) || /* If our local ip is ANY, or.. */
+    if (pico_ipv6_is_unspecified(s->local_addr.ip6.addr) || /* If our local ip is ANY, or... */
         (dev == f->dev)) {     /* the source of the bcast packet is a neighbor... */
         cpy = pico_frame_copy(f);
         if (!cpy)

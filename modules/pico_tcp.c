@@ -3209,7 +3209,7 @@ static int pico_tcp_push_nagle_on(struct pico_socket_tcp *t, struct pico_frame *
 
 
 /* original behavior kept when Nagle disabled;
-   Nagle algorithm added here, keeping hold frame queue instead of eg linked list of data */
+   Nagle algorithm added here, keeping hold frame queue instead of e.g. linked list of data */
 int pico_tcp_push(struct pico_stack *S, struct pico_protocol *self, struct pico_frame *f)
 {
     struct pico_tcp_hdr *hdr = (struct pico_tcp_hdr *)f->transport_hdr;

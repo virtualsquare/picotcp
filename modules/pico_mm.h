@@ -83,7 +83,7 @@ struct profiling_data
 
 /*
  * This function fills up a struct with used and free slab and heap space in the memory manager
- * The user is responsible for resource managment
+ * The user is responsible for resource management
  */
 void pico_mem_profile_collect_data(struct profiling_data*profiling_page_struct);
 
@@ -110,7 +110,7 @@ uint32_t pico_mem_profile_used_size(void);
 void*pico_mem_profile_manager(void);
 
 /*
- * paramter manager is a pointer to a struct pico_mem_manager
+ * parameter manager is a pointer to a struct pico_mem_manager
  */
 void pico_mem_init_profiling(void*manager, uint32_t memsize);
 #endif /* PICO_SUPPORT_MM_PROFILING */

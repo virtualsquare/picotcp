@@ -1095,7 +1095,7 @@ static int neigh_sol_unicast_validity_check(struct pico_frame *f)
          *
          *  - The Target Address is a "valid" unicast or anycast address
          *    assigned to the receiving interface [ADDRCONF],
-         *  - The Target Address is a unicast or anycast address for which the
+         *  - The Target Address is an unicast or anycast address for which the
          *    node is offering proxy service, or
          *  - The Target Address is a "tentative" address on which Duplicate
          *    Address Detection is being performed
@@ -1568,7 +1568,7 @@ static int router_sol_process(struct pico_frame *f)
 {
     struct pico_ipv6_hdr *hdr = NULL;
 
-    /* Determine if i'm a 6LBR, if i'm not, can't do anything with a router solicitation */
+    /* Determine if I'm a 6LBR, if I'm not, can't do anything with a router solicitation */
     if (!f->dev->hostvars.routing)
         return -1;
 
@@ -1922,7 +1922,7 @@ static int neigh_adv_process(struct pico_frame *f)
 
 #ifdef PICO_SUPPORT_6LOWPAN
     if (PICO_DEV_IS_6LOWPAN(f->dev)) {
-        /* 6LoWPAN: parse Address Registration Comfirmation(nothing on success, remove link on failure) */
+        /* 6LoWPAN: parse Address Registration Confirmation (nothing on success, remove link on failure) */
         pico_6lp_nd_neigh_adv_process(f);
     }
 #endif
@@ -1932,7 +1932,7 @@ static int neigh_adv_process(struct pico_frame *f)
 
     if (!n) {
         /* RFC 4861 $7.2.5
-         *  * If no entry exists, the advertisment SHOULD be silently discarded
+         *  * If no entry exists, the advertisement SHOULD be silently discarded
          *  */
         nd_dbg("ND: NA - NO NCE, discard NA\n");
         return 0;

@@ -798,16 +798,16 @@ static int frame_in_queued_frames(struct pico_stack *S, struct pico_frame *f)
 {
   struct pico_tree_node *index = NULL;
   struct pico_frame *frame = NULL;
-  int occurences = 0;
+  int occurrences = 0;
 
   pico_tree_foreach(index,&S->IPV6NQueue) {
     frame = index->keyValue;
     if (memcmp(frame, f, sizeof(*f)) == 0) {
-      occurences++;
+      occurrences++;
     }
   }
 
-  return occurences;
+  return occurrences;
 }
 
 START_TEST(tc_pico_ipv6_nd_postpone)

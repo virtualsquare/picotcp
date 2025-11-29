@@ -258,7 +258,7 @@ START_TEST(tc_pico_tftp_abort)
     S->tftp_server.listen_socket = example_session.socket = &example_socket;
     pico_tftp_abort(NULL, TFTP_ERR_EUSR, "test");
     fail_if(ret != -1);
-    /*tirdh case: session non into list*/
+    /*third case: session non into list*/
     ret = pico_tftp_abort(&example_session, TFTP_ERR_EUSR, "test");
     fail_if(ret != -1);
 }

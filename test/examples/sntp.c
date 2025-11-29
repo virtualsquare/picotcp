@@ -13,7 +13,7 @@ void sntp_timeout(pico_time __attribute__((unused)) now, void *arg)
     gettimeofday(&tv, NULL);
     printf("Linux   sec: %u, msec: %u\n", (unsigned int)tv.tv_sec, (unsigned int)tv.tv_usec / 1000);
     printf("Picotcp sec: %u, msec: %u\n", (unsigned int)ptv.tv_sec, (unsigned int)ptv.tv_msec);
-    printf("SNTP test succesfull!\n");
+    printf("SNTP test successful!\n");
     exit(0);
 }
 
@@ -48,12 +48,12 @@ void app_sntp(struct pico_stack *S, char *servername)
     stack = S;
     printf("Starting SNTP query towards %s\n", servername);
     if(pico_sntp_gettimeofday(stack, &tv) == 0)
-        printf("Wrongly succesfull gettimeofday\n");
+        printf("Wrongly successful gettimeofday\n");
     else
-        printf("Unsuccesfull gettimeofday (not synced)\n");
+        printf("Unsuccessful gettimeofday (not synced)\n");
 
     if(pico_sntp_sync(stack, servername, &cb_synced) == 0)
-        printf("Succesfull sync call!\n");
+        printf("Successful sync call!\n");
     else
         printf("Error in  sync\n");
 }

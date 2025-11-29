@@ -160,7 +160,7 @@ START_TEST(tc_dns_qtree_insert) /* MARK: dns_qtree_insert*/
     fail_if(!a || !(a->qname) || !(a->qsuffix), "Could not create question A!\n");
     b = pico_dns_question_create(url2, &qlen, PICO_PROTO_IPV4, PICO_DNS_TYPE_A,
                                  PICO_DNS_CLASS_IN, 0);
-    fail_if(!b || !(b->qname) || !(b->qsuffix), "Coud not create question B!\n");
+    fail_if(!b || !(b->qname) || !(b->qsuffix), "Could not create question B!\n");
 
     pico_tree_insert(&qtree, a);
     fail_unless(pico_tree_count(&qtree) == 1,
@@ -175,7 +175,7 @@ START_TEST(tc_dns_qtree_insert) /* MARK: dns_qtree_insert*/
                 "Question tree not properly destroyed!\n");
     c = pico_dns_question_create(url3, &qlen, PICO_PROTO_IPV4, PICO_DNS_TYPE_A,
                                  PICO_DNS_CLASS_IN, 0);
-    fail_if(!c || !(c->qname) || !(c->qsuffix), "Coud not create question B!\n");
+    fail_if(!c || !(c->qname) || !(c->qsuffix), "Could not create question B!\n");
     pico_tree_insert(&qtree2, c);
     fail_unless(1 == pico_tree_count(&qtree2),
                 "pico_tree_insert failed with tree 2 question B!\n");
@@ -514,7 +514,7 @@ START_TEST(tc_pico_dns_fill_packet_question_section) /* MARK: dns_fill_packet_qu
             "Filling of rr sections failed!\n");
 
     fail_unless(memcmp((void *)packet, (void *)cmp_buf, 45) == 0,
-                "Filling of question sesction went wrong!\n");
+                "Filling of question section went wrong!\n");
     PICO_FREE(packet);
     printf("*********************** ending %s * \n", __func__);
 }
@@ -669,7 +669,7 @@ START_TEST(tc_pico_dns_question_delete) /* MARK: dns_question_delete */
     printf("*********************** ending %s * \n", __func__);
 }
 END_TEST
-START_TEST(tc_pico_dns_question_create) /* MARK: dns_quesiton_create */
+START_TEST(tc_pico_dns_question_create) /* MARK: dns_question_create */
 {
     const char *qurl = "picotcp.com";
     const char *qurl2 = "1.2.3.4";
@@ -1022,7 +1022,7 @@ END_TEST
 START_TEST(tc_pico_dns_namelen_comp) /* MARK: dns_namelen_comp */
 {
     char name[] = "\3www\4tass\2be\0";
-    char name_comp[] = "\3www\4tass\2be\xc0\x02";  /* two bytes ofset from start of buf */
+    char name_comp[] = "\3www\4tass\2be\xc0\x02";  /* two bytes offset from start of buf */
     unsigned int ret = 0;
 
     printf("*********************** starting %s * \n", __func__);

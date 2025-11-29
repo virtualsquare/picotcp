@@ -116,7 +116,7 @@ static int timestamp_convert(const struct pico_sntp_ts *ts, struct pico_timeval 
     return 0;
 }
 
-/* Cleanup function that is called when the time is synced or an error occured */
+/* Cleanup function that is called when the time is synced or an error occurred */
 static void pico_sntp_cleanup(struct sntp_server_ns_cookie *ck, pico_err_t status)
 {
     sntp_dbg("Cleanup called\n");
@@ -201,7 +201,7 @@ static void pico_sntp_client_wakeup(uint16_t ev, struct pico_socket *s)
         pico_sntp_cleanup(ck, PICO_ERR_ENOTCONN);
         return;
     }
-    /* process error event, socket error occured */
+    /* process error event, socket error occurred */
     else if(ev == PICO_SOCK_EV_ERR) {
         sntp_dbg("Socket Error received. Bailing out.\n");
         pico_sntp_cleanup(ck, PICO_ERR_ENOTCONN);

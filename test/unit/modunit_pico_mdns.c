@@ -337,7 +337,7 @@ START_TEST(tc_mdns_cookie_cmp) /* MARK: mdns_cookie_cmp */
     ret = pico_mdns_cookie_cmp((void *) &a, (void *) &b);
     fail_unless(ret > 0, "mdns_cookie_cmp failed with larger question A!\n");
 
-    /* Insert more possibilities here.. */
+    /* Insert more possibilities here... */
 
     PICO_DNS_QTREE_DESTROY(&(b.qtree));
     pico_dns_record_delete((void **)&(record1.record));
@@ -608,7 +608,7 @@ START_TEST(tc_mdns_is_suffix_present) /* MARK: mdns_is_suffix_present */
     fail_unless(present,
                 "is_suffix_present failed with suffix!\n");
     fail_unless((name2 + 7) == o_index && (name2 + 9) == c_index,
-                "is_suffix_pressent failed!\n");
+                "is_suffix_present failed!\n");
     fail_unless(present == 2, "Suffix should be 2!\n");
 
     present = pico_mdns_is_suffix_present(name7, &o_index, &c_index);
@@ -837,7 +837,7 @@ START_TEST(tc_mdns_question_create) /* MARK: mdns_question_create */
     fail_unless(0 == strcmp(question->qname, "\3foo\5local"),
                 "mdns_question_create failed!\n");
     fail_unless(0x8001 == short_be(question->qsuffix->qclass),
-                "mdns_quesiton_create failed setting QU bit!\n");
+                "mdns_question_create failed setting QU bit!\n");
     pico_dns_question_delete((void**)&question);
 
     question = pico_mdns_question_create("foo.local",
@@ -850,7 +850,7 @@ START_TEST(tc_mdns_question_create) /* MARK: mdns_question_create */
     fail_unless(0 == strcmp(question->qname, "\3foo\5local"),
                 "mdns_question_create failed!\n");
     fail_unless(PICO_DNS_TYPE_ANY == short_be(question->qsuffix->qtype),
-                "mdns_quesiton_create failed setting type to ANY!\n");
+                "mdns_question_create failed setting type to ANY!\n");
     pico_dns_question_delete((void**)&question);
 
     question = pico_mdns_question_create(url,
@@ -1387,7 +1387,7 @@ START_TEST(tc_mdns_my_records_find_to_probe) /* MARK: mdns_my_records_find_to_pr
     printf("*********************** ending %s * \n", __func__);
 }
 END_TEST
-START_TEST(tc_mdns_my_records_claimed_id) /* MARK: mnds_my_records_claimed_id */
+START_TEST(tc_mdns_my_records_claimed_id) /* MARK: mdns_my_records_claimed_id */
 {
     PICO_MDNS_RTREE_DECLARE(hits);
     struct pico_mdns_record *record = NULL, *record1 = NULL, *record2 = NULL,
@@ -1549,7 +1549,7 @@ START_TEST(tc_pico_tree_merge)
     fail_unless(pico_tree_merge(&dst, &src) == 0);
 }
 END_TEST
-START_TEST(tc_mdns_populate_answer_vector) /* MARK: mdns_popolate_antree */
+START_TEST(tc_mdns_populate_answer_vector) /* MARK: mdns_populate_antree */
 {
     PICO_MDNS_RTREE_DECLARE(rtree);
     char value[] = "\3foo\5local";
@@ -1795,7 +1795,7 @@ START_TEST(tc_mdns_gather_additionals) /* MARK: gather_additionals */
         }
     }
 
-    fail_unless(pico_tree_count(&artree) == 3, "ARtree should contine 3: %d",
+    fail_unless(pico_tree_count(&artree) == 3, "ARtree should contain 3: %d",
                 pico_tree_count(&artree));
 
     printf("*********************** ending %s * \n", __func__);
@@ -1968,7 +1968,7 @@ START_TEST(tc_mdns_send_announcement_packet) /* MARK: send_announcement_packet *
     printf("*********************** ending %s * \n", __func__);
 }
 END_TEST
-START_TEST(tc_mdns_announce) /* MARK: annonce */
+START_TEST(tc_mdns_announce) /* MARK: announce */
 {
     struct pico_stack *S = NULL;
 
@@ -2209,7 +2209,7 @@ Suite *pico_suite(void)
     TCase *TCase_mdns_probe = tcase_create("Unit test for mdns_probe");
 
     /* Claiming functions */
-    TCase *TCase_mdns_claim = tcase_create("Unit test for mnds_claim");
+    TCase *TCase_mdns_claim = tcase_create("Unit test for mdns_claim");
 
     /* API functions */
     TCase *TCase_mdns_tryclaim_hostname = tcase_create("Unit test for mdns_tryclaim_hostname");

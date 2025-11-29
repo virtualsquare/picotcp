@@ -167,7 +167,7 @@ START_TEST (arp_receive_test)
     ah->dst.addr = ip1.addr;
     fail_unless(pico_arp_receive(f) == 0);
 
-    /* net_hdr is a nullpointer */
+    /* net_hdr is a null pointer */
     f = init_frame(mock->dev);
     fail_if(!f, "FRAME INIT failed");
     f->net_hdr = NULL;

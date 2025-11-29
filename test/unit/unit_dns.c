@@ -3,7 +3,7 @@ void cb_dns(char *ip, void *arg);
 void cb_dns(char *ip, void *arg)
 {
     if (!ip) {
-        /* Error occured */
+        /* Error occurred */
         printf("DNS error getaddr\n");
         return;
     }
