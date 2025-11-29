@@ -374,7 +374,7 @@ START_TEST(tc_pico_dns_fill_packet_header) /* MARK: dns_fill_packet_header */
     fail_unless(0 == memcmp((void *)header, (void *)query_buf, 12),
                 "Comparing query header failed!\n");
 
-    /* Create a answer header */
+    /* Create an answer header */
     pico_dns_fill_packet_header(header, 0, 1, 1, 1);
 
     fail_unless(0 == memcmp((void *)header, (void *)answer_buf, 12),
@@ -1042,9 +1042,29 @@ START_TEST(tc_pico_dns_decompress_name) /* MARK: dns_decompress_name */
     char name[] = "\4mail\xc0\x02";
     char name2[] = "\xc0\x02";
     char buf[] = "00\6google\3com";
+    char empty_name[] = "";
     char *ret;
 
     printf("*********************** starting %s * \n", __func__);
+
+    /* NULL name */
+    ret = pico_dns_decompress_name(NULL, (pico_dns_packet *)buf);
+    fail_unless(ret == NULL, "pico_dns_decompress_name(NULL, ...) should be invalid\n");
+
+    /* NULL buf */
+    ret = pico_dns_decompress_name(name, NULL);
+    fail_unless(ret == NULL, "pico_dns_decompress_name(..., NULL) should be invalid\n");
+
+    /* Empty name */
+    ret = pico_dns_decompress_name(empty_name, (pico_dns_packet *)buf);
+
+    /* Fail conditions */
+    fail_unless(ret != NULL, "Name ptr returned is NULL");
+    fail_unless(strcmp(ret, "") == 0, "Not correctly decompressed: '%s'!\n", ret);
+
+    /* Free memory */
+    PICO_FREE(ret);
+    ret = NULL;
 
     /* Test normal DNS name compression */
     ret = pico_dns_decompress_name(name, (pico_dns_packet *)buf);

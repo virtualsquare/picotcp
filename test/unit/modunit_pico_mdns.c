@@ -1584,7 +1584,6 @@ START_TEST(tc_mdns_handle_data_as_questions) /* MARK: handle_data_as_questions *
     };
     uint16_t len = 0;
     uint8_t *ptr = NULL;
-    int ret = 0;
     struct pico_dns_question *a = NULL, *b = NULL;
     struct pico_mdns_record *record1 = NULL, *record2 = NULL;
     struct pico_stack *S = NULL;
@@ -1598,7 +1597,6 @@ START_TEST(tc_mdns_handle_data_as_questions) /* MARK: handle_data_as_questions *
                                   PICO_MDNS_QUESTION_FLAG_UNICAST_RES, 0);
     fail_if(!a, "dns_question_create failed!\n");
     pico_tree_insert(&qtree, a);
-    fail_unless(ret == 0, "dns_question_vector_add returned error!\n");
     b = pico_mdns_question_create(qurl2, &len, PICO_PROTO_IPV4, PICO_DNS_TYPE_A,
                                   0, 0);
     fail_if(!b, "dns_question_create failed!\n");
@@ -1620,7 +1618,8 @@ START_TEST(tc_mdns_handle_data_as_questions) /* MARK: handle_data_as_questions *
     pico_tree_insert(&S->MDNSOwnRecords, record1);
     pico_tree_insert(&S->MDNSOwnRecords, record2);
 
-    ptr = ((uint8_t *)packet + 12);
+    /* Move past the DNS packet header */
+    ptr = ((uint8_t *)packet + sizeof(struct pico_dns_header));
 
     antree = pico_mdns_handle_data_as_questions(S, &ptr, 2, packet);
     fail_unless(2 == pico_tree_count(&antree),
@@ -1656,12 +1655,15 @@ START_TEST(tc_mdns_handle_data_as_answers) /* MARK: handle_data_as_answers */
     fail_if(!a, "dns_record_create returned NULL!\n");
     pico_tree_insert(&rtree, a->record);
     pico_tree_insert(&rtree, b->record);
+    pico_tree_insert(&S->MDNSOwnRecords, a);
+    pico_tree_insert(&S->MDNSOwnRecords, b);
 
     /* Try to create an answer packet */
     packet = pico_dns_answer_create(&rtree, NULL, NULL, &len);
     fail_if (packet == NULL, "mdns_answer_create returned NULL!\n");
 
-    ptr = ((uint8_t *)packet + 12);
+    /* Move past the DNS packet header */
+    ptr = ((uint8_t *)packet + sizeof(struct pico_dns_header));
 
     ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 0);
     fail_unless(0 == ret, "mdns_handle_data_as_answers failed!\n");
@@ -1696,12 +1698,15 @@ START_TEST(tc_mdns_handle_data_as_authorities) /* MARK: handle_data_as_authoriti
     fail_if(!a, "dns_record_create returned NULL!\n");
     pico_tree_insert(&rtree, a->record);
     pico_tree_insert(&rtree, b->record);
+    pico_tree_insert(&S->MDNSOwnRecords, a);
+    pico_tree_insert(&S->MDNSOwnRecords, b);
 
     /* Try to create an answer packet */
     packet = pico_dns_answer_create(&rtree, NULL, NULL, &len);
     fail_if (packet == NULL, "mdns_answer_create returned NULL!\n");
 
-    ptr = ((uint8_t *)packet + 12);
+    /* Move past the DNS packet header */
+    ptr = ((uint8_t *)packet + sizeof(struct pico_dns_header));
 
     ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 1);
     fail_unless(0 == ret, "mdns_handle_data_as_answers failed!\n");
@@ -1837,7 +1842,8 @@ START_TEST(tc_mdns_apply_known_answer_suppression) /* MARK: apply_k_a_s */
     packet = pico_dns_answer_create(&antree, NULL, NULL, &len);
     fail_if (packet == NULL, "mdns_answer_create returned NULL!\n");
 
-    ptr = ((uint8_t *)packet + 12);
+    /* Move past the DNS packet header */
+    ptr = ((uint8_t *)packet + sizeof(struct pico_dns_header));
 
     printf("Applying Known answer suppression...\n");
 
