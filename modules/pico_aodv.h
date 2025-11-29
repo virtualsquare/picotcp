@@ -138,7 +138,7 @@ PACKED_STRUCT_DEF pico_aodv_rerr
     uint8_t dst_count;
     uint32_t unreach_addr;
     uint32_t unreach_dseq;
-    struct pico_aodv_unreachable unreach[1]; /* unrechable nodes: must be at least 1. See dst_count field above */
+    struct pico_aodv_unreachable unreach[1]; /* unreachable nodes: must be at least 1. See dst_count field above */
 };
 
 PACKED_STRUCT_DEF pico_aodv_rack

@@ -1,12 +1,12 @@
 /* PicoTCP unit test platform */
-/* How does it works:
+/* How does it work:
  * 1. Define your unit test function as described in the check manual
  * 2. Add your test to the suite in the pico_suite() function
  */
 
 
 /* Inclusion of all the modules to test */
-/* This allow direct access to static functions, and also
+/* This allows direct access to static functions, and also
  * by compiling this, the namespace is checked for clashes in
  * static symbols.
  */

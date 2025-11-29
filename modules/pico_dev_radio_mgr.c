@@ -168,7 +168,7 @@ pico_radio_mgr_socket_hup(int socket)
     return -1;
 }
 
-/* Receive's an 'Hello'-message from the node that contains the id, the inserts
+/* Receive's a 'Hello'-message from the node that contains the id, the inserts
  * an entry in the Sockets-tree */
 static int
 pico_radio_mgr_welcome(int socket)

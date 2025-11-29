@@ -79,7 +79,7 @@ struct pico_tree_node *pico_tree_next(struct pico_tree_node *node);
 struct pico_tree_node *pico_tree_prev(struct pico_tree_node *node);
 
 /*
- * For each macros
+ * For each macro
  */
 
 #define pico_tree_foreach(idx, tree) \

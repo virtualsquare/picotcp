@@ -434,7 +434,7 @@ static struct pico_tree_node *create_node(struct pico_tree *tree, void*key, uint
 
 /*
  * This function fixes the possible collisions in the tree.
- * Eg. if a node is red his children must be black !
+ * E.g. if a node is red his children must be black !
  */
 static void fix_insert_collisions(struct pico_tree*tree, struct pico_tree_node*node)
 {
@@ -507,7 +507,7 @@ static void switchNodes(struct pico_tree*tree, struct pico_tree_node*nodeA, stru
 
 /*
  * This function fixes the possible collisions in the tree.
- * Eg. if a node is red his children must be black !
+ * E.g. if a node is red his children must be black !
  * In this case the function fixes the constant black path property.
  */
 static void fix_delete_collisions(struct pico_tree*tree, struct pico_tree_node *node)

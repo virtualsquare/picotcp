@@ -31,7 +31,7 @@ void callback( pico_mdns_rtree *tree,
 
     pico_stack_init(&S);
 
-    /* This doesn't even gets called, tests exit before possible callback */
+    /* This doesn't even get called, tests exit before possible callback */
     IGNORE_PARAMETER(str);
     IGNORE_PARAMETER(arg);
     IGNORE_PARAMETER(tree);

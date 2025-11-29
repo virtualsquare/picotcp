@@ -337,7 +337,7 @@ static struct pico_arp *pico_arp_lookup_entry(struct pico_stack *S, struct pico_
             /* Replace if stale */
             pico_tree_delete(&S->arp_tree, found);
             if (pico_arp_add_entry(found) < 0) {
-                arp_dbg("ARP: Failed to re-instert stale arp entry\n");
+                arp_dbg("ARP: Failed to re-insert stale arp entry\n");
                 PICO_FREE(found);
                 found = NULL;
             }

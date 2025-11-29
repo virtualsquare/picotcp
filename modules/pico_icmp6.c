@@ -619,7 +619,7 @@ int pico_icmp6_neighbor_advertisement(struct pico_stack *S, struct pico_frame *f
         dst = ipv6_hdr->src;
     }
 
-    /* XXX if the target address is either an anycast address or a unicast
+    /* XXX if the target address is either an anycast address or an unicast
      * address for which the node is providing proxy service, or the target
      * link-layer Address option is not included, the Override flag SHOULD
      * be set to zero.
@@ -690,7 +690,7 @@ MOCKABLE int pico_icmp6_router_solicitation(struct pico_device *dev, struct pico
     else {
         if (dst)
             daddr = *dst;
-        /* Force this frame to be send with the EUI-64-address */
+        /* Force this frame to be sent with the EUI-64-address */
         pico_ipv6_frame_push(dev->stack, sol, src, &daddr, PICO_PROTO_ICMP6, 0);
     }
 #else

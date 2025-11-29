@@ -345,7 +345,7 @@ pico_6lowpan_ll_process_in(struct pico_stack *S, struct pico_protocol *self, str
         ret = exts[i].in(f);
         switch (ret) {
             case FRAME_6LOWPAN_LL_RELEASE:
-                /* Success, frame is somewhere else now.. */
+                /* Success, frame is somewhere else now... */
                 break;
             case FRAME_6LOWPAN_LL_DISCARD:
                 /* Something went wrong, discard the frame */

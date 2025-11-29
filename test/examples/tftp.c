@@ -336,7 +336,7 @@ void tftp_listen_cb_opt(union pico_address *addr, uint16_t port, uint16_t opcode
 void print_usage(int exit_code)
 {
     printf("\nUsage: tftp:OPTION:[OPTION]...\n"
-           "\nOtions can be repeated. Every option may be one of the following:\n"
+           "\nOptions can be repeated. Every option may be one of the following:\n"
            "\ts\t\t\t starts the basic server (RFC1350)\n"
            "\tS\t\t\t starts the server with option handling capability\n"
            "\tt:file:ip\t\t PUT request (without options) for file to server ip\n"
@@ -372,7 +372,7 @@ struct command_t *parse_arguments_recursive(struct command_t *commands, char *ar
     case 't':
     case 'r':
         if (!next) {
-            fprintf(stderr, "Incomplete client command %s (filename componet is missing)\n", arg);
+            fprintf(stderr, "Incomplete client command %s (filename component is missing)\n", arg);
             return NULL;
         }
 

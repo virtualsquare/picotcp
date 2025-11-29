@@ -316,13 +316,13 @@ pico_dns_sd_check_type_format( const char *type )
         /* Get the length of the service name */
         first_lbl = pico_dns_first_label_length(type + first_lbl + 6);
     else {
-        /* Check if type is not greater then 21 bytes (22 - 1, since the length
+        /* Check if type is not greater than 21 bytes (22 - 1, since the length
            byte of the service name isn't included yet) */
         if (strlen(type) > (size_t) 21)
             return -1;
     }
 
-    /* Check if the service name is not greater then 16 bytes (17 - 1) */
+    /* Check if the service name is not greater than 16 bytes (17 - 1) */
     return (first_lbl > ((uint16_t) 16u));
 }
 

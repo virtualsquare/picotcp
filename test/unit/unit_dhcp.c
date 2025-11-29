@@ -47,7 +47,7 @@ int generate_dhcp_msg(uint8_t *buf, uint32_t *len, uint8_t type)
     }else if(type == DHCP_MSG_TYPE_REQUEST) {
         uint32_t i = 0;
         uint8_t buffer1[] = {
-            /* 0x63,0x82,0x53,0x63,// MAGIC COOCKIE */
+            /* 0x63,0x82,0x53,0x63,// MAGIC COOKIE */
             /* 0x35,0x01,0x03,     // DHCP REQUEST */
             /* 0x36,0x04,0x00,0x00,0x00,0x00 // SERVER ID */
             0x32, 0x04, buf[0x3a], buf[0x3b], buf[0x3c], buf[0x3e], /* requested ip */
@@ -201,7 +201,7 @@ START_TEST (test_dhcp)
     fail_if(pico_dhcp_server_initiate(&s), "DHCP_SERVER> server initiation failed");
 
     dn = pico_dhcp_server_find_negotiation(S, xid.addr);
-    fail_unless(dn == NULL, "DCHP SERVER -> negotiation data available befor discover msg recvd");
+    fail_unless(dn == NULL, "DCHP SERVER -> negotiation data available before discover msg recvd");
 
     /* simulate reception of a DISCOVER packet */
     sock.local_addr.ip4 = serverip;
@@ -483,7 +483,7 @@ START_TEST (test_dhcp_client)
 
     /* generate dhcp type from msg */
     type = pico_dhcp_verify_and_identify_type(&(buf[dhcp_hdr_offset]), len - dhcp_hdr_offset, cli);
-    fail_if(type == 0, "unkown DHCP type");
+    fail_if(type == 0, "unknown DHCP type");
 
     /* simulate reception of a DHCP server offer */
     pico_dhcp_state_machine(type, cli, &(buf[dhcp_hdr_offset]), len - dhcp_hdr_offset);

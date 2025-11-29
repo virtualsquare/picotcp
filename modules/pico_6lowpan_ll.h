@@ -89,7 +89,7 @@ struct pico_dev_6lowpan
     /* Transmit-function:
      *
      *  @param dev  The device who's send-function got called
-     *  @param _buf Buffer containing the frame to be send over the network
+     *  @param _buf Buffer containing the frame to be sent over the network
      *  @param len  Length of _buf
      *  @param src  Link Layer source address of the device (IETF-endianness)
      *  @param dst  Link layer destination address of the device (IETF-endianness)

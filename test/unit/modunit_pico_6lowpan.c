@@ -121,7 +121,7 @@ START_TEST(tc_compare_prefix)
 
     STARTING();
 
-    TRYING("With 2 equal prexixes\n");
+    TRYING("With 2 equal prefixes\n");
     ret = compare_prefix(a.addr, b.addr, 54);
     RESULTS();
     FAIL_UNLESS(0 == ret, test, "Prefixes are equal, should've returned 0, ret = %d",ret);
@@ -164,7 +164,7 @@ START_TEST(tc_compare_6lowpan_ctx)
     TRYING("With b > a\n");
     ret = compare_6lowpan_ctx(&ca, &cb);
     RESULTS();
-    FAIL_UNLESS(ret, test, "Prefixes are not equal, shouln'r return 0, ret = %d", ret);
+    FAIL_UNLESS(ret, test, "Prefixes are not equal, shouldn't return 0, ret = %d", ret);
 
     cb.size = 64;
     TRYING("With b > c\n");
@@ -548,7 +548,7 @@ START_TEST(tc_addr_comp_mode)
     dev.mode = LL_MODE_ETHERNET;
     ret = addr_comp_mode(iphc, &local2, addr, &dev, SRC_SHIFT);
     RESULTS();
-    FAIL_UNLESS(-1 == ret, test, "Shoudl've returned error (-1), ret = %d", ret);
+    FAIL_UNLESS(-1 == ret, test, "Should've returned error (-1), ret = %d", ret);
     memset(iphc, 0, 3);
 
     TRYING("With non MAC derived extended address\n");
@@ -666,7 +666,7 @@ START_TEST(tc_compressor_src)
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(0 == ret, test, "Should've returned compressed size of 0, ret = %d", ret);
-    FAIL_UNLESS(!(iphc[1] & SRC_STATEFUL), test, "Shoudln't have set SAC");
+    FAIL_UNLESS(!(iphc[1] & SRC_STATEFUL), test, "Shouldn't have set SAC");
     FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == SRC_COMPRESSED, test, "Should set SAM to '11', iphc = %02X", iphc[1]);
 
     TRYING("With non mac derived 16-bit derivable address\n");
@@ -687,7 +687,7 @@ START_TEST(tc_compressor_src)
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(8 == ret, test, "Should've returned compressed size of 8, ret = %d", ret);
-    FAIL_UNLESS(!(iphc[1] & SRC_STATEFUL), test, "Shoudln't have set SAC");
+    FAIL_UNLESS(!(iphc[1] & SRC_STATEFUL), test, "Shouldn't have set SAC");
     FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == SRC_COMPRESSED_64, test, "Should've set SAM to '01', iphc = %02X", iphc[1]);
     FAIL_UNLESS(0 == memcmp(buf, ll_nmac_64.addr + 8, 8), test, "Should've copied IID of source address inline");
 
@@ -699,8 +699,8 @@ START_TEST(tc_compressor_src)
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(0 == ret, test, "Should've returned compressed size of 0, ret = %d", ret);
-    FAIL_UNLESS((iphc[1] & SRC_STATEFUL), test, "Shoudl've set SAC");
-    FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == SRC_COMPRESSED, test, "Shoudl've set SAM to '11', iphc = %02X", iphc[1]);
+    FAIL_UNLESS((iphc[1] & SRC_STATEFUL), test, "Should've set SAC");
+    FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == SRC_COMPRESSED, test, "Should've set SAM to '11', iphc = %02X", iphc[1]);
     FAIL_UNLESS((iphc[2] >> SRC_SHIFT) == 13, test, "Should've filled in the context extension correctly, ctx = %02X", iphc[2]);
 
     TRYING("With stateless compression\n");
@@ -710,7 +710,7 @@ START_TEST(tc_compressor_src)
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(PICO_SIZE_IP6 == ret, test, "Should've returned compressed size of 16, ret = %d",ret);
-    FAIL_UNLESS((iphc[1] & SRC_STATEFUL) == 0, test, "Shoudln't have set SAC");
+    FAIL_UNLESS((iphc[1] & SRC_STATEFUL) == 0, test, "Shouldn't have set SAC");
     FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == 0, test, "Should've set SAM to '00', iphc = %02X", iphc[1]);
     FAIL_UNLESS(0 == memcmp(buf, ip_stateless.addr, PICO_SIZE_IP6), test, "Should've copied the source address inline");
 
@@ -782,7 +782,7 @@ START_TEST(tc_decompressor_src)
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(0 == ret, test, "Should've returned compressed size of 0, ret = %d", ret);
-    FAIL_UNLESS(0 == memcmp(buf, ip2.addr, PICO_SIZE_IP6), test, "Shoudld've correctly decompressed addresss");
+    FAIL_UNLESS(0 == memcmp(buf, ip2.addr, PICO_SIZE_IP6), test, "Should've correctly decompressed address");
     memset(buf, 0, PICO_SIZE_IP6);
 
     TRYING("With link-local non-mac 16-bit derivable address\n");
@@ -790,8 +790,8 @@ START_TEST(tc_decompressor_src)
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
-    FAIL_UNLESS(2 == ret, test, "Shoudl've returned compressed size of 2, ret = %d", ret);
-    FAIL_UNLESS(0 == memcmp(buf, ip3.addr, PICO_SIZE_IP6), test, "Shoudld've correctly decompressed addresss");
+    FAIL_UNLESS(2 == ret, test, "Should've returned compressed size of 2, ret = %d", ret);
+    FAIL_UNLESS(0 == memcmp(buf, ip3.addr, PICO_SIZE_IP6), test, "Should've correctly decompressed address");
     memset(buf, 0, PICO_SIZE_IP6);
 
     TRYING("With link-local non-mac 64-bit derivable address\n");
@@ -818,7 +818,7 @@ START_TEST(tc_decompressor_src)
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(2 == ret, test, "Should've returned compressed size of 2, ret = %d", ret);
-    FAIL_UNLESS(0 == memcmp(buf, ip6.addr, PICO_SIZE_IP6), test, "Should've correctly decompressed addresss");
+    FAIL_UNLESS(0 == memcmp(buf, ip6.addr, PICO_SIZE_IP6), test, "Should've correctly decompressed address");
     memset(buf, 0, PICO_SIZE_IP6);
 
     ENDING(test);
@@ -861,7 +861,7 @@ START_TEST(tc_compressor_dst)
     FAIL_UNLESS(iphc[1] & DST_MULTICAST, test, "Should've set IPHC mcast-flag");
     FAIL_UNLESS(!(iphc[1] & DST_STATEFUL), test, "Shouldn't have set stateful flag, iphc = %02X", iphc[1]);
     FAIL_UNLESS((iphc[1] & DST_COMPRESSED) == DST_MCAST_48, test, "Should've set DAM to '01', iphc = %02X", iphc[1]);
-    FAIL_UNLESS(0 == memcmp(buf1, buf, 6), test, "Shoudl've correctly compressed MCAST 48 address");
+    FAIL_UNLESS(0 == memcmp(buf1, buf, 6), test, "Should've correctly compressed MCAST 48 address");
 
     TRYING("32-bit derivable mcast address\n");
     ret = compressor_dst(mcast2.addr, buf, iphc, NULL, &mac, &dev);
@@ -873,7 +873,7 @@ START_TEST(tc_compressor_dst)
     FAIL_UNLESS(iphc[1] & DST_MULTICAST, test, "Should've set IPHC mcast-flag");
     FAIL_UNLESS(!(iphc[1] & DST_STATEFUL), test, "Shouldn't have set stateful flag, iphc = %02X", iphc[1]);
     FAIL_UNLESS((iphc[1] & DST_COMPRESSED) == DST_MCAST_32, test, "Should've set DAM to '10', iphc = %02X", iphc[1]);
-    FAIL_UNLESS(0 == memcmp(buf2, buf, 4), test, "Shoudl've correctly compressed MCAST 32 address");
+    FAIL_UNLESS(0 == memcmp(buf2, buf, 4), test, "Should've correctly compressed MCAST 32 address");
 
     TRYING("8-bit derivable mcast address\n");
     ret = compressor_dst(mcast3.addr, buf, iphc, NULL, &mac, &dev);
@@ -885,7 +885,7 @@ START_TEST(tc_compressor_dst)
     FAIL_UNLESS(iphc[1] & DST_MULTICAST, test, "Should've set IPHC mcast-flag");
     FAIL_UNLESS(!(iphc[1] & DST_STATEFUL), test, "Shouldn't have set stateful flag, iphc = %02X", iphc[1]);
     FAIL_UNLESS((iphc[1] & DST_COMPRESSED) == DST_MCAST_8, test, "Should've set DAM to '11', iphc = %02X", iphc[1]);
-    FAIL_UNLESS(buf[0] == buf3, test, "Shoudl've correctly compressed MCAST 32 address");
+    FAIL_UNLESS(buf[0] == buf3, test, "Should've correctly compressed MCAST 32 address");
 
     ENDING(test);
 }
@@ -1211,7 +1211,7 @@ START_TEST(tc_compressor_nhc_ext)
     TRYING("With DSTOPT extension header\n");
     memcpy(f->buffer, ext1, 8);
     buf = compressor_nhc_ext(f, &compressed_len, &nh);
-    FAIL_UNLESS(buf, test, "Should've at least returend a buffer");
+    FAIL_UNLESS(buf, test, "Should've at least returned a buffer");
     OUTPUT();
     dbg_buffer(buf, (size_t)compressed_len);
     RESULTS();
@@ -1241,7 +1241,7 @@ START_TEST(tc_decompressor_nhc_ext)
     TRYING("nhc_ext compressed header with dstopt extension header\n");
     memcpy(f->buffer, nhc1, 5);
     buf = decompressor_nhc_ext(f, &compressed_len, &decomp);
-    FAIL_UNLESS(buf, test, "should've at least returend a buffer");
+    FAIL_UNLESS(buf, test, "should've at least returned a buffer");
     OUTPUT();
     dbg_buffer(buf, 8);
     RESULTS();

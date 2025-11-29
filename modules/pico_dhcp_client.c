@@ -356,7 +356,7 @@ static int pico_dhcp_client_start_renewing_timer(struct pico_dhcp_client_cookie 
     uint32_t halftime = 0;
 
     /* wait one-half of the remaining time until T2, down to a minimum of 60 seconds */
-    /* (dhcpc->retry + 1): initial -> divide by 2, 1st retry -> divide by 4, 2nd retry -> divide by 8, etc */
+    /* (dhcpc->retry + 1): initial -> divide by 2, 1st retry -> divide by 4, 2nd retry -> divide by 8, etc. */
     pico_dhcp_client_stop_timers(dhcpc);
     halftime = dhcpc->renew_time >> (dhcpc->retry + 1);
     if (halftime < 60)
