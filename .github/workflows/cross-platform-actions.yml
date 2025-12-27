@@ -1,4 +1,4 @@
-name: BSD CI
+name: BSD, Haiku CI
 
 on: [push, pull_request]
 
@@ -7,27 +7,33 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        operating_system: [ freebsd, netbsd, openbsd ]
+        operating_system: [ freebsd, haiku, netbsd, openbsd ]
         architecture: [ arm64, x86-64 ]
         include:
           - operating_system: freebsd
-            version: '14.3'
-            pkginstall: sudo pkg update && sudo pkg install -y gmake
+            version: '15.0'
+            pkginstall: sudo pkg update && sudo pkg install -y gmake && export MAKE=gmake
+          - operating_system: haiku
+            version: 'r1beta5'
+            pkginstall: pkgman refresh
           - operating_system: netbsd
             version: '10.1'
-            pkginstall: sudo pkgin update && sudo pkgin -y install clang gmake
+            pkginstall: sudo pkgin update && sudo pkgin -y install clang gmake && export MAKE=gmake
           - operating_system: openbsd
             version: '7.8'
-            pkginstall: sudo pkg_add -u && sudo pkg_add gmake
+            pkginstall: sudo pkg_add -u && sudo pkg_add gmake && export MAKE=gmake
+        exclude:
+          - operating_system: haiku
+            architecture: arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: cross-platform-actions/action@v0.30.0
+      - uses: cross-platform-actions/action@v0.32.0
         with:
           operating_system: ${{ matrix.operating_system }}
           architecture: ${{ matrix.architecture }}
           version: ${{ matrix.version }}
           run: |
             ${{ matrix.pkginstall }}
-            gmake CC=cc
+            ${MAKE:-make} CC=cc
