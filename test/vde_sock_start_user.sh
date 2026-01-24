@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 function help(){
 		echo 'Cmd line arguments can be:'
 		echo 'start: to start the vde setup for the autotest.'

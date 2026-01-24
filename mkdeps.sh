@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 if [ "$#" -eq 0 ]; then
     echo "Supply PREFIX for building pico_defines.h"

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -x
 TFTP_EXEC_DIR="$(pwd)/build/test"

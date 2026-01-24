@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 gksu "vdecmd -s /tmp/pico.mgmt shutdown"
 gksu "vdecmd -s /tmp/pico1.mgmt shutdown"

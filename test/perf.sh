@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 THRESHOLD=300
 sh ./test/vde_sock_start_user.sh
 sleep 2

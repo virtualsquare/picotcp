@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # By Daniele.
 #set -x
 filename=$1

@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 rm -f /tmp/pico-mem-report-*
 
 ASAN_OPTIONS="detect_leaks=0" ./build/test/units || exit 1
