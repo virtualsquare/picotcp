@@ -22,6 +22,18 @@ ifeq ($(OS),Darwin)
 	BREW_PREFIX_CHECK:=$(shell brew --prefix check)
 	UNIT_CFLAGS+=-I$(BREW_PREFIX_CHECK)/include
 	UNIT_LDFLAGS+=-L$(BREW_PREFIX_CHECK)/lib
+else ifeq ($(OS),FreeBSD)
+    UNIT_CFLAGS+=-I/usr/local/include
+    UNIT_LDFLAGS+=-L/usr/local/lib
+else ifeq ($(OS),Haiku)
+	UNIT_CFLAGS+=-I/system/develop/headers
+    UNIT_LDFLAGS+=-L/system/lib -lnetwork
+else ifeq ($(OS),NetBSD)
+	UNIT_CFLAGS+=-I/usr/pkg/include
+	UNIT_LDFLAGS+=-L/usr/pkg/lib -Wl,-R/usr/pkg/lib
+else ifeq ($(OS),OpenBSD)
+	UNIT_CFLAGS+=-I/usr/local/include
+	UNIT_LDFLAGS+=-L/usr/local/lib
 else ifeq ($(OS),Linux)
     UNIT_LDFLAGS+=-lsubunit
 endif
@@ -37,8 +49,17 @@ STRIP?=0
 RTOS?=0
 GENERIC?=0
 PTHREAD?=0
-ADDRESS_SANITIZER?=1
 GCOV?=0
+
+ifeq ($(OS),Haiku)
+	ADDRESS_SANITIZER=0
+else ifeq ($(OS),NetBSD)
+	ADDRESS_SANITIZER=0
+else ifeq ($(OS),OpenBSD)
+	ADDRESS_SANITIZER=0
+else
+	ADDRESS_SANITIZER?=1
+endif
 
 # Default compiled-in protocols
 #

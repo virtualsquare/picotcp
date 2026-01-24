@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 make PTHREAD=1 TCP=1 UDP=1 VDE=1 \
 	RTOS=0 \

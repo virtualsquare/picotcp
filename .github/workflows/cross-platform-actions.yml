@@ -1,6 +1,6 @@
 name: BSD, Haiku CI
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   build:
@@ -12,23 +12,21 @@ jobs:
         include:
           - operating_system: freebsd
             version: '15.0'
-            pkginstall: sudo pkg update && sudo pkg install -y gmake && export MAKE=gmake
+            pkginstall: sudo pkg update && sudo pkg install -y check gmake && export MAKE=gmake
           - operating_system: haiku
             version: 'r1beta5'
-            pkginstall: pkgman refresh
+            pkginstall: pkgman refresh && pkgman install -y check_devel
           - operating_system: netbsd
             version: '10.1'
-            pkginstall: sudo pkgin update && sudo pkgin -y install clang gmake && export MAKE=gmake
+            pkginstall: sudo pkgin update && sudo pkgin -y install check clang gmake && export MAKE=gmake
           - operating_system: openbsd
             version: '7.8'
-            pkginstall: sudo pkg_add -u && sudo pkg_add gmake && export MAKE=gmake
+            pkginstall: sudo pkg_add -u && sudo pkg_add check gmake && export MAKE=gmake
         exclude:
           - operating_system: haiku
             architecture: arm64
-
     steps:
       - uses: actions/checkout@v6
-
       - uses: cross-platform-actions/action@v0.32.0
         with:
           operating_system: ${{ matrix.operating_system }}
@@ -37,3 +35,6 @@ jobs:
           run: |
             ${{ matrix.pkginstall }}
             ${MAKE:-make} CC=cc
+            ${MAKE:-make} clean
+            ${MAKE:-make} CC=cc units UNITS=1
+            ./test/units.sh

@@ -1,23 +1,29 @@
 name: C/C++ CI
 
-on: [push, pull_request]
+on: [ push, pull_request ]
 
 jobs:
   build:
-
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ macos-latest, ubuntu-24.04-arm, ubuntu-latest ]
-
     steps:
-      - uses: actions/checkout@v6
-      - run: make
-      - name: Unit tests
+      - name: Set up build environment (Linux)
         run: |
           sudo apt-get update
           sudo apt-get install check
+        if: runner.os == 'Linux'
+      - name: Set up build environment (macOS)
+        run: |
+          brew update
+          brew install check
+        if: runner.os == 'macOS'
+      - uses: actions/checkout@v6
+      - name: Build
+        run: make
+      - name: Unit tests
+        run: |
           make clean
           make units UNITS=1
           ./test/units.sh
-        if: runner.os == 'Linux'

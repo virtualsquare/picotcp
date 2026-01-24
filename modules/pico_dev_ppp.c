@@ -1233,7 +1233,7 @@ static void ipcp_send_req(struct pico_device_ppp *ppp)
 
 static void ipcp_reject_vj(struct pico_device_ppp *ppp, uint8_t *comp_req)
 {
-    uint8_t ipcp_req[PPP_HDR_SIZE + PPP_PROTO_SLOT_SIZE + sizeof(struct pico_ipcp_hdr) + IPCP_VJ_LEN + PPP_FCS_SIZE + 1];
+    uint8_t ipcp_req[PPP_HDR_SIZE + PPP_PROTO_SLOT_SIZE + sizeof(struct pico_ipcp_hdr) + IPCP_VJ_LEN + PPP_FCS_SIZE + 1] = { 0 };
     uint32_t prefix = PPP_HDR_SIZE +  PPP_PROTO_SLOT_SIZE;
     struct pico_ipcp_hdr *ih = (struct pico_ipcp_hdr *) (ipcp_req + prefix);
     uint8_t *p = ipcp_req + prefix + sizeof(struct pico_ipcp_hdr);

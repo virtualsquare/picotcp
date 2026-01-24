@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 sudo vde_switch -t pic0 -s /tmp/pic0.ctl -d
 sudo vde_switch -s /tmp/pic1.ctl -d
