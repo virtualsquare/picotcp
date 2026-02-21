@@ -1,4 +1,4 @@
-name: BSD, Haiku CI
+name: BSD, Haiku, OmniOS CI
 
 on: [ push, pull_request ]
 
@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        operating_system: [ freebsd, haiku, netbsd, openbsd ]
+        operating_system: [ freebsd, haiku, netbsd, omnios, openbsd ]
         architecture: [ arm64, x86-64 ]
         include:
           - operating_system: freebsd
@@ -19,11 +19,16 @@ jobs:
           - operating_system: netbsd
             version: '10.1'
             pkginstall: sudo pkgin update && sudo pkgin -y install check clang gmake && export MAKE=gmake
+          - operating_system: omnios
+            version: 'r151056'
+            pkginstall: sudo pkg refresh && sudo pkg install build-essential && export MAKE=gmake
           - operating_system: openbsd
             version: '7.8'
             pkginstall: sudo pkg_add -u && sudo pkg_add check gmake && export MAKE=gmake
         exclude:
           - operating_system: haiku
+            architecture: arm64
+          - operating_system: omnios
             architecture: arm64
     steps:
       - uses: actions/checkout@v6
@@ -34,7 +39,11 @@ jobs:
           version: ${{ matrix.version }}
           run: |
             ${{ matrix.pkginstall }}
-            ${MAKE:-make} CC=cc
-            ${MAKE:-make} clean
-            ${MAKE:-make} CC=cc units UNITS=1
-            ./test/units.sh
+            if [ "${{ matrix.operating_system }}" = "omnios" ]; then
+                ${MAKE:-make}
+            else
+                ${MAKE:-make} CC=cc
+                ${MAKE:-make} clean
+                ${MAKE:-make} CC=cc units UNITS=1
+                ./test/units.sh
+            fi
