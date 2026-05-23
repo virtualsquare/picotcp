@@ -134,4 +134,9 @@ int pico_protocol_network_loop(struct pico_stack *S, int loop_score, int directi
 int pico_protocol_transport_loop(struct pico_stack *S, int loop_score, int direction);
 int pico_protocol_socket_loop(struct pico_stack *S, int loop_score, int direction);
 
+#ifdef PICO_SUPPORT_TICKLESS
+void proto_full_loop_in(struct pico_stack *S, void *arg);
+void proto_full_loop_out(struct pico_stack *S, void *arg);
+#endif
+
 #endif
