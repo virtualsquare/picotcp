@@ -76,8 +76,8 @@ struct arp_service_ipconflict {
 #ifdef PICO_SUPPORT_TICKLESS
     #define ATTACH_QUEUES_LISTENERS(St, pname, P) \
         do { \
-        pico_queue_register_listener(St, &((St->q_ ## pname.in, proto_full_loop_in, P); \
-        pico_queue_register_listener(St, &((St->q_ ## pname.out, proto_full_loop_out, P); \
+        pico_queue_register_listener((St), &((St)->q_ ## pname.in), proto_full_loop_in, &(P)); \
+        pico_queue_register_listener((St), &((St)->q_ ## pname.out), proto_full_loop_out, &(P)); \
     } while(0)
 #else
     #define ATTACH_QUEUES_LISTENERS(St, pname, P) do {} while(0)

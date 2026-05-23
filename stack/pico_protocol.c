@@ -73,7 +73,7 @@ static int proto_loop_out(struct pico_stack *S, struct pico_protocol *proto, int
 }
 
 #ifdef PICO_SUPPORT_TICKLESS
-static void proto_full_loop_in(struct pico_stack *S, void *arg)
+void proto_full_loop_in(struct pico_stack *S, void *arg)
 {
     struct pico_protocol *proto = (struct pico_protocol *)arg;
     struct pico_frame *f;
@@ -86,7 +86,7 @@ static void proto_full_loop_in(struct pico_stack *S, void *arg)
     }
 }
 
-static void proto_full_loop_out(struct pico_stack *S, void *arg)
+void proto_full_loop_out(struct pico_stack *S, void *arg)
 {
     struct pico_protocol *proto = (struct pico_protocol *)arg;
     struct pico_frame *f;
