@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -7,7 +7,7 @@
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Maxime Vincent
  *          Based on the OpenVPN tun.c driver, under GPL
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -27,7 +27,7 @@
  *
  *********************************************************************/
 
-/* 
+/*
  * NOTES: This is the Windows-only driver, a Linux-equivalent is available, too
           You need to have an OpenVPN TUN/TAP network adapter installed, first
           This driver is barely working:
@@ -163,14 +163,12 @@ const struct tap_reg *get_tap_reg (void)
         KEY_READ,
         &adapter_key);
 
-    if (status != ERROR_SUCCESS)
-    {
+    if (status != ERROR_SUCCESS) {
         dbg_tap_reg("Error opening registry key: %s\n", ADAPTER_KEY);
         return NULL;
     }
 
-    while (1)
-    {
+    while (1) {
         char enum_name[256];
         char unit_string[256];
         HKEY unit_key;
@@ -195,8 +193,8 @@ const struct tap_reg *get_tap_reg (void)
         else if (status != ERROR_SUCCESS)
             dbg_tap_reg("Error enumerating registry subkeys of key: %s.\n", ADAPTER_KEY);
 
-        snprintf (unit_string, sizeof(unit_string), "%s\\%s",
-                  ADAPTER_KEY, enum_name);
+        snprintf(unit_string, sizeof(unit_string), "%s\\%s",
+                 ADAPTER_KEY, enum_name);
 
         status = RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
@@ -205,12 +203,9 @@ const struct tap_reg *get_tap_reg (void)
             KEY_READ,
             &unit_key);
 
-        if (status != ERROR_SUCCESS)
-        {
+        if (status != ERROR_SUCCESS) {
             dbg_tap_reg("Error opening registry key: %s\n", unit_string);
-        }
-        else
-        {
+        } else {
             len = sizeof (component_id);
             status = RegQueryValueEx(
                 unit_key,
@@ -220,12 +215,9 @@ const struct tap_reg *get_tap_reg (void)
                 (LPBYTE)component_id,
                 &len);
 
-            if (status != ERROR_SUCCESS || data_type != REG_SZ)
-            {
+            if (status != ERROR_SUCCESS || data_type != REG_SZ) {
                 dbg_tap_reg("Error opening registry key: %s\\%s\n", unit_string, component_id_string);
-            }
-            else
-            {
+            } else {
                 len = sizeof (net_cfg_instance_id);
                 status = RegQueryValueEx(
                     unit_key,
@@ -235,10 +227,8 @@ const struct tap_reg *get_tap_reg (void)
                     (LPBYTE)net_cfg_instance_id,
                     &len);
 
-                if (status == ERROR_SUCCESS && data_type == REG_SZ)
-                {
-                    if (!strcmp (component_id, TAP_WIN_COMPONENT_ID))
-                    {
+                if (status == ERROR_SUCCESS && data_type == REG_SZ) {
+                    if (!strcmp(component_id, TAP_WIN_COMPONENT_ID)) {
                         struct tap_reg *reg;
                         reg = PICO_ZALLOC(sizeof(struct tap_reg), 1);
                         /* ALLOC_OBJ_CLEAR_GC (reg, struct tap_reg, gc); */
@@ -246,9 +236,8 @@ const struct tap_reg *get_tap_reg (void)
                             return NULL;
 
                         /* reg->guid = string_alloc (net_cfg_instance_id, gc); */
-                        reg->guid = PICO_ZALLOC (strlen(net_cfg_instance_id) + 1, 1);
-                        if (!(reg->guid))
-                        {
+                        reg->guid = PICO_ZALLOC(strlen(net_cfg_instance_id) + 1, 1);
+                        if (!(reg->guid)) {
                             PICO_FREE(reg);
                             return NULL;
                         }
@@ -266,12 +255,12 @@ const struct tap_reg *get_tap_reg (void)
                 }
             }
 
-            RegCloseKey (unit_key);
+            RegCloseKey(unit_key);
         }
 
         ++i;
     }
-    RegCloseKey (adapter_key);
+    RegCloseKey(adapter_key);
     return first;
 }
 
@@ -292,14 +281,12 @@ const struct panel_reg *get_panel_reg (void)
         KEY_READ,
         &network_connections_key);
 
-    if (status != ERROR_SUCCESS)
-    {
+    if (status != ERROR_SUCCESS) {
         dbg_tap_reg("Error opening registry key: %s\n", NETWORK_CONNECTIONS_KEY);
         return NULL;
     }
 
-    while (1)
-    {
+    while (1) {
         char enum_name[256];
         char connection_string[256];
         HKEY connection_key;
@@ -322,7 +309,7 @@ const struct panel_reg *get_panel_reg (void)
         else if (status != ERROR_SUCCESS)
             dbg_tap_reg("Error enumerating registry subkeys of key: %s.\n", NETWORK_CONNECTIONS_KEY);
 
-        snprintf (connection_string, sizeof(connection_string), "%s\\%s\\Connection", NETWORK_CONNECTIONS_KEY, enum_name);
+        snprintf(connection_string, sizeof(connection_string), "%s\\%s\\Connection", NETWORK_CONNECTIONS_KEY, enum_name);
 
         status = RegOpenKeyEx(
             HKEY_LOCAL_MACHINE,
@@ -332,8 +319,7 @@ const struct panel_reg *get_panel_reg (void)
             &connection_key);
         if (status != ERROR_SUCCESS)
             dbg_tap_reg("Error opening registry key: %s\n", connection_string);
-        else
-        {
+        else {
             len = sizeof (name_data);
             status = RegQueryValueExW(
                 connection_key,
@@ -345,8 +331,7 @@ const struct panel_reg *get_panel_reg (void)
 
             if (status != ERROR_SUCCESS || name_type != REG_SZ)
                 dbg_tap_reg("Error opening registry key: %s\\%s\\%S\n", NETWORK_CONNECTIONS_KEY, connection_string, name_string);
-            else
-            {
+            else {
                 int n;
                 LPSTR name;
                 struct panel_reg *reg;
@@ -356,21 +341,19 @@ const struct panel_reg *get_panel_reg (void)
                 if (!reg)
                     return NULL;
 
-                n = WideCharToMultiByte (CP_UTF8, 0, name_data, -1, NULL, 0, NULL, NULL);
+                n = WideCharToMultiByte(CP_UTF8, 0, name_data, -1, NULL, 0, NULL, NULL);
                 /* name = gc_malloc (n, false, gc); */
                 name = PICO_ZALLOC(n, 1);
-                if (!name)
-                {
+                if (!name) {
                     PICO_FREE(reg);
                     return NULL;
                 }
 
-                WideCharToMultiByte (CP_UTF8, 0, name_data, -1, name, n, NULL, NULL);
+                WideCharToMultiByte(CP_UTF8, 0, name_data, -1, name, n, NULL, NULL);
                 reg->name = name;
                 /* reg->guid = string_alloc (enum_name, gc); */
                 reg->guid = PICO_ZALLOC(strlen(enum_name) + 1, 1);
-                if (!reg->guid)
-                {
+                if (!reg->guid) {
                     PICO_FREE((void *)reg->name);
                     PICO_FREE((void *)reg);
                     return NULL;
@@ -388,12 +371,12 @@ const struct panel_reg *get_panel_reg (void)
                 last = reg;
             }
 
-            RegCloseKey (connection_key);
+            RegCloseKey(connection_key);
         }
 
         ++i;
     }
-    RegCloseKey (network_connections_key);
+    RegCloseKey(network_connections_key);
 
     return first;
 }
@@ -411,8 +394,8 @@ void show_tap_win_adapters (void)
     const struct tap_reg *tr1;
     const struct panel_reg *pr;
 
-    const struct tap_reg *tap_reg = get_tap_reg ();
-    const struct panel_reg *panel_reg = get_panel_reg ();
+    const struct tap_reg *tap_reg = get_tap_reg();
+    const struct panel_reg *panel_reg = get_panel_reg();
 
     if (!(tap_reg && panel_reg))
         return;
@@ -420,25 +403,19 @@ void show_tap_win_adapters (void)
     dbg_tap_info("Available TAP-WIN32 adapters [name, GUID]:\n");
 
     /* loop through each TAP-Windows adapter registry entry */
-    for (tr = tap_reg; tr != NULL; tr = tr->next)
-    {
+    for (tr = tap_reg; tr != NULL; tr = tr->next) {
         links = 0;
 
         /* loop through each network connections entry in the control panel */
-        for (pr = panel_reg; pr != NULL; pr = pr->next)
-        {
-            if (!strcmp (tr->guid, pr->guid))
-            {
+        for (pr = panel_reg; pr != NULL; pr = pr->next) {
+            if (!strcmp(tr->guid, pr->guid)) {
                 dbg_tap_info("\t>> '%s' %s\n", pr->name, tr->guid);
                 ++links;
             }
         }
-        if (links > 1)
-        {
+        if (links > 1) {
             warn_panel_dup = 1;
-        }
-        else if (links == 0)
-        {
+        } else if (links == 0) {
             /* a TAP adapter exists without a link from the network
                connections control panel */
             warn_panel_null = 1;
@@ -446,11 +423,9 @@ void show_tap_win_adapters (void)
         }
     }
     /* check for TAP-Windows adapter duplicated GUIDs */
-    for (tr = tap_reg; tr != NULL; tr = tr->next)
-    {
-        for (tr1 = tap_reg; tr1 != NULL; tr1 = tr1->next)
-        {
-            if (tr != tr1 && !strcmp (tr->guid, tr1->guid))
+    for (tr = tap_reg; tr != NULL; tr = tr->next) {
+        for (tr1 = tap_reg; tr1 != NULL; tr1 = tr1->next) {
+            if (tr != tr1 && !strcmp(tr->guid, tr1->guid))
                 warn_tap_dup = 1;
         }
     }
@@ -472,13 +447,10 @@ const char *get_first_device_guid(const struct tap_reg *tap_reg, const struct pa
     const struct tap_reg *tr;
     const struct panel_reg *pr;
     /* loop through each TAP-Windows adapter registry entry */
-    for (tr = tap_reg; tr != NULL; tr = tr->next)
-    {
+    for (tr = tap_reg; tr != NULL; tr = tr->next) {
         /* loop through each network connections entry in the control panel */
-        for (pr = panel_reg; pr != NULL; pr = pr->next)
-        {
-            if (!strcmp (tr->guid, pr->guid))
-            {
+        for (pr = panel_reg; pr != NULL; pr = pr->next) {
+            if (!strcmp(tr->guid, pr->guid)) {
                 dbg_tap_info("Using first TAP device: '%s' %s\n", pr->name, tr->guid);
                 if (name)
                     strcpy(name, pr->name);
@@ -498,10 +470,9 @@ int open_tun (const char *dev, const char *dev_type, const char *dev_node, struc
     const char *device_guid = NULL;
     DWORD len;
 
-    dbg_tap_info("open_tun, tt->ipv6=%d\n", tt->ipv6 );
+    dbg_tap_info("open_tun, tt->ipv6=%d\n", tt->ipv6);
 
-    if (!(tt->type == DEV_TYPE_TAP || tt->type == DEV_TYPE_TUN))
-    {
+    if (!(tt->type == DEV_TYPE_TAP || tt->type == DEV_TYPE_TUN)) {
         dbg_tap_info("Unknown virtual device type: '%s'\n", dev);
         return -1;
     }
@@ -514,25 +485,24 @@ int open_tun (const char *dev, const char *dev_type, const char *dev_node, struc
         const struct panel_reg *panel_reg = get_panel_reg();
         char name[256];
 
-        if (!(tap_reg && panel_reg))
-        {
+        if (!(tap_reg && panel_reg)) {
             dbg_tap_info("No TUN/TAP devices found\n");
             return -1;
         }
 
         /* Get the device GUID for the device specified with --dev-node. */
-        device_guid = get_first_device_guid (tap_reg, panel_reg, name);
+        device_guid = get_first_device_guid(tap_reg, panel_reg, name);
 
         if (!device_guid)
             dbg_tap_info("TAP-Windows adapter '%s' not found\n", dev_node);
 
         /* Open Windows TAP-Windows adapter */
-        snprintf (device_path, sizeof(device_path), "%s%s%s",
-                  USERMODEDEVICEDIR,
-                  device_guid,
-                  TAP_WIN_SUFFIX);
+        snprintf(device_path, sizeof(device_path), "%s%s%s",
+                 USERMODEDEVICEDIR,
+                 device_guid,
+                 TAP_WIN_SUFFIX);
 
-        tt->hand = CreateFile (
+        tt->hand = CreateFile(
             device_path,
             GENERIC_READ | GENERIC_WRITE,
             0,     /* was: FILE_SHARE_READ */
@@ -561,47 +531,43 @@ int open_tun (const char *dev, const char *dev_type, const char *dev_node, struc
         ULONG info[3];
         /* TODO TODO TODO */
         /* CLEAR (info); */
-        if (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_VERSION, &info, sizeof (info), &info, sizeof (info), &len, NULL))
-        {
-            dbg_tap_info ("TAP-Windows Driver Version %d.%d %s\n",
-                          (int) info[0],
-                          (int) info[1],
-                          (info[2] ? "(DEBUG)" : ""));
+        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_VERSION, &info, sizeof (info), &info, sizeof (info), &len, NULL)) {
+            dbg_tap_info("TAP-Windows Driver Version %d.%d %s\n",
+                         (int) info[0],
+                         (int) info[1],
+                         (info[2] ? "(DEBUG)" : ""));
 
         }
 
         if (!(info[0] == TAP_WIN_MIN_MAJOR && info[1] >= TAP_WIN_MIN_MINOR))
-            dbg_tap_info ("ERROR:  This version of " PACKAGE_NAME " requires a TAP-Windows driver that is at least version %d.%d  \
+            dbg_tap_info("ERROR:  This version of " PACKAGE_NAME " requires a TAP-Windows driver that is at least version %d.%d  \
                     -- If you recently upgraded your " PACKAGE_NAME " distribution,                             \
                     a reboot is probably required at this point to get Windows to see the new driver.\n",
-                          TAP_WIN_MIN_MAJOR,
-                          TAP_WIN_MIN_MINOR);
+                         TAP_WIN_MIN_MAJOR,
+                         TAP_WIN_MIN_MINOR);
 
         /* usage of numeric constants is ugly, but this is really tied to
          * *this* version of the driver
          */
-        if ( tt->ipv6 && tt->type == DEV_TYPE_TUN && info[0] == 9 && info[1] < 8)
-        {
+        if (tt->ipv6 && tt->type == DEV_TYPE_TUN && info[0] == 9 && info[1] < 8) {
             dbg_tap_info("WARNING:  Tap-Win32 driver version %d.%d does not support IPv6 in TUN mode.  IPv6 will be disabled. \
-                    Upgrade to Tap-Win32 9.8 (2.2-beta3 release or later) or use TAP mode to get IPv6\n", (int) info[0], (int) info[1] );
+                    Upgrade to Tap-Win32 9.8 (2.2-beta3 release or later) or use TAP mode to get IPv6\n", (int) info[0], (int) info[1]);
             tt->ipv6 = 0;
         }
 
         /* tap driver 9.8 (2.2.0 and 2.2.1 release) is buggy
          */
-        if ( tt->type == DEV_TYPE_TUN && info[0] == 9 && info[1] == 8)
-        {
-            dbg_tap_info("ERROR:  Tap-Win32 driver version %d.%d is buggy regarding small IPv4 packets in TUN mode.  Upgrade to Tap-Win32 9.9 (2.2.2 release or later) or use TAP mode\n", (int) info[0], (int) info[1] );
+        if (tt->type == DEV_TYPE_TUN && info[0] == 9 && info[1] == 8) {
+            dbg_tap_info("ERROR:  Tap-Win32 driver version %d.%d is buggy regarding small IPv4 packets in TUN mode.  Upgrade to Tap-Win32 9.9 (2.2.2 release or later) or use TAP mode\n", (int) info[0], (int) info[1]);
         }
     }
 
     /* get driver MTU */
     {
         ULONG mtu;
-        if (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_MTU,
-                             &mtu, sizeof (mtu),
-                             &mtu, sizeof (mtu), &len, NULL))
-        {
+        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_MTU,
+                            &mtu, sizeof (mtu),
+                            &mtu, sizeof (mtu), &len, NULL)) {
             tt->post_open_mtu = (int) mtu;
             dbg_tap_info("TAP-Windows MTU=%d\n", (int) mtu);
         }
@@ -613,10 +579,9 @@ int open_tun (const char *dev, const char *dev_type, const char *dev_node, struc
         uint8_t mac[6] = {
             0, 0, 0, 0, 0, 0
         };
-        if (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_MAC,
-                             mac, sizeof (mac),
-                             mac, sizeof (mac), &len, NULL))
-        {
+        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_MAC,
+                            mac, sizeof (mac),
+                            mac, sizeof (mac), &len, NULL)) {
             dbg_tap_info("TAP-Windows MAC=[%x,%x,%x,%x,%x,%x]\n", mac[0], mac[1], mac[2],
                          mac[2], mac[4], mac[5]);
             memcpy(tt->mac, mac, sizeof(mac));
@@ -625,22 +590,19 @@ int open_tun (const char *dev, const char *dev_type, const char *dev_node, struc
 
     /* set point-to-point mode if TUN device */
 
-    if (tt->type == DEV_TYPE_TUN)
-    {
+    if (tt->type == DEV_TYPE_TUN) {
         dbg_tap_info("TUN type not supported for now...\n");
         return -1;
-    }
-    else if (tt->type == DEV_TYPE_TAP)
-    { /* TAP DEVICE */
+    } else if (tt->type == DEV_TYPE_TAP) {   /* TAP DEVICE */
         dbg_tap_info("TODO: Set Point-to-point through DeviceIoControl\n");
     }
 
     /* set driver media status to 'connected' */
     {
         ULONG status = TRUE;
-        if (!DeviceIoControl (tt->hand, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
-                              &status, sizeof (status),
-                              &status, sizeof (status), &len, NULL))
+        if (!DeviceIoControl(tt->hand, TAP_WIN_IOCTL_SET_MEDIA_STATUS,
+                             &status, sizeof (status),
+                             &status, sizeof (status), &len, NULL))
             dbg_tap_info("WARNING: The TAP-Windows driver rejected a TAP_WIN_IOCTL_SET_MEDIA_STATUS DeviceIoControl call.");
     }
 
@@ -661,14 +623,12 @@ int open_tun (const char *dev, const char *dev_type, const char *dev_node, struc
 
 int tap_win_getinfo (const struct tuntap *tt, char *buf, int bufsize)
 {
-    if (tt && tt->hand != NULL && buf != NULL)
-    {
+    if (tt && tt->hand != NULL && buf != NULL) {
         DWORD len;
-        if (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_INFO,
-                             buf, bufsize,
-                             buf, bufsize,
-                             &len, NULL))
-        {
+        if (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_INFO,
+                            buf, bufsize,
+                            buf, bufsize,
+                            &len, NULL)) {
             return 0;
         }
     }
@@ -678,14 +638,12 @@ int tap_win_getinfo (const struct tuntap *tt, char *buf, int bufsize)
 
 void tun_show_debug (struct tuntap *tt, char *buf, int bufsize)
 {
-    if (tt && tt->hand != NULL && buf != NULL)
-    {
+    if (tt && tt->hand != NULL && buf != NULL) {
         DWORD len;
-        while (DeviceIoControl (tt->hand, TAP_WIN_IOCTL_GET_LOG_LINE,
-                                buf, bufsize,
-                                buf, bufsize,
-                                &len, NULL))
-        {
+        while (DeviceIoControl(tt->hand, TAP_WIN_IOCTL_GET_LOG_LINE,
+                               buf, bufsize,
+                               buf, bufsize,
+                               &len, NULL)) {
             dbg_tap_info("TAP-Windows: %s\n", buf);
         }
     }
@@ -695,8 +653,7 @@ void tun_show_debug (struct tuntap *tt, char *buf, int bufsize)
 /* returns the state */
 int tun_read_queue (struct tuntap *tt, uint8_t *buffer, int maxsize)
 {
-    if (tt->reads.iostate == IOSTATE_INITIAL)
-    {
+    if (tt->reads.iostate == IOSTATE_INITIAL) {
         DWORD len = 1500;
         BOOL status;
         int err;
@@ -710,7 +667,7 @@ int tun_read_queue (struct tuntap *tt, uint8_t *buffer, int maxsize)
             len = tt->reads.buf_len;
 
         /* the overlapped read will signal this event on I/O completion */
-        if (!ResetEvent (tt->reads.overlapped.hEvent))
+        if (!ResetEvent(tt->reads.overlapped.hEvent))
             dbg_tap("ResetEvent failed\n");
 
         status = ReadFile(
@@ -721,37 +678,31 @@ int tun_read_queue (struct tuntap *tt, uint8_t *buffer, int maxsize)
             &tt->reads.overlapped
             );
 
-        if (status) /* operation completed immediately? */
-        {
+        if (status) { /* operation completed immediately? */
             /* since we got an immediate return, we must signal the event object ourselves */
             /* ASSERT (SetEvent (tt->reads.overlapped.hEvent)); */
-            if (!SetEvent (tt->reads.overlapped.hEvent))
+            if (!SetEvent(tt->reads.overlapped.hEvent))
                 dbg_tap("SetEvent failed\n");
 
             tt->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
             tt->reads.status = 0;
 
-            dbg_tap_win32 ("WIN32 I/O: TAP Read immediate return [%d,%d]\n",
-                       (int) len,
-                       (int) tt->reads.size);
-        }
-        else
-        {
-            err = GetLastError ();
-            if (err == ERROR_IO_PENDING) /* operation queued? */
-            {
+            dbg_tap_win32("WIN32 I/O: TAP Read immediate return [%d,%d]\n",
+                          (int) len,
+                          (int) tt->reads.size);
+        } else {
+            err = GetLastError();
+            if (err == ERROR_IO_PENDING) { /* operation queued? */
                 tt->reads.iostate = IOSTATE_QUEUED;
                 tt->reads.status = err;
-                dbg_tap_win32 ("WIN32 I/O: TAP Read queued [%d]\n", (int) len);
-            }
-            else /* error occurred */
-            {
-                if (!SetEvent (tt->reads.overlapped.hEvent))
+                dbg_tap_win32("WIN32 I/O: TAP Read queued [%d]\n", (int) len);
+            } else {   /* error occurred */
+                if (!SetEvent(tt->reads.overlapped.hEvent))
                     dbg_tap("SetEvent failed\n");
 
                 tt->reads.iostate = IOSTATE_IMMEDIATE_RETURN;
                 tt->reads.status = err;
-                dbg_tap ("WIN32 I/O: TAP Read error [%d] : %d\n", (int) len, (int) err);
+                dbg_tap("WIN32 I/O: TAP Read error [%d] : %d\n", (int) len, (int) err);
             }
         }
     }
@@ -765,8 +716,7 @@ int tun_finalize(HANDLE h, struct overlapped_io *io, uint8_t **buf, uint32_t *bu
     int ret = -1;
     BOOL status;
 
-    switch (io->iostate)
-    {
+    switch (io->iostate) {
     case IOSTATE_QUEUED:
         status = GetOverlappedResult(
             h,
@@ -774,11 +724,9 @@ int tun_finalize(HANDLE h, struct overlapped_io *io, uint8_t **buf, uint32_t *bu
             &io->size,
             0u
             );
-        if (status)
-        {
+        if (status) {
             /* successful return for a queued operation */
-            if (buf)
-            {
+            if (buf) {
                 *buf = io->buf;
                 *buf_len = io->buf_len;
             }
@@ -786,22 +734,19 @@ int tun_finalize(HANDLE h, struct overlapped_io *io, uint8_t **buf, uint32_t *bu
             ret = io->size;
             io->iostate = IOSTATE_INITIAL;
 
-            if (!ResetEvent (io->overlapped.hEvent))
+            if (!ResetEvent(io->overlapped.hEvent))
                 dbg_tap("ResetEvent in finalize failed!\n");
 
-            dbg_tap_win32 ("WIN32 I/O: TAP Completion success: QUEUED! [%d]\n", ret);
-        }
-        else
-        {
+            dbg_tap_win32("WIN32 I/O: TAP Completion success: QUEUED! [%d]\n", ret);
+        } else {
             /* error during a queued operation */
             /* error, or just not completed? */
             ret = 0;
-            if (GetLastError() != ERROR_IO_INCOMPLETE)
-            {
+            if (GetLastError() != ERROR_IO_INCOMPLETE) {
                 /* if no error (i.e. just not finished yet),
                    then DON'T execute this code */
                 io->iostate = IOSTATE_INITIAL;
-                if (!ResetEvent (io->overlapped.hEvent))
+                if (!ResetEvent(io->overlapped.hEvent))
                     dbg_tap("ResetEvent in finalize failed!\n");
 
                 dbg_tap("WIN32 I/O: TAP Completion error\n");
@@ -813,36 +758,33 @@ int tun_finalize(HANDLE h, struct overlapped_io *io, uint8_t **buf, uint32_t *bu
 
     case IOSTATE_IMMEDIATE_RETURN:
         io->iostate = IOSTATE_INITIAL;
-        if (!ResetEvent (io->overlapped.hEvent))
+        if (!ResetEvent(io->overlapped.hEvent))
             dbg_tap("ResetEvent in finalize failed!\n");
 
-        if (io->status)
-        {
+        if (io->status) {
             /* error return for a non-queued operation */
-            SetLastError (io->status);
+            SetLastError(io->status);
             ret = -1;
             dbg_tap("WIN32 I/O: TAP Completion non-queued error\n");
-        }
-        else
-        {
+        } else {
             /* successful return for a non-queued operation */
             if (buf)
                 *buf = io->buf;
 
             ret = io->size;
-            dbg_tap_win32 ("WIN32 I/O: TAP Completion non-queued success [%d]\n", ret);
+            dbg_tap_win32("WIN32 I/O: TAP Completion non-queued success [%d]\n", ret);
         }
 
         break;
 
     case IOSTATE_INITIAL:     /* were we called without proper queueing? */
-        SetLastError (ERROR_INVALID_FUNCTION);
+        SetLastError(ERROR_INVALID_FUNCTION);
         ret = -1;
-        dbg_tap ("WIN32 I/O: TAP Completion BAD STATE\n");
+        dbg_tap("WIN32 I/O: TAP Completion BAD STATE\n");
         break;
 
     default:
-        dbg_tap ("Some weird case happened..\n");
+        dbg_tap("Some weird case happened..\n");
     }
 
     if (buf)
@@ -856,8 +798,7 @@ int tun_finalize(HANDLE h, struct overlapped_io *io, uint8_t **buf, uint32_t *bu
 /* returns the amount of bytes written */
 int tun_write_queue (struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
 {
-    if (tt->writes.iostate == IOSTATE_INITIAL)
-    {
+    if (tt->writes.iostate == IOSTATE_INITIAL) {
         BOOL status;
         int err;
 
@@ -867,7 +808,7 @@ int tun_write_queue (struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
         memcpy(tt->writes.buf, buf, buf_len);
 
         /* the overlapped write will signal this event on I/O completion */
-        if (!ResetEvent (tt->writes.overlapped.hEvent))
+        if (!ResetEvent(tt->writes.overlapped.hEvent))
             dbg_tap("ResetEvent in write_queue failed!\n");
 
         status = WriteFile(
@@ -878,38 +819,32 @@ int tun_write_queue (struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
             &tt->writes.overlapped
             );
 
-        if (status) /* operation completed immediately? */
-        {
+        if (status) { /* operation completed immediately? */
             tt->writes.iostate = IOSTATE_IMMEDIATE_RETURN;
 
             /* since we got an immediate return, we must signal the event object ourselves */
-            if (!SetEvent (tt->writes.overlapped.hEvent))
+            if (!SetEvent(tt->writes.overlapped.hEvent))
                 dbg_tap("SetEvent in write_queue failed!\n");
 
             tt->writes.status = 0;
 
-            dbg_tap_win32 ("WIN32 I/O: TAP Write immediate return [%d,%d]\n",
-                       (int)(tt->writes.buf_len),
-                       (int)tt->writes.size);
-        }
-        else
-        {
-            err = GetLastError ();
-            if (err == ERROR_IO_PENDING) /* operation queued? */
-            {
+            dbg_tap_win32("WIN32 I/O: TAP Write immediate return [%d,%d]\n",
+                          (int)(tt->writes.buf_len),
+                          (int)tt->writes.size);
+        } else {
+            err = GetLastError();
+            if (err == ERROR_IO_PENDING) { /* operation queued? */
                 tt->writes.iostate = IOSTATE_QUEUED;
                 tt->writes.status = err;
                 dbg_tap_win32("WIN32 I/O: TAP Write queued [%d]\n",
-                          (tt->writes.buf_len));
-            }
-            else /* error occurred */
-            {
-                if (!SetEvent (tt->writes.overlapped.hEvent))
+                              (tt->writes.buf_len));
+            } else {   /* error occurred */
+                if (!SetEvent(tt->writes.overlapped.hEvent))
                     dbg_tap("SetEvent in write_queue failed!\n");
 
                 tt->writes.iostate = IOSTATE_IMMEDIATE_RETURN;
                 tt->writes.status = err;
-                dbg_tap ("WIN32 I/O: TAP Write error [%d] : %d\n", (int) &tt->writes.buf_len, (int) err);
+                dbg_tap("WIN32 I/O: TAP Write error [%d] : %d\n", (int) &tt->writes.buf_len, (int) err);
             }
         }
     }
@@ -927,27 +862,23 @@ static int tun_write_win32 (struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
 {
     int err = 0;
     int status = 0;
-    if (overlapped_io_active (&tt->writes))
-    {
-        status = tun_finalize (tt->hand, &tt->writes, NULL, 0);
-        if (status == 0)
-        {
+    if (overlapped_io_active(&tt->writes)) {
+        status = tun_finalize(tt->hand, &tt->writes, NULL, 0);
+        if (status == 0) {
             /* busy, just wait, do not schedule a new write */
             return 0;
         }
 
         if (status < 0)
-            err = GetLastError ();
+            err = GetLastError();
     }
 
     /* the overlapped IO is done, now we can schedule a new write */
-    tun_write_queue (tt, buf, buf_len);
-    if (status < 0)
-    {
-        SetLastError (err);
+    tun_write_queue(tt, buf, buf_len);
+    if (status < 0) {
+        SetLastError(err);
         return status;
-    }
-    else
+    } else
         return buf_len;
 }
 
@@ -960,42 +891,34 @@ static int tun_read_win32 (struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
 
 
     /* First, finish possible pending IOs */
-    if (overlapped_io_active (&tt->reads))
-    {
-        status = tun_finalize (tt->hand, &tt->reads, &buf, &buf_len);
-        if (status == 0)
-        {
+    if (overlapped_io_active(&tt->reads)) {
+        status = tun_finalize(tt->hand, &tt->reads, &buf, &buf_len);
+        if (status == 0) {
             /* busy, just wait, do not schedule a new read */
             return 0;
         }
 
-        if (status < 0)
-        {
-            dbg_tap ("tun_finalize status < 0: %d\n", status);
-            err = GetLastError ();
+        if (status < 0) {
+            dbg_tap("tun_finalize status < 0: %d\n", status);
+            err = GetLastError();
         }
 
-        if (status > 0)
-        {
+        if (status > 0) {
             return buf_len;
         }
     }
 
     /* If no pending IOs, schedule a new read */
     /* queue, or immediate return */
-    if (IOSTATE_IMMEDIATE_RETURN == tun_read_queue(tt, buf, buf_len))
-    {
+    if (IOSTATE_IMMEDIATE_RETURN == tun_read_queue(tt, buf, buf_len)) {
         return tt->reads.size;
     }
 
     /* If the pending IOs gave an error, report it */
-    if (status < 0)
-    {
-        SetLastError (err);
+    if (status < 0) {
+        SetLastError(err);
         return status;
-    }
-    else
-    {
+    } else {
         /* no errors, but the newly scheduled read is now pending */
         return 0;
     }
@@ -1004,12 +927,12 @@ static int tun_read_win32 (struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
 
 static int read_tun_buffered(struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
 {
-    return tun_read_win32 (tt, buf, buf_len);
+    return tun_read_win32(tt, buf, buf_len);
 }
 
 static int write_tun_buffered(struct tuntap *tt, uint8_t *buf, uint32_t buf_len)
 {
-    return tun_write_win32 (tt, buf, buf_len);
+    return tun_write_win32(tt, buf, buf_len);
 }
 
 
@@ -1021,7 +944,7 @@ static int pico_tap_send(struct pico_device *dev, void *buf, int len)
     /* Increase the statistic count */
     tap->statistics_frames_out++;
 
-    bytes_sent = write_tun_buffered (tap->tt, buf, len);
+    bytes_sent = write_tun_buffered(tap->tt, buf, len);
     dbg_tap("TX> sent %d bytes\n", bytes_sent);
 
     /* Discard the frame content silently. */
@@ -1033,17 +956,14 @@ uint8_t recv_buffer[1500];
 static int pico_tap_poll(struct pico_device *dev, int loop_score)
 {
     struct pico_device_tap *tap = (struct pico_device_tap *) dev;
-    while (loop_score)
-    {
+    while (loop_score) {
         int bytes_read = read_tun_buffered(tap->tt, recv_buffer, 1500);
         loop_score--;
-        if (bytes_read > 0)
-        {
+        if (bytes_read > 0) {
             dbg_tap("RX< recvd: %d bytes\n", bytes_read);
             pico_stack_recv(dev, recv_buffer, bytes_read);
             /* break; */
-        }
-        else
+        } else
             break;
     }
     return loop_score;
@@ -1055,12 +975,12 @@ static int pico_tap_poll(struct pico_device *dev, int loop_score)
 
 void overlapped_io_init (struct overlapped_io *o, int event_state)
 {
-    CLEAR (*o);
+    CLEAR(*o);
 
     /* manual reset event, initially set according to event_state */
-    o->overlapped.hEvent = CreateEvent (NULL, TRUE, event_state, NULL);
+    o->overlapped.hEvent = CreateEvent(NULL, TRUE, event_state, NULL);
     if (o->overlapped.hEvent == NULL)
-        dbg_tap ("Error: overlapped_io_init: CreateEvent failed\n");
+        dbg_tap("Error: overlapped_io_init: CreateEvent failed\n");
 
     /* allocate buffer for overlapped I/O */
     o->buf_init = PICO_ZALLOC(1500); /* XXX: MTU */
@@ -1074,8 +994,8 @@ void overlapped_io_init (struct overlapped_io *o, int event_state)
 void init_tun_post (struct tuntap *tt)
 {
     dbg_tap("TUN post init (for overlapped io)\n");
-    overlapped_io_init (&tt->reads, FALSE);
-    overlapped_io_init (&tt->writes, TRUE);
+    overlapped_io_init(&tt->reads, FALSE);
+    overlapped_io_init(&tt->writes, TRUE);
     tt->rw_handle.read = tt->reads.overlapped.hEvent;
     tt->rw_handle.write = tt->writes.overlapped.hEvent;
 }
@@ -1102,8 +1022,7 @@ struct pico_device *pico_tap_create(struct pico_stack *S, char *name, uint8_t *m
     show_tap_win_adapters();
 
     tt->type = DEV_TYPE_TAP;
-    if (open_tun(NULL, NULL, "tap0", tt))
-    {
+    if (open_tun(NULL, NULL, "tap0", tt)) {
         dbg_tap("Failed to create TAP device!\n");
         PICO_FREE(tt);
         PICO_FREE(tap);
@@ -1112,7 +1031,7 @@ struct pico_device *pico_tap_create(struct pico_stack *S, char *name, uint8_t *m
 
     tap->tt = tt;
 
-    if( 0 != pico_device_init(S, (struct pico_device *)tap, name, mac)) {
+    if (0 != pico_device_init(S, (struct pico_device *)tap, name, mac)) {
         return NULL;
     }
 

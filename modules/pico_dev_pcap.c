@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -79,8 +79,8 @@ static struct pico_device *pico_pcap_create(struct pico_stack *S, char *if_file_
     if (!pcap)
         return NULL;
 
-    if( 0 != pico_device_init(S, (struct pico_device *)pcap, name, mac)) {
-        dbg ("Pcap init failed.\n");
+    if (0 != pico_device_init(S, (struct pico_device *)pcap, name, mac)) {
+        dbg("Pcap init failed.\n");
         pico_pcap_destroy((struct pico_device *)pcap);
         return NULL;
     }

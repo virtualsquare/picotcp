@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Michiel Kustermans
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -54,7 +54,7 @@ static int pico_ipc_poll(struct pico_device *dev, int loop_score)
     int len;
     pfd.fd = ipc->fd;
     pfd.events = POLLIN;
-    do  {
+    do {
         if (poll(&pfd, 1, 0) <= 0)
             return loop_score;
 
@@ -63,7 +63,7 @@ static int pico_ipc_poll(struct pico_device *dev, int loop_score)
             loop_score--;
             pico_stack_recv(dev, buf, (uint32_t)len);
         }
-    } while(loop_score > 0);
+    } while (loop_score > 0);
     return 0;
 }
 
@@ -72,7 +72,7 @@ static int pico_ipc_poll(struct pico_device *dev, int loop_score)
 void pico_ipc_destroy(struct pico_device *dev)
 {
     struct pico_device_ipc *ipc = (struct pico_device_ipc *) dev;
-    if(ipc->fd > 0) {
+    if (ipc->fd > 0) {
         close(ipc->fd);
     }
 }
@@ -82,8 +82,8 @@ static int ipc_connect(const char *sock_path)
     struct sockaddr_un addr;
     int ipc_fd;
 
-    if((ipc_fd = socket(AF_UNIX, SOCK_SEQPACKET, 0)) < 0) {
-        return(-1);
+    if ((ipc_fd = socket(AF_UNIX, SOCK_SEQPACKET, 0)) < 0) {
+        return -1;
     }
 
     memset(&addr, 0, sizeof(addr));
@@ -91,8 +91,8 @@ static int ipc_connect(const char *sock_path)
     strncpy(addr.sun_path, sock_path, sizeof(addr.sun_path) - 1);
     addr.sun_path[sizeof(addr.sun_path) - 1] = '\0';
 
-    if(connect(ipc_fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)) < 0) {
-        return(-1);
+    if (connect(ipc_fd, (struct sockaddr *) &addr, sizeof(struct sockaddr_un)) < 0) {
+        return -1;
     }
 
     return ipc_fd;
@@ -107,7 +107,7 @@ struct pico_device *pico_ipc_create(struct pico_stack *S, const char *sock_path,
 
     ipc->dev.mtu = IPC_MTU;
 
-    if( 0 != pico_device_init(S, (struct pico_device *)ipc, name, mac)) {
+    if (0 != pico_device_init(S, (struct pico_device *)ipc, name, mac)) {
         dbg("Ipc init failed.\n");
         pico_ipc_destroy((struct pico_device *)ipc);
         return NULL;

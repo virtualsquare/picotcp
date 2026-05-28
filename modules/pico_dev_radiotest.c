@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera, Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -68,7 +68,7 @@
  ******************************************************************************/
 
 /* Uncomment next line to enable Random packet loss (specify percentage) */
-//#define PACKET_LOSS   3
+/*#define PACKET_LOSS   3 */
 
 #define RFDEV_PANID      0xABCD
 #define MC_ADDR_BE       0x010101EBU
@@ -127,7 +127,7 @@ static void radiotest_pcap_open(struct radiotest_radio *dev, char *dump)
 #endif
     if (!dev->pcap) {
         perror("LibPCAP");
-        exit (1);
+        exit(1);
     }
 
     /* Construct file path */
@@ -293,7 +293,6 @@ static uint16_t calculate_crc16(uint8_t *buf, uint8_t len)
         q = (crc ^ (c >> 4)) & 0xF;
         crc = (uint16_t)((uint16_t)(crc >> 4) ^ (q * 0x1081));
     }
-
     return crc;
 }
 
@@ -302,7 +301,7 @@ static int radiotest_poll(struct pico_device *dev, int loop_score)
 {
     struct radiotest_radio *radio = (struct radiotest_radio *)dev;
     union pico_ll_addr src = {0}, dst = {0};
-    int pollret, ret_len=0;
+    int pollret, ret_len = 0;
     struct pollfd p;
     uint8_t buf[128];
     uint8_t phy = 0;
@@ -401,7 +400,7 @@ static int radiotest_send(struct pico_device *dev, void *_buf, int len, union pi
 
     /* Store the addresses in buffer for management */
     memcpy(buf, _buf, (size_t)len);
-    len = (uint16_t)(len + (uint16_t)RADIO_OVERHEAD); // CRC + ID
+    len = (uint16_t)(len + (uint16_t)RADIO_OVERHEAD); /* CRC + ID */
     buf[len - 2] = (uint8_t)short_be(radio->addr.addr_short.addr);
     buf[len - 1] = did;
 
@@ -482,10 +481,10 @@ struct pico_device *pico_radiotest_create(struct pico_stack *S, uint8_t addr, ui
     radiotest_gen_ex(radio->addr.addr_short, radio->addr.addr_ext.addr);
     RADIO_DBG("Radiotest short address: 0x%04X\n", short_be(radio->addr.addr_short.addr));
     RADIO_DBG("Radiotest ext address: %02X:%02X:%02X:%02X:%02X:%02X:%02X:%02X\n",
-           radio->addr.addr_ext.addr[0],radio->addr.addr_ext.addr[1],
-           radio->addr.addr_ext.addr[2],radio->addr.addr_ext.addr[3],
-           radio->addr.addr_ext.addr[4],radio->addr.addr_ext.addr[5],
-           radio->addr.addr_ext.addr[6],radio->addr.addr_ext.addr[7]);
+              radio->addr.addr_ext.addr[0], radio->addr.addr_ext.addr[1],
+              radio->addr.addr_ext.addr[2], radio->addr.addr_ext.addr[3],
+              radio->addr.addr_ext.addr[4], radio->addr.addr_ext.addr[5],
+              radio->addr.addr_ext.addr[6], radio->addr.addr_ext.addr[7]);
 
     if (!loop) {
         if ((connection = radiotest_connect(addr, area0, area1)) <= 0) {

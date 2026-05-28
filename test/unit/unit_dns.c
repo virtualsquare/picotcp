@@ -16,7 +16,7 @@ void cb_dns(char *ip, void *arg)
 }
 
 
-START_TEST (test_dns)
+START_TEST(test_dns)
 {
     int ret;
     char url[] = "www.google.com";

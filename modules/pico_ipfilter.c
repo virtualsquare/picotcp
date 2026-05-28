@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Andrei Carp, Simon Maes
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -300,7 +300,7 @@ int filter_compare(void *filterA, void *filterB)
     }
 
     /* improve the search */
-    if(a->filter_id == b->filter_id)
+    if (a->filter_id == b->filter_id)
         return 0;
 
     /* 1. Compare devices */
@@ -310,7 +310,7 @@ int filter_compare(void *filterA, void *filterB)
 
     /* 2. Compare protocol */
     cmp = filter_compare_proto(a, b);
-    if(cmp)
+    if (cmp)
         return cmp;
 
     /* 3. Compare addresses order: in, out */
@@ -353,8 +353,7 @@ struct fp_function {
 };
 
 
-static const struct fp_function fp_function[FILTER_COUNT] =
-{
+static const struct fp_function fp_function[FILTER_COUNT] = {
     {&fp_priority},
     {&fp_reject},
     {&fp_drop}
@@ -362,7 +361,7 @@ static const struct fp_function fp_function[FILTER_COUNT] =
 
 static int pico_ipv4_filter_add_validate(int8_t priority, enum filter_action action)
 {
-    if ( priority > MAX_PRIORITY || priority < MIN_PRIORITY) {
+    if (priority > MAX_PRIORITY || priority < MIN_PRIORITY) {
         return -1;
     }
 
@@ -408,8 +407,7 @@ uint32_t pico_ipv4_filter_add(struct pico_device *dev, uint8_t proto,
     new_filter->filter_id = filter_id++;
     new_filter->function_ptr = fp_function[action].fn;
 
-    if(pico_tree_insert(&dev->stack->ipfilter_tree, new_filter))
-    {
+    if (pico_tree_insert(&dev->stack->ipfilter_tree, new_filter)) {
         PICO_FREE(new_filter);
         filter_id--;
         return 0;
@@ -426,8 +424,7 @@ int pico_ipv4_filter_del(struct pico_stack *S, uint32_t filter_id)
     };
 
     dummy.filter_id = filter_id;
-    if((node = pico_tree_delete(&S->ipfilter_tree, &dummy)) == NULL)
-    {
+    if ((node = pico_tree_delete(&S->ipfilter_tree, &dummy)) == NULL) {
         ipf_dbg("ipfilter> failed to delete filter :%d\n", filter_id);
         return -1;
     }
@@ -440,8 +437,7 @@ static int ipfilter_apply_filter(struct pico_frame *f, struct filter_node *pkt)
 {
     struct filter_node *filter_frame = NULL;
     filter_frame = pico_tree_findKey(&f->dev->stack->ipfilter_tree, pkt);
-    if(filter_frame)
-    {
+    if (filter_frame) {
         filter_frame->function_ptr(filter_frame, f);
         return 1;
     }
@@ -463,12 +459,12 @@ int ipfilter(struct pico_frame *f)
     temp.in_addr = ipv4_hdr->src.addr;
     if ((f->transport_hdr + sizeof(struct pico_trans)) <= (f->buffer + f->buffer_len)) {
         if ((ipv4_hdr->proto == PICO_PROTO_TCP) || (ipv4_hdr->proto == PICO_PROTO_UDP)) {
-                trans = (struct pico_trans *) f->transport_hdr;
-                temp.out_port = short_be(trans->dport);
-                temp.in_port = short_be(trans->sport);
-        } else if(ipv4_hdr->proto == PICO_PROTO_ICMP4) {
+            trans = (struct pico_trans *) f->transport_hdr;
+            temp.out_port = short_be(trans->dport);
+            temp.in_port = short_be(trans->sport);
+        } else if (ipv4_hdr->proto == PICO_PROTO_ICMP4) {
             icmp_hdr = (struct pico_icmp4_hdr *) f->transport_hdr;
-            if(icmp_hdr->type == PICO_ICMP_UNREACH && icmp_hdr->code == PICO_ICMP_UNREACH_FILTER_PROHIB)
+            if (icmp_hdr->type == PICO_ICMP_UNREACH && icmp_hdr->code == PICO_ICMP_UNREACH_FILTER_PROHIB)
                 return 0;
         }
         temp.proto = ipv4_hdr->proto;

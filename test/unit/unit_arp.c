@@ -8,7 +8,7 @@ static struct pico_frame *init_frame(struct pico_device *dev)
     return f;
 }
 
-START_TEST (arp_update_max_arp_reqs_test)
+START_TEST(arp_update_max_arp_reqs_test)
 {
     struct pico_stack *S = NULL;
 

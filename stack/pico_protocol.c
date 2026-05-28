@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ static int pico_proto_cmp(void *ka, void *kb)
 static int proto_loop_in(struct pico_stack *S, struct pico_protocol *proto, int loop_score)
 {
     struct pico_frame *f;
-    while(loop_score > 0) {
+    while (loop_score > 0) {
         if (proto->q_in->frames == 0)
             break;
 
@@ -60,7 +60,7 @@ static int proto_loop_in(struct pico_stack *S, struct pico_protocol *proto, int 
 static int proto_loop_out(struct pico_stack *S, struct pico_protocol *proto, int loop_score)
 {
     struct pico_frame *f;
-    while(loop_score > 0) {
+    while (loop_score > 0) {
         if (proto->q_out->frames == 0)
             break;
 
@@ -77,7 +77,7 @@ void proto_full_loop_in(struct pico_stack *S, void *arg)
 {
     struct pico_protocol *proto = (struct pico_protocol *)arg;
     struct pico_frame *f;
-    while(1) {
+    while (1) {
         if (proto->q_in->frames <= 0)
             break;
 
@@ -90,7 +90,7 @@ void proto_full_loop_out(struct pico_stack *S, void *arg)
 {
     struct pico_protocol *proto = (struct pico_protocol *)arg;
     struct pico_frame *f;
-    while(1) {
+    while (1) {
         if (proto->q_out->frames <= 0)
             break;
 
@@ -157,8 +157,7 @@ static int pico_protocol_generic_loop(struct pico_stack *S, struct pico_proto_rr
         loop_score = proto_loop(S, next, loop_score, direction);
         next_node = pico_tree_next(next_node);
         next = next_node->keyValue;
-        if (next == NULL)
-        {
+        if (next == NULL) {
             next_node = pico_tree_firstNode(rr->t->root);
             next = next_node->keyValue;
         }
@@ -234,25 +233,25 @@ void pico_protocol_init(struct pico_stack *S, struct pico_protocol *p)
 
     p->hash = pico_hash(p->name, (uint32_t)strlen(p->name));
     switch (p->layer) {
-        case PICO_LAYER_DATALINK:
-            tree = &S->sched->Datalink_proto_tree;
-            proto = &S->sched->rr_datalink;
-            break;
-        case PICO_LAYER_NETWORK:
-            tree = &S->sched->Network_proto_tree;
-            proto = &S->sched->rr_network;
-            break;
-        case PICO_LAYER_TRANSPORT:
-            tree = &S->sched->Transport_proto_tree;
-            proto = &S->sched->rr_transport;
-            break;
-        case PICO_LAYER_SOCKET:
-            tree = &S->sched->Socket_proto_tree;
-            proto = &S->sched->rr_socket;
-            break;
-        default:
-            dbg("Unknown protocol: %s (layer: %d)\n", p->name, p->layer);
-            return;
+    case PICO_LAYER_DATALINK:
+        tree = &S->sched->Datalink_proto_tree;
+        proto = &S->sched->rr_datalink;
+        break;
+    case PICO_LAYER_NETWORK:
+        tree = &S->sched->Network_proto_tree;
+        proto = &S->sched->rr_network;
+        break;
+    case PICO_LAYER_TRANSPORT:
+        tree = &S->sched->Transport_proto_tree;
+        proto = &S->sched->rr_transport;
+        break;
+    case PICO_LAYER_SOCKET:
+        tree = &S->sched->Socket_proto_tree;
+        proto = &S->sched->rr_socket;
+        break;
+    default:
+        dbg("Unknown protocol: %s (layer: %d)\n", p->name, p->layer);
+        return;
     }
     dbg("Protocol %s registered (layer: %d).\n", p->name, p->layer);
 

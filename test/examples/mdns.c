@@ -15,9 +15,9 @@ static struct pico_stack *stack = NULL;
 
 static int fully_initialized = 0;
 
-void mdns_init_callback( pico_mdns_rtree *rtree,
-                         char *str,
-                         void *arg )
+void mdns_init_callback(pico_mdns_rtree *rtree,
+                        char *str,
+                        void *arg)
 {
     printf("\nInitialised with hostname: %s\n\n", str);
 
@@ -36,17 +36,17 @@ void app_mdns(struct pico_stack *S, char *arg, struct pico_ip4 address)
         exit(255);
 
     nxt = cpy_arg(&hostname, nxt);
-    if(!hostname) {
+    if (!hostname) {
         exit(255);
     }
 
-    if(!nxt) {
+    if (!nxt) {
         printf("Not enough args supplied!\n");
         exit(255);
     }
 
     nxt = cpy_arg(&peername, nxt);
-    if(!peername) {
+    if (!peername) {
         exit(255);
     }
 
@@ -67,7 +67,7 @@ void app_mdns(struct pico_stack *S, char *arg, struct pico_ip4 address)
     starttime = PICO_TIME_MS();
     printf("Starting time: %d\n", starttime);
 
-    while(1) {
+    while (1) {
         pico_stack_tick(S);
         usleep(2000);
 

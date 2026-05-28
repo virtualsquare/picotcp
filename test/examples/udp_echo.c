@@ -197,16 +197,16 @@ void app_udpecho(struct pico_stack *S, char *arg)
 
     /* free strdups */
     if (baddr)
-        free (baddr);
+        free(baddr);
 
     if (lport)
-        free (lport);
+        free(lport);
 
     if (sport)
-        free (sport);
+        free(sport);
 
     if (s_datasize)
-        free (s_datasize);
+        free(s_datasize);
 
     return;
 

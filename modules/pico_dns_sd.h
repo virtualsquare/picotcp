@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -54,13 +54,11 @@ typedef struct
  *  See pico_mdns.h for description.
  * ****************************************************************************/
 int
-pico_dns_sd_init( struct pico_stack *S,
-                  const char *_hostname,
-                  struct pico_ip4 address,
-                  void (*callback)(pico_mdns_rtree *,
-                                   char *,
-                                   void *),
-                  void *arg );
+pico_dns_sd_init(struct pico_stack *S,
+                 const char *_hostname,
+                 struct pico_ip4 address,
+                 void (*callback)(pico_mdns_rtree *, char *, void *),
+                 void *arg);
 
 /* ****************************************************************************
  *  Register a DNS-SD service via Multicast DNS on the local network.
@@ -76,16 +74,14 @@ pico_dns_sd_init( struct pico_stack *S,
  *  @return
  * ****************************************************************************/
 int
-pico_dns_sd_register_service( struct pico_stack *S,
-                              const char *name,
-                              const char *type,
-                              uint16_t port,
-                              kv_vector *txt_data,
-                              uint16_t ttl,
-                              void (*callback)(pico_mdns_rtree *,
-                                               char *,
-                                               void *),
-                              void *arg);
+pico_dns_sd_register_service(struct pico_stack *S,
+                             const char *name,
+                             const char *type,
+                             uint16_t port,
+                             kv_vector *txt_data,
+                             uint16_t ttl,
+                             void (*callback)(pico_mdns_rtree *, char *, void *),
+                             void *arg);
 
 /* ****************************************************************************
  *  Does nothing for now.
@@ -95,11 +91,9 @@ pico_dns_sd_register_service( struct pico_stack *S,
  *  @return When the module successfully started browsing the servicetype.
  * ****************************************************************************/
 int
-pico_dns_sd_browse_service( const char *type,
-                            void (*callback)(pico_mdns_rtree *,
-                                             char *,
-                                             void *),
-                            void *arg );
+pico_dns_sd_browse_service(const char *type,
+                           void (*callback)(pico_mdns_rtree *, char *, void *),
+                           void *arg);
 
 /* ****************************************************************************
  *  Add a key-value pair the a key-value pair vector.
@@ -111,7 +105,7 @@ pico_dns_sd_browse_service( const char *type,
  *			failure.
  * ****************************************************************************/
 int
-pico_dns_sd_kv_vector_add( kv_vector *vector, char *key, char *value );
+pico_dns_sd_kv_vector_add(kv_vector *vector, char *key, char *value);
 
 
 #endif /* _INCLUDE_PICO_DNS_SD */

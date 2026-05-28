@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Toon Stegen, Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -60,7 +60,7 @@
  *  @return 0 when the length is correct
  * ****************************************************************************/
 int
-pico_dns_check_namelen( uint16_t namelen )
+pico_dns_check_namelen(uint16_t namelen)
 {
     return ((namelen > 2u) && (namelen < PICO_DNS_NAMEBUF_SIZE)) ? (0) : (-1);
 }
@@ -75,7 +75,7 @@ pico_dns_check_namelen( uint16_t namelen )
  *			like a trailing zero-byte
  * ****************************************************************************/
 uint16_t
-pico_dns_namelen_comp( char *name )
+pico_dns_namelen_comp(char *name)
 {
     uint16_t len = 0;
     char *label = NULL, *next = NULL;
@@ -94,7 +94,7 @@ pico_dns_namelen_comp( char *name )
 
     /* Calculate the length */
     len = (uint16_t)(label - name);
-    if(*label != '\0')
+    if (*label != '\0')
         len++;
 
     return len;
@@ -110,7 +110,7 @@ pico_dns_namelen_comp( char *name )
  *  @return Returns the decompressed name, NULL on failure.
  * ****************************************************************************/
 char *
-pico_dns_decompress_name( char *name, pico_dns_packet *packet )
+pico_dns_decompress_name(char *name, pico_dns_packet *packet)
 {
     char decompressed_name[PICO_DNS_NAMEBUF_SIZE] = {
         0
@@ -124,12 +124,12 @@ pico_dns_decompress_name( char *name, pico_dns_packet *packet )
      * Only one pointer is allowed in DNS compression, the pointer is always the last according to the RFC */
     dns_name_foreach_label_safe(label, name, next, PICO_DNS_NAMEBUF_SIZE) {
 
-        uint8_t label_size = (uint8_t)(*label+1);
+        uint8_t label_size = (uint8_t)(*label + 1);
         if (decompressed_index + label_size >= PICO_DNS_NAMEBUF_SIZE) {
             return NULL;
         }
         memcpy(&decompressed_name[decompressed_index], label, label_size);
-        decompressed_index = (uint16_t)(decompressed_index+label_size);
+        decompressed_index = (uint16_t)(decompressed_index + label_size);
     }
 
     if (decompressed_index >= PICO_DNS_NAMEBUF_SIZE) {
@@ -142,7 +142,7 @@ pico_dns_decompress_name( char *name, pico_dns_packet *packet )
         ptr = (uint16_t)(ptr | (uint16_t) *(label + 1));
         label = (char *)((uint8_t *)packet + ptr);
 
-        dns_name_foreach_label_safe(label, label, next, PICO_DNS_NAMEBUF_SIZE-decompressed_index) {
+        dns_name_foreach_label_safe(label, label, next, PICO_DNS_NAMEBUF_SIZE - decompressed_index) {
             uint8_t label_size = (uint8_t)(*label + 1);
             if (decompressed_index + label_size >= PICO_DNS_NAMEBUF_SIZE) {
                 return NULL;
@@ -161,7 +161,7 @@ pico_dns_decompress_name( char *name, pico_dns_packet *packet )
 
     /* Provide storage for the name to return */
     nslen = (uint16_t)(pico_dns_strlen(decompressed_name) + 1);
-    if(!(return_name = PICO_ZALLOC((size_t)nslen))) {
+    if (!(return_name = PICO_ZALLOC((size_t)nslen))) {
         pico_err = PICO_ERR_ENOMEM;
         return NULL;
     }
@@ -183,9 +183,9 @@ pico_dns_decompress_name( char *name, pico_dns_packet *packet )
  *  @return Returns the length of the reverse name
  * ****************************************************************************/
 static uint16_t
-pico_dns_url_get_reverse_len( const char *url,
-                              uint16_t *arpalen,
-                              uint16_t proto )
+pico_dns_url_get_reverse_len(const char *url,
+                             uint16_t *arpalen,
+                             uint16_t proto)
 {
     uint16_t slen = (uint16_t)(pico_dns_strlen(url) + 2u);
 
@@ -200,8 +200,7 @@ pico_dns_url_get_reverse_len( const char *url,
         *arpalen = (uint16_t) pico_dns_strlen(PICO_ARPA_IPV4_SUFFIX);
 
 #ifdef PICO_SUPPORT_IPV6
-    else if (proto == PICO_PROTO_IPV6)
-    {
+    else if (proto == PICO_PROTO_IPV6) {
         *arpalen = (uint16_t) pico_dns_strlen(PICO_ARPA_IPV6_SUFFIX);
         slen = STRLEN_PTR_IP6 + 2u;
     }
@@ -219,7 +218,7 @@ pico_dns_url_get_reverse_len( const char *url,
  *  @return Returns a pointer to a string-buffer with the reverse DNS name.
  * ****************************************************************************/
 static char *
-pico_dns_url_to_reverse_qname( const char *url, uint8_t proto )
+pico_dns_url_to_reverse_qname(const char *url, uint8_t proto)
 {
     char *reverse_qname = NULL;
     uint16_t arpalen = 0;
@@ -270,7 +269,7 @@ pico_dns_url_to_reverse_qname( const char *url, uint8_t proto )
  *  @return Returns a pointer to a string-buffer with the URL name on success.
  * ****************************************************************************/
 char *
-pico_dns_qname_to_url( const char *qname )
+pico_dns_qname_to_url(const char *qname)
 {
     char *url = NULL;
     char temp[PICO_DNS_NAMEBUF_SIZE] = {
@@ -307,7 +306,7 @@ pico_dns_qname_to_url( const char *qname )
  *  @return Returns a pointer to a string-buffer with the DNS name on success.
  * ****************************************************************************/
 char *
-pico_dns_url_to_qname( const char *url )
+pico_dns_url_to_qname(const char *url)
 {
     char *qname = NULL;
     uint16_t namelen = (uint16_t)(pico_dns_strlen(url) + 2u);
@@ -335,7 +334,7 @@ pico_dns_url_to_qname( const char *url )
  *  @return Length of string-buffer in an uint16_t
  * ****************************************************************************/
 uint16_t
-pico_dns_strlen( const char *url )
+pico_dns_strlen(const char *url)
 {
     if (!url)
         return 0;
@@ -354,7 +353,7 @@ pico_dns_strlen( const char *url )
  *  @param maxlen Maximum length of buffer so it doesn't cause a buffer overflow
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
-int pico_dns_name_to_dns_notation( char *url, uint16_t maxlen )
+int pico_dns_name_to_dns_notation(char *url, uint16_t maxlen)
 {
     char c = '\0';
     char *lbl = url, *i = url;
@@ -388,7 +387,7 @@ int pico_dns_name_to_dns_notation( char *url, uint16_t maxlen )
  *  @param maxlen Maximum length of buffer so it doesn't cause a buffer overflow
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
-int pico_dns_notation_to_name( char *ptr, uint16_t maxlen )
+int pico_dns_notation_to_name(char *ptr, uint16_t maxlen)
 {
     char *label = NULL, *next = NULL;
 
@@ -407,7 +406,7 @@ int pico_dns_notation_to_name( char *ptr, uint16_t maxlen )
  *  @return Length of the first label of DNS name in URL-format
  * ****************************************************************************/
 uint16_t
-pico_dns_first_label_length( const char *url )
+pico_dns_first_label_length(const char *url)
 {
     const char *i = NULL;
     uint16_t len = 0;
@@ -432,7 +431,7 @@ pico_dns_first_label_length( const char *url )
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_dns_mirror_addr( char *ip )
+pico_dns_mirror_addr(char *ip)
 {
     uint32_t addr = 0;
 
@@ -457,7 +456,7 @@ pico_dns_mirror_addr( char *ip )
  *  @return The ASCII value of the Most Significant Nibble of the byte
  * ****************************************************************************/
 static inline char
-dns_ptr_ip6_nibble_lo( uint8_t byte )
+dns_ptr_ip6_nibble_lo(uint8_t byte)
 {
     uint8_t nibble = byte & 0x0f;
     if (nibble < 10)
@@ -473,7 +472,7 @@ dns_ptr_ip6_nibble_lo( uint8_t byte )
  *  @return The ASCII value of the Least Significant Nibble of the byte
  * ****************************************************************************/
 static inline char
-dns_ptr_ip6_nibble_hi( uint8_t byte )
+dns_ptr_ip6_nibble_hi(uint8_t byte)
 {
     uint8_t nibble = (byte & 0xf0u) >> 4u;
     if (nibble < 10u)
@@ -490,7 +489,7 @@ dns_ptr_ip6_nibble_hi( uint8_t byte )
  *  @param dst Destination to store IPv6-address in nibble-format
  * ****************************************************************************/
 void
-pico_dns_ipv6_set_ptr( const char *ip, char *dst )
+pico_dns_ipv6_set_ptr(const char *ip, char *dst)
 {
     int i = 0, j = 0;
     struct pico_ip6 ip6;
@@ -517,7 +516,7 @@ pico_dns_ipv6_set_ptr( const char *ip, char *dst )
  *  @param question Void-point to DNS Question
  *  @return Size in bytes of single DNS Question if it was copied flat.
  * ****************************************************************************/
-static uint16_t pico_dns_question_size( void *question )
+static uint16_t pico_dns_question_size(void *question)
 {
     uint16_t size = 0;
     struct pico_dns_question *q = (struct pico_dns_question *)question;
@@ -537,7 +536,7 @@ static uint16_t pico_dns_question_size( void *question )
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_dns_question_delete( void **question )
+pico_dns_question_delete(void **question)
 {
     struct pico_dns_question **q = (struct pico_dns_question **)question;
 
@@ -571,9 +570,9 @@ pico_dns_question_delete( void **question )
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_dns_question_fill_suffix( struct pico_dns_question_suffix *suf,
-                               uint16_t qtype,
-                               uint16_t qclass )
+pico_dns_question_fill_suffix(struct pico_dns_question_suffix *suf,
+                              uint16_t qtype,
+                              uint16_t qclass)
 {
     if (!suf)
         return -1;
@@ -601,11 +600,11 @@ pico_dns_question_fill_suffix( struct pico_dns_question_suffix *suf,
  *  @return The eventual length of the generated name, 0 on failure.
  * ****************************************************************************/
 static uint16_t
-pico_dns_question_fill_name( char **qname,
-                             const char *url,
-                             uint16_t qtype,
-                             uint8_t proto,
-                             uint8_t reverse )
+pico_dns_question_fill_name(char **qname,
+                            const char *url,
+                            uint16_t qtype,
+                            uint8_t proto,
+                            uint8_t reverse)
 {
     uint16_t slen = 0;
 
@@ -640,12 +639,12 @@ pico_dns_question_fill_name( char **qname,
  *			failure.
  * ****************************************************************************/
 struct pico_dns_question *
-pico_dns_question_create( const char *url,
-                          uint16_t *len,
-                          uint8_t proto,
-                          uint16_t qtype,
-                          uint16_t qclass,
-                          uint8_t reverse )
+pico_dns_question_create(const char *url,
+                         uint16_t *len,
+                         uint8_t proto,
+                         uint16_t qtype,
+                         uint16_t qclass,
+                         uint8_t reverse)
 {
     struct pico_dns_question *question = NULL;
     uint16_t slen = 0;
@@ -691,8 +690,8 @@ pico_dns_question_create( const char *url,
  *  @return Pointer to original name of the DNS question before decompressing.
  * ****************************************************************************/
 char *
-pico_dns_question_decompress( struct pico_dns_question *question,
-                              pico_dns_packet *packet )
+pico_dns_question_decompress(struct pico_dns_question *question,
+                             pico_dns_packet *packet)
 {
     char *qname_original = question->qname;
 
@@ -716,8 +715,8 @@ pico_dns_question_decompress( struct pico_dns_question *question,
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 static int
-pico_dns_record_copy_flat( struct pico_dns_record *record,
-                           uint8_t **destination )
+pico_dns_record_copy_flat(struct pico_dns_record *record,
+                          uint8_t **destination)
 {
     char *dest_rname = NULL; /* rname destination location */
     struct pico_dns_record_suffix *dest_rsuffix = NULL; /* rsuffix destin. */
@@ -762,7 +761,7 @@ pico_dns_record_copy_flat( struct pico_dns_record *record,
  *  @return Size of single DNS record if it was copied flat.
  * ****************************************************************************/
 static uint16_t
-pico_dns_record_size( void *record )
+pico_dns_record_size(void *record)
 {
     uint16_t size = 0;
     struct pico_dns_record *rr = (struct pico_dns_record *)record;
@@ -784,7 +783,7 @@ pico_dns_record_size( void *record )
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_dns_record_delete( void **record )
+pico_dns_record_delete(void **record)
 {
     struct pico_dns_record **rr = (struct pico_dns_record **)record;
 
@@ -813,7 +812,7 @@ pico_dns_record_delete( void **record )
  *  @return Pointer to copy of DNS record.
  * ****************************************************************************/
 struct pico_dns_record *
-pico_dns_record_copy( struct pico_dns_record *record )
+pico_dns_record_copy(struct pico_dns_record *record)
 {
     struct pico_dns_record *copy = NULL;
 
@@ -867,11 +866,11 @@ pico_dns_record_copy( struct pico_dns_record *record )
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 static int
-pico_dns_record_fill_suffix( struct pico_dns_record_suffix **suf,
-                             uint16_t rtype,
-                             uint16_t rclass,
-                             uint32_t rttl,
-                             uint16_t rdlength )
+pico_dns_record_fill_suffix(struct pico_dns_record_suffix **suf,
+                            uint16_t rtype,
+                            uint16_t rclass,
+                            uint32_t rttl,
+                            uint16_t rdlength)
 {
     /* Try to provide space for the rsuffix */
     if (!(*suf = PICO_ZALLOC(sizeof(struct pico_dns_record_suffix)))) {
@@ -903,10 +902,10 @@ pico_dns_record_fill_suffix( struct pico_dns_record_suffix **suf,
  *			Can differ from datalen-param because of URL to DNS Name conversion.
  * ****************************************************************************/
 static uint16_t
-pico_dns_record_fill_rdata( uint8_t **rdata,
-                            void *_rdata,
-                            uint16_t datalen,
-                            uint16_t rtype )
+pico_dns_record_fill_rdata(uint8_t **rdata,
+                           void *_rdata,
+                           uint16_t datalen,
+                           uint16_t rtype)
 {
     uint16_t _datalen = 0;
 
@@ -953,14 +952,14 @@ pico_dns_record_fill_rdata( uint8_t **rdata,
  *  @return Returns pointer to the created DNS Resource Record
  * ****************************************************************************/
 struct pico_dns_record *
-pico_dns_record_create( struct pico_stack *S,
-                        const char *url,
-                        void *_rdata,
-                        uint16_t datalen,
-                        uint16_t *len,
-                        uint16_t rtype,
-                        uint16_t rclass,
-                        uint32_t rttl )
+pico_dns_record_create(struct pico_stack *S,
+                       const char *url,
+                       void *_rdata,
+                       uint16_t datalen,
+                       uint16_t *len,
+                       uint16_t rtype,
+                       uint16_t rclass,
+                       uint32_t rttl)
 {
     struct pico_dns_record *record = NULL;
     uint16_t slen = (uint16_t)(pico_dns_strlen(url) + 2u);
@@ -1010,8 +1009,8 @@ pico_dns_record_create( struct pico_stack *S,
  *  @return Pointer to original name of the DNS record before decompressing.
  * ****************************************************************************/
 char *
-pico_dns_record_decompress( struct pico_dns_record *record,
-                            pico_dns_packet *packet )
+pico_dns_record_decompress(struct pico_dns_record *record,
+                           pico_dns_packet *packet)
 {
     char *rname_original = record->rname;
 
@@ -1045,8 +1044,8 @@ static int pico_tolower(int c)
  *  @return 0 when the buffers are equal, returns difference when they're not.
  * ****************************************************************************/
 int
-pico_dns_rdata_cmp( uint8_t *a, uint8_t *b,
-                    uint16_t rdlength_a, uint16_t rdlength_b, uint8_t caseinsensitive )
+pico_dns_rdata_cmp(uint8_t *a, uint8_t *b,
+                   uint16_t rdlength_a, uint16_t rdlength_b, uint8_t caseinsensitive)
 {
     uint16_t i = 0;
     uint16_t slen = 0;
@@ -1067,13 +1066,13 @@ pico_dns_rdata_cmp( uint8_t *a, uint8_t *b,
         slen = rdlength_b;
 
     /* loop over slen */
-    if(caseinsensitive) {
+    if (caseinsensitive) {
         for (i = 0; i < slen; i++) {
             if ((dif = pico_tolower((int)a[i]) - pico_tolower((int)b[i]))) {
                 return dif;
             }
         }
-    }else{
+    } else {
         for (i = 0; i < slen; i++) {
             if ((dif = (int)a[i] - (int)b[i])) {
                 return dif;
@@ -1093,8 +1092,8 @@ pico_dns_rdata_cmp( uint8_t *a, uint8_t *b,
  *  @return 0 when questions are equal, returns difference when they're not.
  * ****************************************************************************/
 int
-pico_dns_question_cmp( void *qa,
-                       void *qb )
+pico_dns_question_cmp(void *qa,
+                      void *qb)
 {
     int dif = 0;
     uint16_t at = 0, bt = 0;
@@ -1128,8 +1127,8 @@ pico_dns_question_cmp( void *qa,
  *			they're not.
  * ****************************************************************************/
 int
-pico_dns_record_cmp_name_type( void *ra,
-                               void *rb )
+pico_dns_record_cmp_name_type(void *ra,
+                              void *rb)
 {
     int dif;
     uint16_t at = 0, bt = 0;
@@ -1162,8 +1161,8 @@ pico_dns_record_cmp_name_type( void *ra,
  *  @return 0 when records are equal, returns difference when they're not
  * ****************************************************************************/
 int
-pico_dns_record_cmp( void *ra,
-                     void *rb )
+pico_dns_record_cmp(void *ra,
+                    void *rb)
 {
     int dif = 0;
     struct pico_dns_record *a = (struct pico_dns_record *)ra;
@@ -1196,7 +1195,7 @@ pico_dns_record_cmp( void *ra,
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_tree_destroy( struct pico_tree *tree, int (*node_delete)(void **))
+pico_tree_destroy(struct pico_tree *tree, int (*node_delete)(void **))
 {
     struct pico_tree_node *node = NULL, *next = NULL;
     void *item = NULL;
@@ -1231,9 +1230,9 @@ pico_tree_destroy( struct pico_tree *tree, int (*node_delete)(void **))
  *  @return Amount of items in the tree.
  * ****************************************************************************/
 static uint16_t
-pico_tree_size( struct pico_tree *tree,
-                uint16_t *size,
-                uint16_t (*node_size)(void *))
+pico_tree_size(struct pico_tree *tree,
+               uint16_t *size,
+               uint16_t (*node_size)(void *))
 {
     struct pico_tree_node *node = NULL;
     void *node_item = NULL;
@@ -1263,7 +1262,7 @@ pico_tree_size( struct pico_tree *tree,
  *  @return Amount of items in the tree.
  * ****************************************************************************/
 uint16_t
-pico_tree_count( struct pico_tree *tree )
+pico_tree_count(struct pico_tree *tree)
 {
     struct pico_tree_node *node = NULL;
     uint16_t count = 0;
@@ -1284,8 +1283,8 @@ pico_tree_count( struct pico_tree *tree )
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_dns_qtree_del_name( struct pico_tree *qtree,
-                         const char *name )
+pico_dns_qtree_del_name(struct pico_tree *qtree,
+                        const char *name)
 {
     struct pico_tree_node *node = NULL, *next = NULL;
     struct pico_dns_question *question = NULL;
@@ -1316,8 +1315,8 @@ pico_dns_qtree_del_name( struct pico_tree *qtree,
  *  @return 1 when the name is present in the qtree, 0 when it's not.
  * ****************************************************************************/
 int
-pico_dns_qtree_find_name( struct pico_tree *qtree,
-                          const char *name )
+pico_dns_qtree_find_name(struct pico_tree *qtree,
+                         const char *name)
 {
     struct pico_tree_node *node = NULL;
     struct pico_dns_question *question = NULL;
@@ -1352,15 +1351,15 @@ pico_dns_qtree_find_name( struct pico_tree *qtree,
  *  @param arcount Amount of additional records added to the packet
  * ****************************************************************************/
 void
-pico_dns_fill_packet_header( struct pico_dns_header *hdr,
-                             uint16_t qdcount,
-                             uint16_t ancount,
-                             uint16_t nscount,
-                             uint16_t arcount )
+pico_dns_fill_packet_header(struct pico_dns_header *hdr,
+                            uint16_t qdcount,
+                            uint16_t ancount,
+                            uint16_t nscount,
+                            uint16_t arcount)
 {
     /* ID should be filled by caller */
 
-    if(qdcount > 0) { /* Questions present? Make it a query */
+    if (qdcount > 0) { /* Questions present? Make it a query */
         hdr->qr = PICO_DNS_QR_QUERY;
         hdr->aa = PICO_DNS_AA_NO_AUTHORITY;
     } else { /* No questions present? Make it an answer*/
@@ -1390,8 +1389,8 @@ pico_dns_fill_packet_header( struct pico_dns_header *hdr,
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
 static int
-pico_dns_fill_packet_rr_section( struct pico_tree *rtree,
-                                 uint8_t **dest )
+pico_dns_fill_packet_rr_section(struct pico_tree *rtree,
+                                uint8_t **dest)
 {
     struct pico_tree_node *node = NULL;
     struct pico_dns_record *record = NULL;
@@ -1418,11 +1417,11 @@ pico_dns_fill_packet_rr_section( struct pico_tree *rtree,
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
 static int
-pico_dns_fill_packet_rr_sections( pico_dns_packet *packet,
-                                  struct pico_tree *qtree,
-                                  struct pico_tree *antree,
-                                  struct pico_tree *nstree,
-                                  struct pico_tree *artree )
+pico_dns_fill_packet_rr_sections(pico_dns_packet *packet,
+                                 struct pico_tree *qtree,
+                                 struct pico_tree *antree,
+                                 struct pico_tree *nstree,
+                                 struct pico_tree *artree)
 {
     int anret = 0, nsret = 0, arret = 0;
     uint16_t temp = 0;
@@ -1463,8 +1462,8 @@ pico_dns_fill_packet_rr_sections( pico_dns_packet *packet,
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
 static int
-pico_dns_fill_packet_question_section( pico_dns_packet *packet,
-                                       struct pico_tree *qtree )
+pico_dns_fill_packet_question_section(pico_dns_packet *packet,
+                                      struct pico_tree *qtree)
 {
     struct pico_tree_node *node = NULL;
     struct pico_dns_question *question = NULL;
@@ -1505,9 +1504,9 @@ pico_dns_fill_packet_question_section( pico_dns_packet *packet,
  *  beginning of the data buffer and the name itself.
  * ****************************************************************************/
 static uint8_t *
-pico_dns_packet_compress_find_ptr( uint8_t *name,
-                                   uint8_t *data,
-                                   uint16_t len )
+pico_dns_packet_compress_find_ptr(uint8_t *name,
+                                  uint8_t *data,
+                                  uint16_t len)
 {
     uint8_t *iterator = NULL;
 
@@ -1536,9 +1535,9 @@ pico_dns_packet_compress_find_ptr( uint8_t *name,
  *  packet-buffer.
  * ****************************************************************************/
 static int
-pico_dns_packet_compress_name( uint8_t *name,
-                               uint8_t *packet,
-                               uint16_t *len)
+pico_dns_packet_compress_name(uint8_t *name,
+                              uint8_t *packet,
+                              uint16_t *len)
 {
     uint8_t *lbl_iterator = NULL;    /* To iterate over labels */
     uint8_t *compression_ptr = NULL; /* PTR to somewhere else in the packet */
@@ -1603,9 +1602,9 @@ pico_dns_packet_compress_name( uint8_t *name,
  *  Utility function compress a record section
  * ****************************************************************************/
 static int
-pico_dns_compress_record_sections( uint16_t qdcount, uint16_t count,
-                                   uint8_t *buf, uint8_t **iterator,
-                                   uint16_t *len )
+pico_dns_compress_record_sections(uint16_t qdcount, uint16_t count,
+                                  uint8_t *buf, uint8_t **iterator,
+                                  uint16_t *len)
 {
     struct pico_dns_record_suffix *rsuffix = NULL;
     uint8_t *_iterator = NULL;
@@ -1640,7 +1639,7 @@ pico_dns_compress_record_sections( uint16_t qdcount, uint16_t count,
  *  Applies DNS name compression to an entire DNS packet
  * ****************************************************************************/
 static int
-pico_dns_packet_compress( pico_dns_packet *packet, uint16_t *len )
+pico_dns_packet_compress(pico_dns_packet *packet, uint16_t *len)
 {
     uint8_t *packet_buf = NULL;
     uint8_t *iterator = NULL;
@@ -1665,7 +1664,7 @@ pico_dns_packet_compress( pico_dns_packet *packet, uint16_t *len )
 
     /* Start with the questions */
     for (i = 0; i < qdcount; i++) {
-        if(i) { /* First question can't be compressed */
+        if (i) { /* First question can't be compressed */
             pico_dns_packet_compress_name(iterator, packet_buf, len);
         }
 
@@ -1695,12 +1694,12 @@ pico_dns_packet_compress( pico_dns_packet *packet, uint16_t *len )
  *  @return Returns the total length that the DNS packet needs to be.
  * ****************************************************************************/
 static uint16_t
-pico_dns_packet_len( struct pico_tree *qtree,
-                     struct pico_tree *antree,
-                     struct pico_tree *nstree,
-                     struct pico_tree *artree,
-                     uint8_t *qdcount, uint8_t *ancount,
-                     uint8_t *nscount, uint8_t *arcount )
+pico_dns_packet_len(struct pico_tree *qtree,
+                    struct pico_tree *antree,
+                    struct pico_tree *nstree,
+                    struct pico_tree *artree,
+                    uint8_t *qdcount, uint8_t *ancount,
+                    uint8_t *nscount, uint8_t *arcount)
 {
     uint16_t len = (uint16_t) sizeof(pico_dns_packet);
 
@@ -1731,11 +1730,11 @@ pico_dns_packet_len( struct pico_tree *qtree,
  *  @return Pointer to created DNS packet
  * ****************************************************************************/
 static pico_dns_packet *
-pico_dns_packet_create( struct pico_tree *qtree,
-                        struct pico_tree *antree,
-                        struct pico_tree *nstree,
-                        struct pico_tree *artree,
-                        uint16_t *len )
+pico_dns_packet_create(struct pico_tree *qtree,
+                       struct pico_tree *antree,
+                       struct pico_tree *nstree,
+                       struct pico_tree *artree,
+                       uint16_t *len)
 {
     PICO_DNS_QTREE_DECLARE(_qtree);
     PICO_DNS_RTREE_DECLARE(_antree);
@@ -1795,11 +1794,11 @@ pico_dns_packet_create( struct pico_tree *qtree,
  *  @return Pointer to created DNS packet
  * ****************************************************************************/
 pico_dns_packet *
-pico_dns_query_create( struct pico_tree *qtree,
-                       struct pico_tree *antree,
-                       struct pico_tree *nstree,
-                       struct pico_tree *artree,
-                       uint16_t *len )
+pico_dns_query_create(struct pico_tree *qtree,
+                      struct pico_tree *antree,
+                      struct pico_tree *nstree,
+                      struct pico_tree *artree,
+                      uint16_t *len)
 {
     return pico_dns_packet_create(qtree, antree, nstree, artree, len);
 }
@@ -1816,10 +1815,10 @@ pico_dns_query_create( struct pico_tree *qtree,
  *  @return Pointer to created DNS packet.
  * ****************************************************************************/
 pico_dns_packet *
-pico_dns_answer_create( struct pico_tree *antree,
-                        struct pico_tree *nstree,
-                        struct pico_tree *artree,
-                        uint16_t *len )
+pico_dns_answer_create(struct pico_tree *antree,
+                       struct pico_tree *nstree,
+                       struct pico_tree *artree,
+                       uint16_t *len)
 {
     return pico_dns_packet_create(NULL, antree, nstree, artree, len);
 }

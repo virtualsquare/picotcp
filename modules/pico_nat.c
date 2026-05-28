@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -7,7 +7,7 @@
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Kristof Roelants, Brecht Van Cauwenberghe,
          Simon Maes, Philippe Mariman
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -295,7 +295,7 @@ static struct pico_nat_tuple *pico_ipv4_nat_generate_tuple(struct pico_stack *S,
         return NULL;
 
     trans = pico_nat_generate_tuple_trans(net, f);
-    if(!trans)
+    if (!trans)
         return NULL;
 
     return pico_ipv4_nat_add(S, net->dst, trans->dport, net->src, trans->sport, nat_link->address, nport, net->proto);
@@ -357,8 +357,7 @@ static void pico_ipv4_nat_table_cleanup(pico_time now, void *_stack)
     pico_tree_foreach_reverse_safe(index, &S->NATOutbound, _tmp)
     {
         t = index->keyValue;
-        switch (t->proto)
-        {
+        switch (t->proto) {
         case PICO_PROTO_TCP:
             if (t->portforward)
                 break;
@@ -413,8 +412,7 @@ int pico_ipv4_port_forward(struct pico_stack *S, struct pico_ip4 nat_addr, uint1
     };
     uint16_t any_port = 0;
 
-    switch (flag)
-    {
+    switch (flag) {
     case PICO_NAT_PORT_FORWARD_ADD:
         t = pico_ipv4_nat_add(S, any_addr, any_port, src_addr, src_port, nat_addr, nat_port, proto);
         if (!t) {

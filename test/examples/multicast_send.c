@@ -97,7 +97,7 @@ void app_mcastsend(struct pico_stack *S, char *arg)
 
     mreq.mcast_group_addr = inaddr_mcast;
     mreq.mcast_link_addr = inaddr_link;
-    if(pico_socket_setoption(udpclient_pas->s, PICO_IP_ADD_MEMBERSHIP, &mreq) < 0) {
+    if (pico_socket_setoption(udpclient_pas->s, PICO_IP_ADD_MEMBERSHIP, &mreq) < 0) {
         picoapp_dbg("%s: socket_setoption PICO_IP_ADD_MEMBERSHIP failed: %s\n", __FUNCTION__, strerror(pico_err));
         exit(1);
     }

@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -104,7 +104,7 @@ static void debug_q(struct pico_queue *q)
 {
     struct pico_frame *p = q->head;
     dbg("%d: ", q->frames);
-    while(p) {
+    while (p) {
         dbg("(%p)-->", p);
         p = p->next;
     }
@@ -204,7 +204,7 @@ static inline void pico_queue_deinit(struct pico_queue *q)
 static inline void pico_queue_empty(struct pico_queue *q)
 {
     struct pico_frame *p = pico_dequeue(q);
-    while(p) {
+    while (p) {
         pico_frame_discard(p);
         p = pico_dequeue(q);
     }

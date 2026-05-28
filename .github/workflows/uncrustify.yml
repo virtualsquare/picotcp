@@ -1,0 +1,18 @@
+name: Uncrustify
+
+on: [ push, pull_request ]
+
+jobs:
+  uncrustify:
+    runs-on: ubuntu-slim
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install uncrustify
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y uncrustify
+
+      - name: Check formatting
+        run: find . -iname "*.[hc]" -type f -exec uncrustify --check -c uncrustify.cfg -l C {} +

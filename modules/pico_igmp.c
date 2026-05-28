@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Kristof Roelants (IGMPv3), Simon Maes, Brecht Van Cauwenberghe
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -328,8 +328,8 @@ static int pico_igmp_timer_start(struct pico_stack *S, struct igmp_timer *t)
     if (pico_tree_insert(&S->IGMPTimers, timer)) {
         igmp_dbg("IGMP: Failed to insert timer in tree\n");
         PICO_FREE(timer);
-		return -1;
-	}
+        return -1;
+    }
 
     if (!pico_timer_add(S, timer->delay, &pico_igmp_timer_expired, timer)) {
         igmp_dbg("IGMP: Failed to start expiration timer\n");
@@ -404,7 +404,7 @@ static void pico_igmp_v2querier_expired(struct igmp_timer *t)
 {
     struct pico_ipv4_link *link = NULL;
     struct pico_tree_node *index = NULL, *_tmp = NULL;
-    if(!t || !t->f || !t->f->dev || !t->stack)
+    if (!t || !t->f || !t->f->dev || !t->stack)
         return;
 
 
@@ -501,7 +501,7 @@ static int pico_igmp_compatibility_mode(struct pico_frame *f)
             message = (struct igmp_message *)f->transport_hdr;
             mcast_group.addr = message->mcast_group;
             p = pico_igmp_find_parameter(S, &link->address, &mcast_group);
-            if(p) {
+            if (p) {
                 p->state = IGMP_STATE_NON_MEMBER;
                 p->event = IGMP_EVENT_CREATE_GROUP;
             }
@@ -555,8 +555,8 @@ static struct mcast_parameters *pico_igmp_analyse_packet(struct pico_frame *f)
         if (pico_tree_insert(&f->dev->stack->IGMPParameters, p)) {
             igmp_dbg("IGMP: Failed to insert parameters in tree\n");
             PICO_FREE(p);
-    		return NULL;
-    	}
+            return NULL;
+        }
     } else if (!p) {
         return NULL;
     }
@@ -650,8 +650,8 @@ int pico_igmp_state_change(struct pico_stack *S, struct pico_ip4 *mcast_link, st
         if (pico_tree_insert(&S->IGMPParameters, p)) {
             igmp_dbg("IGMP: Failed to insert parameters in tree\n");
             PICO_FREE(p);
-			return -1;
-		}
+            return -1;
+        }
 
     } else if (!p) {
         pico_err = PICO_ERR_EINVAL;
@@ -778,7 +778,7 @@ static int8_t pico_igmpv3_generate_report(struct mcast_filter_parameters *filter
         }
     }
 
-    if(i != filter->sources) {
+    if (i != filter->sources) {
         return -1;
     }
 
@@ -832,10 +832,10 @@ static int8_t pico_igmp_generate_report(struct mcast_parameters *p)
     case PICO_IGMPV3:
     {
         result = pico_igmpv3_generate_filter(&filter, p);
-        if(result < 0)
+        if (result < 0)
             return -1;
 
-        if(result != MCAST_NO_REPORT)
+        if (result != MCAST_NO_REPORT)
             return pico_igmpv3_generate_report(&filter, p);
     }
     break;
@@ -863,7 +863,7 @@ static int stslifs(struct mcast_parameters *p)
     if (pico_igmp_timer_stop(&t) < 0)
         return -1;
 
-    if(pico_igmp_generate_report(p) < 0)
+    if (pico_igmp_generate_report(p) < 0)
         return -1;
     /* always send leave, even if not last host */
     if (pico_igmp_send_report(p, p->f) < 0)
@@ -1009,7 +1009,7 @@ static int slifs(struct mcast_parameters *p)
     igmp_dbg("IGMP: event = leave group | action = send leave if flag set\n");
 
     /* always send leave, even if not last host */
-    if(pico_igmp_generate_report(p) < 0)
+    if (pico_igmp_generate_report(p) < 0)
         return -1;
     if (pico_igmp_send_report(p, p->f) < 0)
         return -1;
@@ -1119,10 +1119,9 @@ static int discard(struct mcast_parameters *p)
 }
 
 /* finite state machine table */
-static const callback host_membership_diagram_table[3][6] =
-{ /* event                    |Delete Group  |Create Group |Update Group |Query Received  |Report Received  |Timer Expired */
-/* state Non-Member      */
-    { discard,       srsfst,       srsfst,       discard,         discard,          discard },
+static const callback host_membership_diagram_table[3][6] = {
+/* event                    |Delete Group  |Create Group |Update Group |Query Received  |Report Received  |Timer Expired */
+/* state Non-Member      */ { discard,       srsfst,       srsfst,       discard,         discard,          discard },
 /* state Delaying Member */ { stslifs,       mrsrrt,       mrsrrt,       rtimrtct,        stcl,             srsf    },
 /* state Idle Member     */ { slifs,         srst,         srst,         st,              discard,          discard }
 };

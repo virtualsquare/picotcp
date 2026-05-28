@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -68,8 +68,8 @@ static struct pico_ipv6_link * pico_6lowpan_link_add(struct pico_device *dev, co
     newaddr.addr[8] = newaddr.addr[8] ^ 0x02; /* Toggle U/L bit */
 
     /* RFC6775: No Duplicate Address Detection (DAD) is performed if
-        * EUI-64-based IPv6 addresses are used (as these addresses are assumed
-        * to be globally unique). */
+     * EUI-64-based IPv6 addresses are used (as these addresses are assumed
+     * to be globally unique). */
     if ((link = pico_ipv6_link_add_no_dad(dev, newaddr, netmask64))) {
         if (pico_ipv6_is_linklocal(newaddr.addr))
             pico_6lp_nd_start_soliciting(link, NULL);
@@ -225,7 +225,7 @@ int MOCKABLE pico_device_init(struct pico_stack *S, struct pico_device *dev, con
     uint32_t len = (uint32_t)strlen(name);
     int ret = 0;
 
-    if(len > MAX_DEVICE_NAME)
+    if (len > MAX_DEVICE_NAME)
         len = MAX_DEVICE_NAME;
 
     memcpy(dev->name, name, len);
@@ -249,10 +249,10 @@ int MOCKABLE pico_device_init(struct pico_stack *S, struct pico_device *dev, con
     pico_queue_register_listener(dev->stack, dev->q_out, devloop_all_out, dev);
 
     if (pico_tree_insert(&S->Device_tree, dev)) {
-		PICO_FREE(dev->q_in);
-		PICO_FREE(dev->q_out);
-		return -1;
-	}
+        PICO_FREE(dev->q_in);
+        PICO_FREE(dev->q_out);
+        return -1;
+    }
     if (!dev->mtu)
         dev->mtu = PICO_DEVICE_DEFAULT_MTU;
 
@@ -302,7 +302,7 @@ void MOCKABLE pico_device_destroy(struct pico_device *dev)
     pico_ipv6_cleanup_links(dev->stack, dev);
 #endif
     pico_tree_delete(&dev->stack->Device_tree, dev);
-    
+
     dev->stack->Devices_rr_info.node_in  = NULL;
     dev->stack->Devices_rr_info.node_out = NULL;
 
@@ -334,7 +334,7 @@ static int check_dev_serve_polling(struct pico_device *dev, int loop_score)
 static int devloop_in(struct pico_device *dev, int loop_score)
 {
     struct pico_frame *f;
-    while(loop_score > 0) {
+    while (loop_score > 0) {
         if (dev->q_in->frames == 0)
             break;
 
@@ -361,7 +361,7 @@ static int devloop_sendto_dev(struct pico_device *dev, struct pico_frame *f)
 static int devloop_out(struct pico_device *dev, int loop_score)
 {
     struct pico_frame *f;
-    while(loop_score > 0) {
+    while (loop_score > 0) {
         if (dev->q_out->frames == 0)
             break;
 
@@ -374,10 +374,9 @@ static int devloop_out(struct pico_device *dev, int loop_score)
             f = pico_dequeue(dev->q_out);
             pico_frame_discard(f); /* SINGLE POINT OF DISCARD for OUTGOING FRAMES */
             loop_score--;
-        } else 
+        } else
             break; /* Don't discard */
     }
-
     return loop_score;
 }
 
@@ -388,7 +387,7 @@ static void devloop_all_out(struct pico_stack *S, void *arg)
     struct pico_device *dev = (struct pico_device *)arg;
     struct pico_frame *f;
     (void)S;
-    while(1) {
+    while (1) {
         if (dev->q_out->frames <= 0)
             break;
 
@@ -412,7 +411,7 @@ static void devloop_all_in(struct pico_stack *S, void *arg)
     struct pico_device *dev = (struct pico_device *)arg;
     struct pico_frame *f;
     (void)S;
-    while(1) {
+    while (1) {
         if (dev->q_in->frames <= 0)
             break;
 
@@ -489,8 +488,7 @@ int pico_devices_loop(struct pico_stack *S, int loop_score, int direction)
         loop_score = devloop(next, loop_score, direction);
         next_node = pico_tree_next(next_node);
         next = next_node->keyValue;
-        if (next == NULL)
-        {
+        if (next == NULL) {
             next_node = pico_tree_firstNode(S->Device_tree.root);
             next = next_node->keyValue;
         }
@@ -508,7 +506,7 @@ struct pico_device *pico_get_device(struct pico_stack *S, const char*name)
     struct pico_tree_node *index;
     pico_tree_foreach(index, &S->Device_tree){
         dev = index->keyValue;
-        if(strcmp(name, dev->name) == 0)
+        if (strcmp(name, dev->name) == 0)
             return dev;
     }
     return NULL;
@@ -522,19 +520,16 @@ int32_t pico_device_broadcast(struct pico_stack *S, struct pico_frame *f)
     pico_tree_foreach(index, &S->Device_tree)
     {
         struct pico_device *dev = index->keyValue;
-        if(dev != f->dev)
-        {
+        if (dev != f->dev) {
             struct pico_frame *copy = pico_frame_copy(f);
 
-            if(!copy)
+            if (!copy)
                 break;
 
             copy->dev = dev;
             copy->dev->send(copy->dev, copy->start, (int)copy->len);
             pico_frame_discard(copy);
-        }
-        else
-        {
+        } else {
             ret = f->dev->send(f->dev, f->start, (int)f->len);
         }
     }

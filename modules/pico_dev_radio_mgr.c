@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -60,7 +60,6 @@
 
 #define LISTENING_PORT  7777
 #define MESSAGE_MTU     150
-#define EVER            (;;)
 
 struct socket {
     int s;
@@ -189,8 +188,7 @@ pico_radio_mgr_welcome(int socket)
         if (errno && EINTR != errno)
             goto hup;
     }
-
-    if (id <= 0) { // Node's can't have ID '0'.
+    if (id <= 0) { /* Node's can't have ID '0'. */
         RADIO_DBG("Invalid socket\n");
         close(socket);
         return -1;
@@ -283,7 +281,7 @@ pico_radio_mgr_distribute(uint8_t *buf, int len, uint8_t id)
 
     pico_tree_foreach(i, &Sockets) {
         key = i->keyValue;
-        if (key && key->id != id && key->id) { // Do not sent to ourselves or manager
+        if (key && key->id != id && key->id) { /* Do not sent to ourselves or manager */
             ar0 = key->area0;
             ar1 = key->area1;
             if (area0 == ar0 || area0 == ar1 || (area1 && (area1 == ar0 || area1 == ar1))) {
@@ -307,7 +305,7 @@ pico_radio_mgr_process(struct pollfd *fds, int n)
 
     for (i = 0; i < n; i++) {
         event = fds[i].revents;
-        if (event && (event & POLLIN)) { // POLLIN
+        if (event && (event & POLLIN)) { /* POLLIN */
             if (!i) {
                 /* Accept a new connection */
                 pico_radio_mgr_accept(fds[i].fd);
@@ -327,7 +325,6 @@ pico_radio_mgr_process(struct pollfd *fds, int n)
             goto hup;
         }
     }
-
     return;
 hup:
     pico_radio_mgr_socket_hup(fds[i].fd);
@@ -366,7 +363,7 @@ pico_radio_mgr_start(void)
 
     signal(SIGQUIT, pico_radio_mgr_quit);
 
-    for EVER {
+    for (;;) {
         if (fds)
             PICO_FREE(fds);
         fds = pico_radio_mgr_socket_all((int *)&n);

@@ -4,7 +4,7 @@ int pico_aodv_init(struct pico_stack *S)
     (void)S;
     return 0;
 }
-START_TEST (test_socket)
+START_TEST(test_socket)
 {
     int ret = 0;
     uint16_t port_be = 0, porta, proto, port_got;
@@ -91,8 +91,8 @@ START_TEST (test_socket)
     ret = pico_socket_bind(sk_udp, &inaddr_link, &port_be);
     fail_if(ret < 0, "socket> udp socket bind failed");
 
-    fail_if (pico_count_sockets(S, PICO_PROTO_UDP) != (1 + olsr_socket_udp_count));
-    fail_if (pico_count_sockets(S, 0) != (2 + olsr_socket_udp_count));
+    fail_if(pico_count_sockets(S, PICO_PROTO_UDP) != (1 + olsr_socket_udp_count));
+    fail_if(pico_count_sockets(S, 0) != (2 + olsr_socket_udp_count));
 
 
     ret = pico_socket_getname(sk_udp, &inaddr_got, &port_got, &proto);

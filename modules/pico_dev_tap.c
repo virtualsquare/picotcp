@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -84,7 +84,7 @@ static int pico_tap_poll(struct pico_device *dev, int loop_score)
     int len;
     pfd.fd = tap->fd;
     pfd.events = POLLIN;
-    do  {
+    do {
         if (poll(&pfd, 1, 0) <= 0) {
             return loop_score;
         }
@@ -94,7 +94,7 @@ static int pico_tap_poll(struct pico_device *dev, int loop_score)
             loop_score--;
             pico_stack_recv(dev, buf, (uint32_t)len);
         }
-    } while(loop_score > 0);
+    } while (loop_score > 0);
     return 0;
 }
 
@@ -104,25 +104,25 @@ static int pico_tap_poll(struct pico_device *dev, int loop_score)
 
 void pico_tap_dsr(void *arg)
 {
-   int len;
-   struct pico_device_tap *tap = (struct pico_device_tap *)arg;
-   unsigned char buf[TUN_MTU];
-   len = read(tap->fd, buf, TUN_MTU);
-   if (len > 0) {
-       pico_stack_recv(&tap->dev, buf, (uint32_t)len);
-   }
+    int len;
+    struct pico_device_tap *tap = (struct pico_device_tap *)arg;
+    unsigned char buf[TUN_MTU];
+    len = read(tap->fd, buf, TUN_MTU);
+    if (len > 0) {
+        pico_stack_recv(&tap->dev, buf, (uint32_t)len);
+    }
 }
 
 int pico_tap_WFI(struct pico_device *dev, int timeout_ms)
 {
-   struct pollfd pfd;
-   struct pico_device_tap *tap = (struct pico_device_tap *) dev;
-   pfd.fd = tap->fd;
-   pfd.events = POLLIN;
-   if (poll(&pfd, 1, timeout_ms) <= 0)
-       return 0;
-   pico_schedule_job(dev->stack, pico_tap_dsr, tap);
-   return 1;
+    struct pollfd pfd;
+    struct pico_device_tap *tap = (struct pico_device_tap *) dev;
+    pfd.fd = tap->fd;
+    pfd.events = POLLIN;
+    if (poll(&pfd, 1, timeout_ms) <= 0)
+        return 0;
+    pico_schedule_job(dev->stack, pico_tap_dsr, tap);
+    return 1;
 }
 #endif
 
@@ -131,7 +131,7 @@ int pico_tap_WFI(struct pico_device *dev, int timeout_ms)
 void pico_tap_destroy(struct pico_device *dev)
 {
     struct pico_device_tap *tap = (struct pico_device_tap *) dev;
-    if(tap->fd > 0) {
+    if (tap->fd > 0) {
         close(tap->fd);
     }
 }
@@ -141,14 +141,14 @@ static int tap_open(char *name)
 {
     struct ifreq ifr;
     int tap_fd;
-    if((tap_fd = open("/dev/net/tun", O_RDWR)) < 0) {
+    if ((tap_fd = open("/dev/net/tun", O_RDWR)) < 0) {
         return -1;
     }
 
     memset(&ifr, 0, sizeof(ifr));
     ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
-    strncpy(ifr.ifr_name, name, IFNAMSIZ-1);
-    if(ioctl(tap_fd, TUNSETIFF, &ifr) < 0) {
+    strncpy(ifr.ifr_name, name, IFNAMSIZ - 1);
+    if (ioctl(tap_fd, TUNSETIFF, &ifr) < 0) {
         return -1;
     }
 
@@ -173,7 +173,7 @@ static int tap_get_mac(char *name, uint8_t *mac)
     int retval = -1;
 
     sck = socket(AF_INET, SOCK_DGRAM, 0);
-    if(sck < 0) {
+    if (sck < 0) {
         return retval;
     }
 
@@ -185,7 +185,7 @@ static int tap_get_mac(char *name, uint8_t *mac)
         return -1;
     }
 
-    memcpy (mac, &eth.ifr_hwaddr.sa_data, 6);
+    memcpy(mac, &eth.ifr_hwaddr.sa_data, 6);
     close(sck);
     return 0;
 
@@ -202,7 +202,7 @@ static int tap_get_mac(char *name, uint8_t *mac)
         return -1;
 
     root = ifap;
-    while(ifap) {
+    while (ifap) {
         if (strcmp(name, ifap->ifa_name) == 0) {
             sdl = (struct sockaddr_dl *) ifap->ifa_addr;
         }
@@ -263,7 +263,7 @@ struct pico_device *pico_tap_create(struct pico_stack *S, char *name)
      */
     mac[5]++;
 
-    if( 0 != pico_device_init(S, (struct pico_device *)tap, name, mac)) {
+    if (0 != pico_device_init(S, (struct pico_device *)tap, name, mac)) {
         dbg("Tap init failed.\n");
         pico_tap_destroy((struct pico_device *)tap);
         return NULL;

@@ -15,9 +15,9 @@ static int fully_initialized = 0;
 static char *service_name = NULL;
 static pico_stack *stack = NULL;
 
-void dns_sd_claimed_callback( pico_mdns_rtree *tree,
-                              char *str,
-                              void *arg )
+void dns_sd_claimed_callback(pico_mdns_rtree *tree,
+                             char *str,
+                             void *arg)
 {
     printf("DONE - Registering DNS-SD Service\n");
 
@@ -26,9 +26,9 @@ void dns_sd_claimed_callback( pico_mdns_rtree *tree,
     IGNORE_PARAMETER(arg);
 }
 
-void dns_sd_init_callback( pico_mdns_rtree *tree,
-                           char *str,
-                           void *arg )
+void dns_sd_init_callback(pico_mdns_rtree *tree,
+                          char *str,
+                          void *arg)
 {
     PICO_DNS_SD_KV_VECTOR_DECLARE(key_value_pair_vector);
 
@@ -63,17 +63,17 @@ void app_dns_sd(struct pico_stack *S, char *arg, struct pico_ip4 address)
     }
 
     nxt = cpy_arg(&hostname, nxt);
-    if(!hostname) {
+    if (!hostname) {
         exit(255);
     }
 
-    if(!nxt) {
+    if (!nxt) {
         printf("Not enough args supplied!\n");
         exit(255);
     }
 
     nxt = cpy_arg(&service_name, nxt);
-    if(!service_name) {
+    if (!service_name) {
         exit(255);
     }
 
@@ -94,7 +94,7 @@ void app_dns_sd(struct pico_stack *S, char *arg, struct pico_ip4 address)
     starttime = PICO_TIME_MS();
     printf("Starting time: %d\n", starttime);
 
-    while(1) {
+    while (1) {
         pico_stack_tick(stack);
         usleep(2000);
 

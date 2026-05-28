@@ -1,5 +1,5 @@
 
-START_TEST (test_ipv4)
+START_TEST(test_ipv4)
 {
   #define IP_TST_SIZ 256
     uint32_t i;
@@ -739,10 +739,8 @@ START_TEST (test_igmp_sockopts)
 
         source = index->keyValue;
         if (source->ip4.addr == mreq_source[0].mcast_source_addr.ip4.addr) { /* OK */
-        }
-        else if (source->ip4.addr == mreq_source[1].mcast_source_addr.ip4.addr) { /* OK */
-        }
-        else {
+        } else if (source->ip4.addr == mreq_source[1].mcast_source_addr.ip4.addr) {   /* OK */
+        } else {
             fail("MCASTFilter (INCLUDE + INCLUDE) incorrect\n");
         }
     }
@@ -770,8 +768,7 @@ START_TEST (test_igmp_sockopts)
 
         source = index->keyValue;
         if (source->ip4.addr == mreq_source[2].mcast_source_addr.ip4.addr) { /* OK */
-        }
-        else {
+        } else {
             fail("MCASTFilter (INCLUDE + EXCLUDE) incorrect\n");
         }
     }
@@ -803,10 +800,8 @@ START_TEST (test_igmp_sockopts)
 
         source = index->keyValue;
         if (source->ip4.addr == mreq_source[0].mcast_source_addr.ip4.addr) { /* OK */
-        }
-        else if (source->ip4.addr == mreq_source[1].mcast_source_addr.ip4.addr) { /* OK */
-        }
-        else {
+        } else if (source->ip4.addr == mreq_source[1].mcast_source_addr.ip4.addr) {   /* OK */
+        } else {
             fail("MCASTFilter (EXCLUDE + INCLUDE) incorrect\n");
         }
     }
@@ -844,10 +839,8 @@ START_TEST (test_igmp_sockopts)
 
         source = index->keyValue;
         if (source->ip4.addr == mreq_source[3].mcast_source_addr.ip4.addr) { /* OK */
-        }
-        else if (source->ip4.addr == mreq_source[4].mcast_source_addr.ip4.addr) { /* OK */
-        }
-        else {
+        } else if (source->ip4.addr == mreq_source[4].mcast_source_addr.ip4.addr) {   /* OK */
+        } else {
             fail("MCASTFilter (EXCLUDE + EXCLUDE) incorrect\n");
         }
     }

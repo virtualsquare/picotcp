@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -197,7 +197,7 @@ uint16_t pico_udp_recv(struct pico_socket *s, void *buf, uint16_t len, void *src
 {
     struct pico_frame *f = pico_queue_peek(&s->q_in);
     if (f) {
-        if(!f->payload_len) {
+        if (!f->payload_len) {
             f->payload = f->transport_hdr + sizeof(struct pico_udp_hdr);
             f->payload_len = (uint16_t)(f->transport_len - sizeof(struct pico_udp_hdr));
         }

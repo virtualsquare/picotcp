@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -223,8 +223,7 @@ static void pico_eth_check_bcast(struct pico_stack *S, struct pico_frame *f)
 int32_t pico_ethernet_receive(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_eth_hdr *hdr;
-    if (!f || !f->dev || !f->datalink_hdr)
-    {
+    if (!f || !f->dev || !f->datalink_hdr) {
         pico_frame_discard(f);
         return -1;
     }
@@ -235,8 +234,7 @@ int32_t pico_ethernet_receive(struct pico_stack *S, struct pico_frame *f)
 #ifdef PICO_SUPPORT_IPV6
         (memcmp(hdr->daddr, PICO_ETHADDR_MCAST6, PICO_SIZE_MCAST6) != 0) &&
 #endif
-        (memcmp(hdr->daddr, PICO_ETHADDR_ALL, PICO_SIZE_ETH) != 0))
-    {
+        (memcmp(hdr->daddr, PICO_ETHADDR_ALL, PICO_SIZE_ETH) != 0)) {
         pico_frame_discard(f);
         return -1;
     }
@@ -289,8 +287,7 @@ static int pico_ethernet_ipv6_dst(struct pico_stack *S, struct pico_frame *f, st
         retval = 0;
     } else {
         struct pico_eth *neighbor = pico_ipv6_get_neighbor(S, f);
-        if (neighbor)
-        {
+        if (neighbor) {
             memcpy(dstmac, neighbor, PICO_SIZE_ETH);
             retval = 0;
         }
@@ -314,7 +311,7 @@ static int32_t pico_ethsend_local(struct pico_stack *S, struct pico_frame *f, st
         return 0;
 
     /* Check own mac */
-    if(!memcmp(hdr->daddr, hdr->saddr, PICO_SIZE_ETH)) {
+    if (!memcmp(hdr->daddr, hdr->saddr, PICO_SIZE_ETH)) {
         struct pico_frame *clone = pico_frame_copy(f);
         dbg("sending out packet destined for our own mac\n");
         if (pico_ethernet_receive(S, clone) < 0) {
@@ -348,7 +345,7 @@ static int32_t pico_ethsend_bcast(struct pico_stack *S, struct pico_frame *f)
  */
 static int32_t pico_ethsend_dispatch(struct pico_frame *f)
 {
-    return (pico_sendto_dev(f) > 0); // Return 1 on success, ret > 0
+    return (pico_sendto_dev(f) > 0); /* Return 1 on success, ret > 0 */
 }
 
 /* Checks whether or not there's enough headroom allocated in the frame to
@@ -378,28 +375,24 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_stack *S, struct pico_frame *f)
      * destination address is taken from the ND tables
      */
     if (IS_IPV6(f)) {
-        if (pico_ethernet_ipv6_dst(S, f, &dstmac) < 0)
-        {
+        if (pico_ethernet_ipv6_dst(S, f, &dstmac) < 0) {
             /* Enqueue copy of frame in IPv6 ND-module to retry later. Discard
              * frame, otherwise we have a duplicate in IPv6-ND */
-            pico_ipv6_nd_postpone(S,f);
+            pico_ipv6_nd_postpone(S, f);
             pico_frame_discard(f);
             return (int32_t)len;
         }
 
         dstmac_valid = 1;
         proto = PICO_IDETH_IPV6;
-    }
-    else
+    } else
 #endif
 
     /* In case of broadcast (IPV4 only), dst mac is FF:FF:... */
-    if (IS_BCAST(f) || destination_is_bcast(S, f))
-    {
+    if (IS_BCAST(f) || destination_is_bcast(S, f)) {
         memcpy(&dstmac, PICO_ETHADDR_ALL, PICO_SIZE_ETH);
         dstmac_valid = 1;
     }
-
     /* In case of multicast, dst mac is translated from the group address */
     else if (destination_is_mcast(f)) {
         uint8_t pico_mcast_mac[6] = {
@@ -431,8 +424,7 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_stack *S, struct pico_frame *f)
         struct pico_eth_hdr *hdr;
         if (!eth_check_headroom(f)) {
             hdr = (struct pico_eth_hdr *) f->datalink_hdr;
-            if ((f->start > f->buffer) && ((f->start - f->buffer) >= PICO_SIZE_ETHHDR))
-            {
+            if ((f->start > f->buffer) && ((f->start - f->buffer) >= PICO_SIZE_ETHHDR)) {
                 f->start -= PICO_SIZE_ETHHDR;
                 f->len += PICO_SIZE_ETHHDR;
                 f->datalink_hdr = f->start;

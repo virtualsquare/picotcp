@@ -28,16 +28,13 @@ void slaacv4_cb(struct pico_ip4 *ip, uint8_t code)
 {
     char dst[16] = "169.254.22.5";
     printf("SLAACV4 CALLBACK ip:0x%X code:%d \n", ip->addr, code);
-    if (code == 0)
-    {
+    if (code == 0) {
 #ifdef PICO_SUPPORT_PING
         pico_icmp4_ping(stack, dst, 3, 1000, 5000, 32, ping_callback_slaacv4);
 #else
         exit(0);
 #endif
-    }
-    else
-    {
+    } else {
         exit(255);
     }
 
@@ -57,14 +54,14 @@ void app_slaacv4(struct pico_stack *S, char *arg)
     while (nxt) {
         if (nxt) {
             nxt = cpy_arg(&sdev, nxt);
-            if(!sdev) {
+            if (!sdev) {
                 exit(255);
             }
         }
     }
     dev = pico_get_device(stack, sdev);
     free(sdev);
-    if(dev == NULL) {
+    if (dev == NULL) {
         printf("%s: error getting device %s: %s\n", __FUNCTION__, dev->name, strerror(pico_err));
         exit(255);
     }

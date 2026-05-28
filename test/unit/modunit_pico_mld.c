@@ -74,15 +74,15 @@ START_TEST(tc_pico_mld_check_hopbyhop)
     hbh = (struct pico_ipv6_hbhoption *) PICO_ZALLOC(sizeof(struct pico_ipv6_hbhoption) + 7);
     hbh->type = PICO_PROTO_ICMP6;
     hbh->len = 0;
-    for(test = 0; test < 7; test++) {
+    for (test = 0; test < 7; test++) {
         p = (uint8_t *)hbh + sizeof(struct pico_ipv6_hbhoption);
-        for(i = 0; i < 6; i++ ) {
-            if(i != test)
+        for (i = 0; i < 6; i++ ) {
+            if (i != test)
                 *(p++) = options[i + 2];
             else
                 *(p++) = 9;
         }
-        if(test != 6)
+        if (test != 6)
             fail_if(pico_mld_check_hopbyhop(hbh) != -1);
         else
             fail_if(pico_mld_check_hopbyhop(hbh) != 0);
@@ -380,23 +380,23 @@ START_TEST(tc_pico_mld_process_in)
     link->mcast_compatibility = PICO_MLDV1;
     fail_if(pico_mld_generate_report(p) != 0);
     link->mcast_compatibility = PICO_MLDV2;
-    for(l = 0; l < 3; l++) {   /* FILTER */
+    for (l = 0; l < 3; l++) {   /* FILTER */
         (l == 2) ? (result = -1) : (result = 0);
-        for(k = 0; k < 3; k++) {  /* FILTER */
-            if(k == 2) result = -1;
+        for (k = 0; k < 3; k++) {  /* FILTER */
+            if (k == 2)result = -1;
 
-            for(i = 0; i < 3; i++) {  /* STATES */
-                for(j = 0; j < 6; j++) { /* EVENTS */
+            for (i = 0; i < 3; i++) {  /* STATES */
+                for (j = 0; j < 6; j++) { /* EVENTS */
                     p->MCASTFilter = &_MCASTFilter;
                     p->filter_mode = k;
                     g.filter_mode = l;
-                    if(p->event == MLD_EVENT_DELETE_GROUP || p->event == MLD_EVENT_QUERY_RECV)
+                    if (p->event == MLD_EVENT_DELETE_GROUP || p->event == MLD_EVENT_QUERY_RECV)
                         p->event++;
 
                     fail_if(pico_mld_generate_report(p) != result);
                     p->state = i;
                     p->event = j;
-                    if(result != -1 && p->f) { /* in some combinations, no frame is created */
+                    if (result != -1 && p->f) { /* in some combinations, no frame is created */
                         report = (struct mldv2_report *)(p->f->transport_hdr + MLD_ROUTER_ALERT_LEN);
                         report->crc = short_be(pico_icmp6_checksum(p->f));
                         fail_if(pico_mld_process_in(S, p->f) != 0);

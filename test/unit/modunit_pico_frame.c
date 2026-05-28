@@ -130,7 +130,7 @@ START_TEST(tc_pico_frame_grow)
     f->buffer = PICO_ZALLOC(10);
 
     fail_if(pico_frame_grow(f, 22) != 0);
-    fail_if (f->flags);
+    fail_if(f->flags);
     pico_frame_discard(f);
 
 }
@@ -151,7 +151,7 @@ START_TEST(tc_pico_frame_copy)
     fail_if(!c1->buffer);
     fail_if(!c1->usage_count);
 
-    fail_if (c1->buffer != f->buffer);
+    fail_if(c1->buffer != f->buffer);
     fail_if(c1->usage_count != f->usage_count);
     fail_if(*c1->usage_count != 2);
     fail_if(*f->usage_count != 2);
@@ -161,7 +161,7 @@ START_TEST(tc_pico_frame_copy)
 
     /* Second copy */
     c2 = pico_frame_copy(f);
-    fail_if (c2->buffer != f->buffer);
+    fail_if(c2->buffer != f->buffer);
     fail_if(c2->usage_count != f->usage_count);
     fail_if(*c2->usage_count != 3);
     fail_if(*f->usage_count != 3);

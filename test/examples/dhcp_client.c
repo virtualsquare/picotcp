@@ -72,13 +72,13 @@ void app_dhcp_client(struct pico_stack *S, char *arg)
     while (nxt) {
         if (nxt) {
             nxt = cpy_arg(&sdev, nxt);
-            if(!sdev) {
+            if (!sdev) {
                 goto out;
             }
         }
 
         dev = pico_get_device(S, sdev);
-        if(dev == NULL) {
+        if (dev == NULL) {
             if (sdev)
                 free(sdev);
 

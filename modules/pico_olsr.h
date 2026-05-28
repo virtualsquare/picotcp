@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -43,7 +43,7 @@ struct olsr_route_entry
     uint16_t ansn;
     uint16_t seq;
     uint8_t lq, nlq;
-    uint8_t                         advertised_tc;
+    uint8_t advertised_tc;
 };
 
 

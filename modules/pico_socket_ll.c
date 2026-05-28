@@ -44,7 +44,7 @@ int pico_socket_ll_compare(void *ka, void *kb)
         return -1;
     if (a->id > b->id)
         return 1;
-    return (0);
+    return 0;
 }
 
 void pico_socket_set_raw(struct pico_socket *s)
@@ -53,7 +53,8 @@ void pico_socket_set_raw(struct pico_socket *s)
     lls->type = PICO_PACKET_TYPE_RAW;
 }
 
-struct pico_socket *pico_socket_ll_open(struct pico_stack *S, uint16_t proto) {
+struct pico_socket *pico_socket_ll_open(struct pico_stack *S, uint16_t proto)
+{
     struct pico_ll_socket *s;
     s = PICO_ZALLOC(sizeof(struct pico_ll_socket));
     if (!s) {
@@ -72,7 +73,7 @@ struct pico_socket *pico_socket_ll_open(struct pico_stack *S, uint16_t proto) {
 
 struct pico_frame *pico_ll_frame_alloc(struct pico_stack *S, struct pico_protocol *self, struct pico_device *dev, uint16_t size)
 {
-    uint32_t overhead=0;
+    uint32_t overhead = 0;
     struct pico_frame *f;
     (void)S;
     (void)self;
@@ -105,9 +106,8 @@ int pico_socket_ll_process_in(struct pico_stack *S, struct pico_protocol *self, 
             continue;
         if ((s->sock.local_addr.ll.proto != ehdr->proto) && (s->sock.local_addr.ll.proto != PICO_IDETH_ALL))
             continue;
-        if ( ((s->sock.state & PICO_SOCKET_STATE_BOUND) == 0)  ||
-                (memcmp(s->sock.local_addr.ll.hwaddr.addr, ehdr->daddr, 6) == 0)  )
-        {
+        if (((s->sock.state & PICO_SOCKET_STATE_BOUND) == 0)  ||
+            (memcmp(s->sock.local_addr.ll.hwaddr.addr, ehdr->daddr, 6) == 0)) {
             cp = pico_frame_copy(f);
             if (cp) {
                 pico_enqueue(&s->sock.q_in, cp);

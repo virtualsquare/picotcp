@@ -24,7 +24,7 @@ static pico_time deadline;
 
 static void panic(void)
 {
-    for(;;);
+    for (;;);
 }
 
 static char buf[MTU] = {};
@@ -40,7 +40,7 @@ static void buf_paint(void)
 
 static void send_hdr(struct pico_socket *s)
 {
-    struct iperf_hdr hdr = {} ;
+    struct iperf_hdr hdr = {};
     hdr.numThreads = long_be(1);
     hdr.mPort = long_be(5001);
     hdr.mAmount = long_be(0xfffffc18);
@@ -69,7 +69,7 @@ static void iperf_cb(uint16_t ev, struct pico_socket *s)
 
 static void socket_setup(struct pico_stack *stack)
 {
-	int yes = 1;
+    int yes = 1;
     uint16_t send_port = 0;
     struct pico_socket *s = NULL;
     union pico_address dst = {
@@ -86,11 +86,11 @@ static void socket_setup(struct pico_stack *stack)
 int main(void)
 {
     long long interval = 0;
-    char ipaddr[]="192.168.2.150";
+    char ipaddr[] = "192.168.2.150";
     struct pico_ip4 my_eth_addr, netmask;
     struct pico_device *tap;
 
-    uint8_t mac[6] = {0x00,0x00,0x00,0x12,0x34,0x56};
+    uint8_t mac[6] = {0x00, 0x00, 0x00, 0x12, 0x34, 0x56};
     struct pico_socket *s;
     struct pico_stack *stack;
 
@@ -99,25 +99,24 @@ int main(void)
     tap = (struct pico_device *) pico_tap_create(stack, "tap0");
     if (!tap)
         while (1);
-
     pico_string_to_ipv4(ipaddr, &my_eth_addr.addr);
     pico_string_to_ipv4("255.255.255.0", &netmask.addr);
     pico_ipv4_link_add(stack, tap, my_eth_addr, netmask);
 #ifdef PICO_SUPPORT_IPV6
     {
-    struct pico_ip6 my_addr6, netmask6;
-    pico_string_to_ipv6("3ffe:501:ffff:100:260:37ff:fe12:3456", my_addr6.addr);
-    pico_string_to_ipv6("ffff:ffff:ffff:ffff::0", netmask6.addr);
-    pico_ipv6_link_add(tap, my_addr6, netmask6);
+        struct pico_ip6 my_addr6, netmask6;
+        pico_string_to_ipv6("3ffe:501:ffff:100:260:37ff:fe12:3456", my_addr6.addr);
+        pico_string_to_ipv6("ffff:ffff:ffff:ffff::0", netmask6.addr);
+        pico_ipv6_link_add(tap, my_addr6, netmask6);
     }
 #endif
 
     socket_setup(stack);
 
-    while(1) {
+    while (1) {
         interval = pico_stack_go(stack);
         if (interval != 0) {
-//            printf("Interval: %lld\n", interval);
+/*            printf("Interval: %lld\n", interval); */
             pico_tap_WFI(tap, interval);
         }
     }

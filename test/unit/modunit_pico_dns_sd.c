@@ -13,16 +13,14 @@
 #include <check.h>
 
 Suite *pico_suite(void);
-void callback( pico_mdns_rtree *tree, char *str, void *arg);
+void callback(pico_mdns_rtree *tree, char *str, void *arg);
 int dns_sd_init(struct pico_stack *S);
 char text[] = "textvers";
 char text2[] = "pass";
 char text3[] = "color";
 char value[] = "1";
 char value3[] = "";
-void callback( pico_mdns_rtree *tree,
-               char *str,
-               void *arg )
+void callback(pico_mdns_rtree *tree, char *str, void *arg)
 {
     struct pico_stack *S = NULL;
     kv_vector vector = {
@@ -186,7 +184,7 @@ START_TEST(tc_dns_sd_txt_record_create)
     /* Pair with an empty value */
     pico_dns_sd_kv_vector_add(&pairs, text, NULL);
     record = pico_dns_sd_txt_record_create(S, "test.local", pairs, 10,
-                                       PICO_MDNS_RECORD_UNIQUE);
+                                           PICO_MDNS_RECORD_UNIQUE);
     fail_unless(record != NULL,
                 "pico_dns_sd_txt_record_create should have a record!\n");
     pico_dns_sd_kv_vector_erase(&pairs);
@@ -200,7 +198,7 @@ START_TEST(tc_dns_sd_txt_record_create)
     long_value[PICO_DNS_SD_KV_MAXLEN] = '\0';
     pico_dns_sd_kv_vector_add(&pairs, text, long_value);
     record = pico_dns_sd_txt_record_create(S, "test.local", pairs, 10,
-                                       PICO_MDNS_RECORD_UNIQUE);
+                                           PICO_MDNS_RECORD_UNIQUE);
     fail_unless(record == NULL,
                 "pico_dns_sd_txt_record_create shouldn't have a record!\n");
     pico_dns_sd_kv_vector_erase(&pairs);

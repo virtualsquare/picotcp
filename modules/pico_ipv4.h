@@ -112,10 +112,9 @@ struct pico_socket_ipv4
 
 struct pico_in_pktinfo
 {
-    unsigned int   ipi_ifindex;  /* Device hash */
+    unsigned int ipi_ifindex;    /* Device hash */
     struct pico_ip4 ipi_spec_dst; /* Local address */
-    struct pico_ip4 ipi_addr;     /* Header Destination
-                                    address */
+    struct pico_ip4 ipi_addr;     /* Header Destination address */
 };
 
 #endif

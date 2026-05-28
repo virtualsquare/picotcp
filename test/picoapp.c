@@ -159,17 +159,17 @@ void deferred_exit(pico_time __attribute__((unused)) now, void *arg)
 #ifdef PICO_SUPPORT_TICKLESS
 #include "pico_jobs.h"
 pthread_mutex_t IRQ_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t  IRQ_condition = PTHREAD_COND_INITIALIZER;
+pthread_cond_t IRQ_condition = PTHREAD_COND_INITIALIZER;
 struct pico_device *irqdev = NULL;
 
 /* Called by main loop when an IRQ occurs */
-static void IRQ_dispatcher(void) 
+static void IRQ_dispatcher(void)
 {
     if (irqdev)
         pico_schedule_job(irqdev->stack, pico_vde_dsr, irqdev);
 }
 
-/* Thread body, to emulate IRQ emission from a vde device 
+/* Thread body, to emulate IRQ emission from a vde device
  *
  * The IRQ line is in fact the pthead_cond_t IRQ_condition
  *
@@ -240,7 +240,7 @@ static void usage(char *arg0)
     exit(255);
 }
 
-#define IF_APPNAME(x) if(strcmp(x, name) == 0)
+#define IF_APPNAME(x) if (strcmp(x, name) == 0)
 
 int main(int argc, char **argv)
 {
@@ -277,8 +277,7 @@ int main(int argc, char **argv)
             app = p + 1;
         else if (*p == '\0')
             break;
-        else
-        {} /* do nothing */
+        else {} /* do nothing */
 
         p++;
     }
@@ -292,17 +291,16 @@ int main(int argc, char **argv)
 #ifdef PICO_SUPPORT_MM
     pico_mem_init(128 * 1024);
 #endif
-    if (pico_stack_init(&stack) < 0)
-    {
+    if (pico_stack_init(&stack) < 0) {
         fprintf(stderr, "PicoTCP: cannot initialize stack. %s\n", strerror(pico_err));
     }
     /* Parse args */
-    while(1) {
+    while (1) {
         c = getopt_long(argc, argv, "v:b:t:T:a:r:hl", long_options, &option_idx);
         if (c < 0)
             break;
 
-        switch(c) {
+        switch (c) {
         case 'h':
             usage(argv[0]);
             break;
@@ -321,7 +319,7 @@ int main(int argc, char **argv)
                 if (!nxt) break;
 
                 cpy_arg(&gw, nxt);
-            } while(0);
+            } while (0);
             if (!nm) {
                 fprintf(stderr, "Tun: bad configuration...\n");
                 exit(1);
@@ -375,7 +373,7 @@ int main(int argc, char **argv)
                 if (!nxt) break;
 
                 cpy_arg(&gw, nxt);
-            } while(0);
+            } while (0);
             if (!nm) {
                 fprintf(stderr, "Tun: bad configuration...\n");
                 exit(1);
@@ -465,7 +463,7 @@ int main(int argc, char **argv)
                     nxt = cpy_arg(&loss_out, nxt);
                     if (!nxt) break;
                 }
-            } while(0);
+            } while (0);
             if (!nm && !nm6) {
                 fprintf(stderr, "Vde: bad configuration...\n");
                 exit(1);
@@ -596,7 +594,7 @@ check:      if (!name || !area0 || !area1) {
                 if (!nxt) break;
 
                 nxt = cpy_arg(&sock, nxt);
-            } while(0);
+            } while (0);
             if (!sock) {
                 fprintf(stderr, "Vde: bad configuration...\n");
                 exit(1);
@@ -668,7 +666,7 @@ check:      if (!name || !area0 || !area1) {
                 if (!nxt) break;
 
                 nxt = cpy_arg(&gw, nxt);
-            } while(0);
+            } while (0);
             if (!addr || !nm || !gw) {
                 fprintf(stderr, "--route expects addr:nm:gw:\n");
                 usage(argv[0]);
@@ -702,39 +700,38 @@ check:      if (!name || !area0 || !area1) {
             args = cpy_arg(&name, optarg);
 
             printf("+++ NAME: %s ARGS: %s\n", name, args);
-            IF_APPNAME("udpecho") {
+            IF_APPNAME ("udpecho") {
                 app_udpecho(stack, args);
-            } else IF_APPNAME("tcpecho") {
+            } else IF_APPNAME ("tcpecho") {
                 app_tcpecho(stack, args);
-            } else IF_APPNAME("udpclient") {
+            } else IF_APPNAME ("udpclient") {
                 app_udpclient(stack, args);
-            } else IF_APPNAME("tcpclient") {
+            } else IF_APPNAME ("tcpclient") {
                 app_tcpclient(stack, args);
-            } else IF_APPNAME("tcpbench") {
+            } else IF_APPNAME ("tcpbench") {
                 app_tcpbench(stack, args);
-            } else IF_APPNAME("natbox") {
+            } else IF_APPNAME ("natbox") {
                 app_natbox(stack, args);
-            } else IF_APPNAME("udpdnsclient") {
+            } else IF_APPNAME ("udpdnsclient") {
                 app_udpdnsclient(stack, args);
-            } else IF_APPNAME("udpnatclient") {
+            } else IF_APPNAME ("udpnatclient") {
                 app_udpnatclient(stack, args);
-            } else IF_APPNAME("mcastsend") {
+            } else IF_APPNAME ("mcastsend") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
                 app_mcastsend(stack, args);
-            } else IF_APPNAME("mcastreceive") {
+            } else IF_APPNAME ("mcastreceive") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
                 app_mcastreceive(stack, args);
-            }
-            else IF_APPNAME("mcastsend_ipv6") {
+            } else IF_APPNAME ("mcastsend_ipv6") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
                 app_mcastsend_ipv6(stack, args);
-            } else IF_APPNAME("mcastreceive_ipv6") {
+            } else IF_APPNAME ("mcastreceive_ipv6") {
 #ifndef PICO_SUPPORT_MCAST
                 return 0;
 #endif
@@ -742,39 +739,39 @@ check:      if (!name || !area0 || !area1) {
             }
 
 #ifdef PICO_SUPPORT_PING
-            else IF_APPNAME("ping") {
+            else IF_APPNAME ("ping") {
                 app_ping(stack, args);
             }
 #endif
-            else IF_APPNAME("dhcpserver") {
+            else IF_APPNAME ("dhcpserver") {
 #ifndef PICO_SUPPORT_DHCPD
                 return 0;
 #else
                 app_dhcp_server(stack, args);
 #endif
-            } else IF_APPNAME("dhcpclient") {
+            } else IF_APPNAME ("dhcpclient") {
 #ifndef PICO_SUPPORT_DHCPC
                 return 0;
 #else
                 app_dhcp_client(stack, args);
 #endif
-            } else IF_APPNAME("dns_sd") {
+            } else IF_APPNAME ("dns_sd") {
 #ifndef PICO_SUPPORT_DNS_SD
                 return 0;
 #else
                 app_dns_sd(stack, args, addr4);
 #endif
-            } else IF_APPNAME("mdns") {
+            } else IF_APPNAME ("mdns") {
 #ifndef PICO_SUPPORT_MDNS
                 return 0;
 #else
                 app_mdns(stack, args, addr4);
 #endif
 #ifdef PICO_SUPPORT_SNTP_CLIENT
-            } else IF_APPNAME("sntp") {
+            } else IF_APPNAME ("sntp") {
                 app_sntp(stack, args);
 #endif
-            } else IF_APPNAME("bcast") {
+            } else IF_APPNAME ("bcast") {
                 struct pico_ip4 any = {
                     .addr = 0xFFFFFFFFu
                 };
@@ -784,29 +781,29 @@ check:      if (!name || !area0 || !area1) {
 
                 pico_socket_sendto(s, "abcd", 5u, &bcastAddr, 1000);
 #ifdef PICO_SUPPORT_TFTP
-            } else IF_APPNAME("tftp") {
+            } else IF_APPNAME ("tftp") {
                 app_tftp(stack, args);
 #endif
-            } else IF_APPNAME("noop") {
+            } else IF_APPNAME ("noop") {
 #ifdef PICO_SUPPORT_OLSR
-            } else IF_APPNAME("olsr") {
+            } else IF_APPNAME ("olsr") {
                 dev = pico_get_device(stack, "pic0");
-                if(dev) {
+                if (dev) {
                     pico_olsr_add(dev);
                 }
 
                 dev = pico_get_device(stack, "pic1");
-                if(dev) {
+                if (dev) {
                     pico_olsr_add(dev);
                 }
 #endif
-            } else IF_APPNAME("slaacv4") {
+            } else IF_APPNAME ("slaacv4") {
 #ifndef PICO_SUPPORT_SLAACV4
                 return 0;
 #else
                 app_slaacv4(stack, args);
 #endif
-            } else IF_APPNAME("udp_sendto_test") {
+            } else IF_APPNAME ("udp_sendto_test") {
                 app_sendto_test(stack, args);
             } else {
                 fprintf(stderr, "Unknown application %s\n", name);
@@ -832,7 +829,7 @@ check:      if (!name || !area0 || !area1) {
     if (uses_vde) {
         struct timespec idle_time = {0, 0};
         printf("%s: launching PicoTCP loop in TICKLESS mode\n", __FUNCTION__);
-        while(1) {
+        while (1) {
             interval = pico_stack_go(stack);
             if (interval != 0) {
                 int ret;
@@ -843,12 +840,11 @@ check:      if (!name || !area0 || !area1) {
                     idle_time.tv_nsec -= 1000000000;
                     idle_time.tv_sec++;
                 }
-
                 pthread_mutex_lock(&IRQ_mutex);
                 ret = pthread_cond_timedwait(&IRQ_condition, &IRQ_mutex, &idle_time);
-                //printf("Unlocked PicoTCP! ret = %d was idle=%llu\n", ret, interval);
+                /*printf("Unlocked PicoTCP! ret = %d was idle=%llu\n", ret, interval); */
                 pthread_mutex_unlock(&IRQ_mutex);
-                if (ret == 0)  {
+                if (ret == 0) {
                     IRQ_dispatcher();
                 }
 
@@ -856,14 +852,14 @@ check:      if (!name || !area0 || !area1) {
             }
         }
     } else {
-        while(1) {
+        while (1) {
             interval = pico_stack_go(stack);
         }
     }
     exit(0);
 #endif
     printf("-~-~-~-~-~-~-~-~-~ %s: launching PicoTCP loop -~-~-~-~-~-~-~-~-~\n", __FUNCTION__);
-    while(1) {
+    while (1) {
         pico_stack_tick(stack);
         global_pico_tick = stack->pico_tick;
         usleep(2000);

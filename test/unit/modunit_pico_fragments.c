@@ -837,7 +837,7 @@ END_TEST
 
 START_TEST(tc_pico_fragments_get_offset)
 {
-    struct pico_frame *a=NULL, *b = NULL;
+    struct pico_frame *a = NULL, *b = NULL;
 
     b = pico_frame_alloc(sizeof(struct pico_ipv4_hdr));
     fail_if(!b);
@@ -1049,7 +1049,7 @@ START_TEST(tc_pico_ipv6_process_frag)
 
     /* init hdr */
     hdr = PICO_ZALLOC(sizeof(struct pico_ipv6_exthdr));
-    hdr->ext.frag.id[0]= 0xF;
+    hdr->ext.frag.id[0] = 0xF;
 
     /* NULL frame provided */
     S->ipv6_cur_frag_id = 0;

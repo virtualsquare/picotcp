@@ -314,8 +314,7 @@ static int pico_port_in_use_ipv6(struct pico_sockport *sp, void *addr)
 static int pico_generic_port_in_use(uint16_t proto, uint16_t port, struct pico_sockport *sp, void *addr, void *net)
 {
 #ifdef PICO_SUPPORT_IPV4
-    if (net == &pico_proto_ipv4)
-    {
+    if (net == &pico_proto_ipv4) {
         if (sp && pico_port_in_use_by_nat(sp->stack, proto, port)) {
             return 1;
         }
@@ -328,8 +327,7 @@ static int pico_generic_port_in_use(uint16_t proto, uint16_t port, struct pico_s
 #endif
 
 #ifdef PICO_SUPPORT_IPV6
-    if (net == &pico_proto_ipv6)
-    {
+    if (net == &pico_proto_ipv6) {
         if (sp && pico_port_in_use_ipv6(sp, addr)) {
             return 1;
         }
@@ -380,12 +378,10 @@ struct pico_socket *pico_sockets_find(struct pico_stack *S, uint16_t local, uint
     struct pico_sockport *sp = NULL;
 
     sp = pico_get_sockport(S, PICO_PROTO_TCP, local);
-    if(sp)
-    {
+    if (sp) {
         pico_tree_foreach(index, &sp->socks)
         {
-            if(((struct pico_socket *)index->keyValue)->remote_port == remote)
-            {
+            if (((struct pico_socket *)index->keyValue)->remote_port == remote) {
                 sock = (struct pico_socket *)index->keyValue;
                 break;
             }
@@ -416,33 +412,31 @@ int8_t pico_socket_add(struct pico_socket *s)
         sp->socks.compare = socket_cmp;
 
 #ifdef PICO_SUPPORT_UDP
-        if (PROTO(s) == PICO_PROTO_UDP)
-        {
+        if (PROTO(s) == PICO_PROTO_UDP) {
             if (pico_tree_insert(&s->stack->UDPTable, sp)) {
-				PICO_FREE(sp);
-				PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
-				return -1;
-			}
+                PICO_FREE(sp);
+                PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
+                return -1;
+            }
 
         }
 
 #endif
 #ifdef PICO_SUPPORT_TCP
-        if (PROTO(s) == PICO_PROTO_TCP)
-        {
+        if (PROTO(s) == PICO_PROTO_TCP) {
             if (pico_tree_insert(&s->stack->TCPTable, sp)) {
-				PICO_FREE(sp);
-				PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
-				return -1;
-			}
+                PICO_FREE(sp);
+                PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
+                return -1;
+            }
         }
 #endif
     }
 
     if (pico_tree_insert(&sp->socks, s)) {
-		PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
-		return -1;
-	}
+        PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
+        return -1;
+    }
     s->state |= PICO_SOCKET_STATE_BOUND;
     PICOTCP_MUTEX_UNLOCK(s->stack->SockMutex);
 #ifdef DEBUG_SOCKET_TREE
@@ -463,16 +457,13 @@ static void socket_clean_queues(struct pico_socket *sock)
 {
     struct pico_frame *f_in = pico_dequeue(&sock->q_in);
     struct pico_frame *f_out = pico_dequeue(&sock->q_out);
-    while(f_in || f_out)
-    {
-        if(f_in)
-        {
+    while (f_in || f_out) {
+        if (f_in) {
             pico_frame_discard(f_in);
             f_in = pico_dequeue(&sock->q_in);
         }
 
-        if(f_out)
-        {
+        if (f_out) {
             pico_frame_discard(f_out);
             f_out = pico_dequeue(&sock->q_out);
         }
@@ -494,24 +485,22 @@ static void socket_garbage_collect(pico_time now, void *arg)
 
 static void pico_socket_check_empty_sockport(struct pico_socket *s, struct pico_sockport *sp)
 {
-    if(pico_tree_empty(&sp->socks)) {
+    if (pico_tree_empty(&sp->socks)) {
 #ifdef PICO_SUPPORT_UDP
-        if (PROTO(s) == PICO_PROTO_UDP)
-        {
+        if (PROTO(s) == PICO_PROTO_UDP) {
             pico_tree_delete(&s->stack->UDPTable, sp);
         }
 #endif
 #ifdef PICO_SUPPORT_TCP
-        if (PROTO(s) == PICO_PROTO_TCP)
-        {
+        if (PROTO(s) == PICO_PROTO_TCP) {
             pico_tree_delete(&s->stack->TCPTable, sp);
         }
 #endif
 
-        if(s->stack->sp_tcp == sp)
+        if (s->stack->sp_tcp == sp)
             s->stack->sp_tcp = NULL;
 
-        if(s->stack->sp_udp == sp)
+        if (s->stack->sp_udp == sp)
             s->stack->sp_udp = NULL;
 
         PICO_FREE(sp);
@@ -752,17 +741,15 @@ struct pico_socket *pico_socket_clone(struct pico_socket *facsimile)
 
 static int pico_socket_transport_read(struct pico_socket *s, void *buf, int len)
 {
-    if (PROTO(s) == PICO_PROTO_UDP)
-    {
+    if (PROTO(s) == PICO_PROTO_UDP) {
         /* make sure cast to uint16_t doesn't give unexpected results */
-        if(len > 0xFFFF) {
+        if (len > 0xFFFF) {
             pico_err = PICO_ERR_EINVAL;
             return -1;
         }
 
         return pico_socket_udp_recv(s, buf, (uint16_t)len, NULL, NULL);
-    }
-    else if (PROTO(s) == PICO_PROTO_TCP)
+    } else if (PROTO(s) == PICO_PROTO_TCP)
         return pico_socket_tcp_read(s, buf, (uint32_t)len);
 #ifdef PICO_SUPPORT_RAWSOCKETS
     else if (PROTO(s) == PICO_PROTO_IPV4)
@@ -857,9 +844,8 @@ static uint16_t pico_socket_high_port(struct pico_stack *S, uint16_t proto)
             if (pico_is_port_free(S, proto, port, NULL, NULL)) {
                 return short_be(port);
             }
-        } while(1);
-    }
-    else return 0U;
+        } while (1);
+    } else return 0U;
 }
 
 static void *pico_socket_sendto_get_ip4_src(struct pico_socket *s, struct pico_ip4 *dst)
@@ -872,7 +858,7 @@ static void *pico_socket_sendto_get_ip4_src(struct pico_socket *s, struct pico_i
      */
     if ((s->state & PICO_SOCKET_STATE_CONNECTED)) {
         src4 = &s->local_addr.ip4;
-        if  (s->remote_addr.ip4.addr != ((struct pico_ip4 *)dst)->addr ) {
+        if (s->remote_addr.ip4.addr != ((struct pico_ip4 *)dst)->addr) {
             pico_err = PICO_ERR_EADDRNOTAVAIL;
             return NULL;
         }
@@ -1234,7 +1220,7 @@ static int pico_socket_xmit_fragments(struct pico_socket *s, const void *buf, co
 #endif
 
 #ifdef PICO_SUPPORT_IPV4FRAG
-    while(total_payload_written < len) {
+    while (total_payload_written < len) {
         /* Always allocate the max space available: space + offset */
         if (len < space)
             space = len;
@@ -1335,17 +1321,17 @@ static uint32_t pico_socket_pmtu_check(struct pico_socket *s, uint32_t mss)
 
 #if defined(PICO_SUPPORT_IPV6) && defined(PICO_SUPPORT_IPV6PMTU)
     if (is_sock_ipv6(s)) {
-    	uint32_t pmtu = 0;
-    	const struct pico_ipv6_path_id destination = {s->remote_addr.ip6};
-    	pmtu = pico_ipv6_pmtu_get(s->stack, &destination);
-    	if (pmtu == 0) {
-    		pico_ipv6_path_add(s->stack, &destination, mss);
-    	} else {
-    		if (pmtu < mss) {
-    			mss = pmtu;
-    		}
-    	}
-	}
+        uint32_t pmtu = 0;
+        const struct pico_ipv6_path_id destination = {s->remote_addr.ip6};
+        pmtu = pico_ipv6_pmtu_get(s->stack, &destination);
+        if (pmtu == 0) {
+            pico_ipv6_path_add(s->stack, &destination, mss);
+        } else {
+            if (pmtu < mss) {
+                mss = pmtu;
+            }
+        }
+    }
 #else
     IGNORE_PARAMETER(s);
 #endif
@@ -1362,7 +1348,7 @@ uint32_t pico_socket_get_mss(struct pico_socket *s)
         get_sock_dev(s);
     }
     if (s->dev) {
-    	mss = pico_socket_pmtu_check(s, s->dev->mtu);
+        mss = pico_socket_pmtu_check(s, s->dev->mtu);
     }
     return pico_socket_adapt_mss_to_proto(s, mss);
 }
@@ -1440,7 +1426,7 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
         return -1;
     }
 
-    if(len == 0)
+    if (len == 0)
         return 0;
 
 #ifdef PICO_SUPPORT_PACKET_SOCKETS
@@ -1461,13 +1447,11 @@ int MOCKABLE pico_socket_sendto_extended(struct pico_socket *s, const void *buf,
     src = pico_socket_sendto_get_src(s, dst);
     if (!src) {
 #ifdef PICO_SUPPORT_IPV6
-        if((s->net->proto_number == PICO_PROTO_IPV6)
-           && msginfo && msginfo->dev
-           && pico_ipv6_is_multicast(((struct pico_ip6 *)dst)->addr))
-        {
+        if ((s->net->proto_number == PICO_PROTO_IPV6)
+            && msginfo && msginfo->dev
+            && pico_ipv6_is_multicast(((struct pico_ip6 *)dst)->addr)) {
             src = &(pico_ipv6_linklocal_get(msginfo->dev)->address);
-        }
-        else
+        } else
 #endif
         return -1;
     }
@@ -1536,7 +1520,7 @@ int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, voi
 #ifdef PICO_SUPPORT_ICMP4
     /* forward request to icmp layer */
     if (PROTO(s) == PICO_PROTO_ICMP4) {
-        if(len > 0xFFFF) {
+        if (len > 0xFFFF) {
             pico_err = PICO_ERR_EINVAL;
             return -1;
         }
@@ -1559,7 +1543,7 @@ int pico_socket_recvfrom_extended(struct pico_socket *s, void *buf, int len, voi
 #ifdef PICO_SUPPORT_UDP
     if (PROTO(s) == PICO_PROTO_UDP) {
         /* make sure cast to uint16_t doesn't give unexpected results */
-        if(len > 0xFFFF) {
+        if (len > 0xFFFF) {
             pico_err = PICO_ERR_EINVAL;
             return -1;
         }
@@ -1614,12 +1598,11 @@ int pico_socket_fionread(struct pico_socket *s)
         pico_err = PICO_ERR_EIO;
         return -1;
     }
-    if (PROTO(s) == PICO_PROTO_UDP)
-    {
+    if (PROTO(s) == PICO_PROTO_UDP) {
         f = pico_queue_peek(&s->q_in);
         if (!f)
             return 0;
-        if(!f->payload_len) {
+        if (!f->payload_len) {
             f->payload = f->transport_hdr + sizeof(struct pico_udp_hdr);
             f->payload_len =
                 (f->transport_len > sizeof(struct pico_udp_hdr)) ?
@@ -1634,7 +1617,7 @@ int pico_socket_fionread(struct pico_socket *s)
         f = pico_queue_peek(&s->q_in);
         if (!f)
             return 0;
-        if(!f->payload_len) {
+        if (!f->payload_len) {
             f->payload = f->net_hdr + f->net_len;
             f->payload_len = (uint16_t)(f->len);
             if (!s4->hdr_included)
@@ -1821,8 +1804,7 @@ int pico_socket_connect(struct pico_socket *s, const void *remote_addr, uint16_t
         return -1;
     }
 
-    if (PROTO(s) == PICO_PROTO_IPV4)
-    {
+    if (PROTO(s) == PICO_PROTO_IPV4) {
         pico_err = PICO_ERR_EOPNOTSUPP;
         return -1;
     }
@@ -2073,8 +2055,7 @@ int pico_socket_shutdown(struct pico_socket *s, int mode)
     }
 
     /* unbound sockets can be deleted immediately */
-    if (!(s->state & PICO_SOCKET_STATE_BOUND))
-    {
+    if (!(s->state & PICO_SOCKET_STATE_BOUND)) {
         socket_garbage_collect((pico_time)10, s);
         return 0;
     }
@@ -2090,12 +2071,10 @@ int pico_socket_shutdown(struct pico_socket *s, int mode)
 #endif
 #ifdef PICO_SUPPORT_TCP
     if (PROTO(s) == PICO_PROTO_TCP) {
-        if ((mode & PICO_SHUT_RDWR) == PICO_SHUT_RDWR)
-        {
+        if ((mode & PICO_SHUT_RDWR) == PICO_SHUT_RDWR) {
             pico_socket_alter_state(s, PICO_SOCKET_STATE_SHUT_LOCAL | PICO_SOCKET_STATE_SHUT_REMOTE, 0, 0);
             pico_tcp_notify_closing(s);
-        }
-        else if (mode & PICO_SHUT_WR) {
+        } else if (mode & PICO_SHUT_WR) {
             pico_socket_alter_state(s, PICO_SOCKET_STATE_SHUT_LOCAL, 0, 0);
             pico_tcp_notify_closing(s);
         } else if (mode & PICO_SHUT_RD)
@@ -2195,8 +2174,7 @@ static inline int pico_transport_crc_check(struct pico_frame *f)
     struct pico_udp_hdr *udp_hdr = NULL;
     uint16_t checksum_invalid = 1;
 
-    switch (net_hdr->proto)
-    {
+    switch (net_hdr->proto) {
 #ifdef PICO_SUPPORT_TCP
     case PICO_PROTO_TCP:
         checksum_invalid = short_be(pico_tcp_checksum(f));
@@ -2286,8 +2264,8 @@ int pico_socket_sanity_check(struct pico_socket *s)
 {
 
     /* checking for pending connections */
-    if(TCP_STATE(s) == PICO_SOCKET_STATE_TCP_SYN_RECV) {
-        if((PICO_TIME_MS() - s->timestamp) >= PICO_SOCKET_BOUND_TIMEOUT)
+    if (TCP_STATE(s) == PICO_SOCKET_STATE_TCP_SYN_RECV) {
+        if ((PICO_TIME_MS() - s->timestamp) >= PICO_SOCKET_BOUND_TIMEOUT)
             return -1;
     }
 
@@ -2304,8 +2282,7 @@ static int pico_sockets_loop_udp(struct pico_stack *S, int loop_score)
     struct pico_socket *s;
     struct pico_frame *f;
 
-    if (S->sp_udp == NULL)
-    {
+    if (S->sp_udp == NULL) {
         S->udp_loop_index = pico_tree_firstNode(S->UDPTable.root);
         S->sp_udp = S->udp_loop_index->keyValue;
     }
@@ -2331,8 +2308,7 @@ static int pico_sockets_loop_udp(struct pico_stack *S, int loop_score)
         S->udp_loop_index = pico_tree_next(S->udp_loop_index);
         S->sp_udp = S->udp_loop_index->keyValue;
 
-        if (S->sp_udp == NULL)
-        {
+        if (S->sp_udp == NULL) {
             S->udp_loop_index = pico_tree_firstNode(S->UDPTable.root);
             S->sp_udp = S->udp_loop_index->keyValue;
         }
@@ -2349,8 +2325,7 @@ static int pico_sockets_loop_tcp(struct pico_stack *S, int loop_score)
 #ifdef PICO_SUPPORT_TCP
     struct pico_sockport *start;
     struct pico_socket *s;
-    if (S->sp_tcp == NULL)
-    {
+    if (S->sp_tcp == NULL) {
         S->tcp_loop_index = pico_tree_firstNode(S->TCPTable.root);
         S->sp_tcp = S->tcp_loop_index->keyValue;
     }
@@ -2365,7 +2340,7 @@ static int pico_sockets_loop_tcp(struct pico_stack *S, int loop_score)
             loop_score = pico_tcp_output(s, loop_score);
             if ((s->ev_pending) && s->wakeup) {
                 s->wakeup(s->ev_pending, s);
-                if(!s->parent)
+                if (!s->parent)
                     s->ev_pending = 0;
             }
 
@@ -2374,8 +2349,7 @@ static int pico_sockets_loop_tcp(struct pico_stack *S, int loop_score)
                 break;
             }
 
-            if(pico_socket_sanity_check(s) < 0)
-            {
+            if (pico_socket_sanity_check(s) < 0) {
                 pico_socket_del(s);
                 S->tcp_loop_index = NULL; /* forcing the restart of loop */
                 S->sp_tcp = NULL;
@@ -2390,8 +2364,7 @@ static int pico_sockets_loop_tcp(struct pico_stack *S, int loop_score)
         S->tcp_loop_index = pico_tree_next(S->tcp_loop_index);
         S->sp_tcp = S->tcp_loop_index->keyValue;
 
-        if (S->sp_tcp == NULL)
-        {
+        if (S->sp_tcp == NULL) {
             S->tcp_loop_index = pico_tree_firstNode(S->TCPTable.root);
             S->sp_tcp = S->tcp_loop_index->keyValue;
         }
@@ -2475,7 +2448,7 @@ struct pico_frame *pico_socket_frame_alloc(struct pico_socket *s, struct pico_de
 static void pico_transport_error_set_picoerr(int code)
 {
     /* dbg("SOCKET ERROR FROM ICMP NOTIFICATION. (icmp code= %d)\n\n", code); */
-    switch(code) {
+    switch (code) {
     case PICO_ICMP_UNREACH_NET:
         pico_err = PICO_ERR_ENETUNREACH;
         break;

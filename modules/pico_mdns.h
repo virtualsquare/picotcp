@@ -1,11 +1,11 @@
 /* ****************************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -91,7 +91,7 @@ struct pico_mdns_record
  *  @return 0 when records are equal, returns difference when they're not.
  * ****************************************************************************/
 int
-pico_mdns_record_cmp( void *a, void *b );
+pico_mdns_record_cmp(void *a, void *b);
 
 /* ****************************************************************************
  *  Deletes a single mDNS resource record.
@@ -101,7 +101,7 @@ pico_mdns_record_cmp( void *a, void *b );
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_mdns_record_delete( void **record );
+pico_mdns_record_delete(void **record);
 
 /* ****************************************************************************
  *  Creates a single standalone mDNS resource record with given name, type and
@@ -125,11 +125,11 @@ pico_mdns_record_delete( void **record );
 struct pico_mdns_record *
 pico_mdns_record_create(struct pico_stack *S,
                         const char *url,
-                         void *_rdata,
-                         uint16_t datalen,
-                         uint16_t rtype,
-                         uint32_t rttl,
-                         uint8_t flags );
+                        void *_rdata,
+                        uint16_t datalen,
+                        uint16_t rtype,
+                        uint32_t rttl,
+                        uint8_t flags);
 
 
 
@@ -155,11 +155,11 @@ typedef struct pico_tree pico_mdns_rtree;
  *  @return 0 when query is correctly parsed, something else on failure.
  * ****************************************************************************/
 int
-pico_mdns_getrecord(struct pico_stack *S,  const char *url, uint16_t type,
-                     void (*callback)(pico_mdns_rtree *,
-                                      char *,
-                                      void *),
-                     void *arg );
+pico_mdns_getrecord(struct pico_stack *S,
+                    const char *url,
+                    uint16_t type,
+                    void (*callback)(pico_mdns_rtree *, char *, void *),
+                    void *arg);
 
 /* ****************************************************************************
  *  Claim all different mDNS records in a tree in a single API-call. All records
@@ -170,11 +170,10 @@ pico_mdns_getrecord(struct pico_stack *S,  const char *url, uint16_t type,
  *  @return 0 When claiming didn't horribly fail.
  * ****************************************************************************/
 int
-pico_mdns_claim(struct pico_stack *S,  pico_mdns_rtree rtree,
-                 void (*callback)(pico_mdns_rtree *,
-                                  char *,
-                                  void *),
-                 void *arg );
+pico_mdns_claim(struct pico_stack *S,
+                pico_mdns_rtree rtree,
+                void (*callback)(pico_mdns_rtree *, char *, void *),
+                void *arg);
 
 /* ****************************************************************************
  *  Tries to claim a hostname for this machine. Claims automatically a
@@ -190,7 +189,7 @@ pico_mdns_claim(struct pico_stack *S,  pico_mdns_rtree rtree,
  *          Returns something else when it didn't succeeded.
  * ****************************************************************************/
 int
-pico_mdns_tryclaim_hostname(struct pico_stack *S,  const char *url, void *arg );
+pico_mdns_tryclaim_hostname(struct pico_stack *S, const char *url, void *arg);
 
 /* ****************************************************************************
  *  Get the current hostname for this machine.
@@ -221,18 +220,14 @@ pico_mdns_get_hostname(struct pico_stack *S);
  * ****************************************************************************/
 int
 pico_mdns_init(struct pico_stack *S,
-                const char *hostname,
-                struct pico_ip4 address,
-                void (*callback)(pico_mdns_rtree *,
-                                 char *,
-                                 void *),
-                void *arg );
+               const char *hostname,
+               struct pico_ip4 address,
+               void (*callback)(pico_mdns_rtree *, char *, void *),
+               void *arg);
 
 
 /* Tree sorting functions */
-int pico_mdns_cookie_cmp( void *ka, void *kb );
-int pico_mdns_record_cmp_name_type( void *a, void *b );
-
-
+int pico_mdns_cookie_cmp(void *ka, void *kb);
+int pico_mdns_record_cmp_name_type(void *a, void *b);
 
 #endif /* _INCLUDE_PICO_MDNS */

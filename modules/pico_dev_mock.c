@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Frederik Van Slycken
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -66,18 +66,18 @@ static int pico_mock_send(struct pico_device *dev, void *buf, int len)
     struct mock_device*mock = pico_tree_findKey(&mock_device_tree, &search);
     struct mock_frame*frame;
 
-    if(!mock)
+    if (!mock)
         return 0;
 
     if (len > MOCK_MTU)
         return 0;
 
     frame = PICO_ZALLOC(sizeof(struct mock_frame));
-    if(!frame) {
+    if (!frame) {
         return 0;
     }
 
-    if(mock->out_head == NULL)
+    if (mock->out_head == NULL)
         mock->out_head = frame;
     else
         mock->out_tail->next = frame;
@@ -85,7 +85,7 @@ static int pico_mock_send(struct pico_device *dev, void *buf, int len)
     mock->out_tail = frame;
 
     mock->out_tail->buffer = PICO_ZALLOC((uint32_t)len);
-    if(!mock->out_tail->buffer)
+    if (!mock->out_tail->buffer)
         return 0;
 
     memcpy(mock->out_tail->buffer, buf, (uint32_t)len);
@@ -103,20 +103,19 @@ static int pico_mock_poll(struct pico_device *dev, int loop_score)
     struct mock_device*mock = pico_tree_findKey(&mock_device_tree, &search);
     struct mock_frame*nxt;
 
-    if(!mock)
+    if (!mock)
         return 0;
 
     if (loop_score <= 0)
         return 0;
 
-    while(mock->in_head != NULL && loop_score > 0)
-    {
+    while (mock->in_head != NULL && loop_score > 0) {
         pico_stack_recv(dev, mock->in_head->buffer, (uint32_t)mock->in_head->len);
         loop_score--;
 
         PICO_FREE(mock->in_head->buffer);
 
-        if(mock->in_tail == mock->in_head) {
+        if (mock->in_tail == mock->in_head) {
             PICO_FREE(mock->in_head);
             mock->in_tail = mock->in_head = NULL;
             return loop_score;
@@ -132,22 +131,22 @@ static int pico_mock_poll(struct pico_device *dev, int loop_score)
 int pico_mock_network_read(struct mock_device*mock, void *buf, int len)
 {
     struct mock_frame*nxt;
-    if(mock->out_head == NULL)
+    if (mock->out_head == NULL)
         return 0;
 
-    if(len > mock->out_head->len - mock->out_head->read)
+    if (len > mock->out_head->len - mock->out_head->read)
         len = mock->out_head->len - mock->out_head->read;
 
     memcpy(buf, mock->out_head->buffer, (uint32_t)len);
 
-    if(len + mock->out_head->read != mock->out_head->len) {
+    if (len + mock->out_head->read != mock->out_head->len) {
         mock->out_head->read += len;
         return len;
     }
 
     PICO_FREE(mock->out_head->buffer);
 
-    if(mock->out_tail == mock->out_head) {
+    if (mock->out_tail == mock->out_head) {
         PICO_FREE(mock->out_head);
         mock->out_tail = mock->out_head = NULL;
         return len;
@@ -167,11 +166,11 @@ int pico_mock_network_write(struct mock_device*mock, const void *buf, int len)
         return 0;
 
     frame = PICO_ZALLOC(sizeof(struct mock_frame));
-    if(!frame) {
+    if (!frame) {
         return 0;
     }
 
-    if(mock->in_head == NULL)
+    if (mock->in_head == NULL)
         mock->in_head = frame;
     else
         mock->in_tail->next = frame;
@@ -179,7 +178,7 @@ int pico_mock_network_write(struct mock_device*mock, const void *buf, int len)
     mock->in_tail = frame;
 
     mock->in_tail->buffer = PICO_ZALLOC((uint32_t)len);
-    if(!mock->in_tail->buffer)
+    if (!mock->in_tail->buffer)
         return 0;
 
     memcpy(mock->in_tail->buffer, buf, (uint32_t)len);
@@ -199,17 +198,17 @@ void pico_mock_destroy(struct pico_device *dev)
     struct mock_device*mock = pico_tree_findKey(&mock_device_tree, &search);
     struct mock_frame*nxt;
 
-    if(!mock)
+    if (!mock)
         return;
 
     nxt = mock->in_head;
-    while(nxt != NULL) {
+    while (nxt != NULL) {
         mock->in_head = mock->in_head->next;
         PICO_FREE(nxt);
         nxt = mock->in_head;
     }
     nxt = mock->out_head;
-    while(nxt != NULL) {
+    while (nxt != NULL) {
         mock->out_head = mock->out_head->next;
         PICO_FREE(nxt);
         nxt = mock->out_head;
@@ -221,7 +220,7 @@ struct mock_device *pico_mock_create(struct pico_stack *S, uint8_t*mac)
 {
 
     struct mock_device*mock = PICO_ZALLOC(sizeof(struct mock_device));
-    if(!mock)
+    if (!mock)
         return NULL;
 
     mock->dev = PICO_ZALLOC(sizeof(struct pico_device));
@@ -230,9 +229,9 @@ struct mock_device *pico_mock_create(struct pico_stack *S, uint8_t*mac)
         return NULL;
     }
 
-    if(mac != NULL) {
+    if (mac != NULL) {
         mock->mac = PICO_ZALLOC(6 * sizeof(uint8_t));
-        if(!mock->mac) {
+        if (!mock->mac) {
             PICO_FREE(mock->dev);
             PICO_FREE(mock);
             return NULL;
@@ -241,10 +240,10 @@ struct mock_device *pico_mock_create(struct pico_stack *S, uint8_t*mac)
         memcpy(mock->mac, mac, 6);
     }
 
-    if( 0 != pico_device_init(S, (struct pico_device *)mock->dev, "mock", mac)) {
-        dbg ("Loop init failed.\n");
+    if (0 != pico_device_init(S, (struct pico_device *)mock->dev, "mock", mac)) {
+        dbg("Loop init failed.\n");
         pico_device_destroy(mock->dev);
-        if(mock->mac != NULL)
+        if (mock->mac != NULL)
             PICO_FREE(mock->mac);
 
         PICO_FREE(mock);
@@ -277,7 +276,7 @@ uint32_t mock_get_sender_ip4(struct mock_device*mock, const char*buf, int len)
 {
     uint32_t ret;
     int start = mock->mac ? 14 : 0;
-    if(start + 16 > len) {
+    if (start + 16 > len) {
         dbg("out of range!\n");
         return 0;
     }
@@ -307,7 +306,7 @@ int mock_ip_protocol(struct mock_device*mock, const char*buf, int len)
 {
     uint8_t type;
     int start = mock->mac ? 14 : 0;
-    if(start + 10 > len) {
+    if (start + 10 > len) {
         return 0;
     }
 
@@ -320,7 +319,7 @@ int mock_icmp_type(struct mock_device*mock, const char*buf, int len)
 {
     uint8_t type;
     int start = mock->mac ? 14 : 0;
-    if(start + 21 > len) {
+    if (start + 21 > len) {
         return 0;
     }
 
@@ -333,7 +332,7 @@ int mock_icmp_code(struct mock_device*mock, const char*buf, int len)
 {
     uint8_t type;
     int start = mock->mac ? 14 : 0;
-    if(start + 22 > len) {
+    if (start + 22 > len) {
         return 0;
     }
 

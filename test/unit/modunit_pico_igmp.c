@@ -107,14 +107,14 @@ START_TEST(tc_pico_igmp_timer_expired)
     pico_igmp_timer_expired(0, (void *)t);
     pico_tree_insert(&S->IGMPTimers, t);
     s = PICO_ZALLOC(sizeof(struct igmp_timer));
-    memcpy(s,t,sizeof(struct igmp_timer)); // t will be freed next test
+    memcpy(s, t, sizeof(struct igmp_timer)); /* t will be freed next test */
     pico_igmp_timer_expired(0, (void *)t); /* t is freed here */
     s->stopped++;
-    s->start = PICO_TIME_MS()*2;
+    s->start = PICO_TIME_MS() * 2;
     s->type++;
     pico_tree_insert(&S->IGMPTimers, s);
     t = PICO_ZALLOC(sizeof(struct igmp_timer));
-    memcpy(t,s,sizeof(struct igmp_timer)); // s will be freed next test
+    memcpy(t, s, sizeof(struct igmp_timer)); /* s will be freed next test */
     pico_igmp_timer_expired(0, (void *)s); /* s is freed here */
     t->callback = mock_callback;
     pico_igmp_timer_expired(0, (void *)t);
@@ -184,23 +184,23 @@ START_TEST(tc_pico_igmp_process_in)
     link->mcast_compatibility = PICO_IGMPV2;
     fail_if(pico_igmp_generate_report(p) != 0);
     link->mcast_compatibility = PICO_IGMPV3;
-    for(l = 0; l < 3; l++) {   /* FILTER */
+    for (l = 0; l < 3; l++) {   /* FILTER */
         (l == 2) ? (result = -1) : (result = 0);
-        for(k = 0; k < 3; k++) {  /* FILTER */
-            if(k == 2) result = -1;
+        for (k = 0; k < 3; k++) {  /* FILTER */
+            if (k == 2)result = -1;
 
-            for(i = 0; i < 3; i++) {  /* STATES */
-                for(j = 0; j < 6; j++) { /* EVENTS */
+            for (i = 0; i < 3; i++) {  /* STATES */
+                for (j = 0; j < 6; j++) { /* EVENTS */
                     p->MCASTFilter = &_MCASTFilter;
                     p->filter_mode = k;
                     g.filter_mode = l;
-                    if(p->event == IGMP_EVENT_DELETE_GROUP || p->event == IGMP_EVENT_QUERY_RECV)
+                    if (p->event == IGMP_EVENT_DELETE_GROUP || p->event == IGMP_EVENT_QUERY_RECV)
                         p->event++;
 
                     fail_if(pico_igmp_generate_report(p) != result);
                     p->state = i;
                     p->event = j;
-                    if(result != -1 && p->f) /* in some combinations, no frame is created */
+                    if (result != -1 && p->f) /* in some combinations, no frame is created */
                         fail_if(pico_igmp_process_in(S, NULL, p->f) != 0);
                 }
             }

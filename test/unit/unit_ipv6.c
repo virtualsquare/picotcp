@@ -1,6 +1,6 @@
 
 #ifdef PICO_SUPPORT_IPV6
-START_TEST (test_ipv6)
+START_TEST(test_ipv6)
 {
     char ipstr[40] = {
         0
@@ -254,9 +254,9 @@ START_TEST (test_ipv6)
     }
     /* add 2 links to dev[0] */
     _link = pico_ipv6_link_add(dev[0], a[0], nm64);
-    fail_if (!_link, "Error adding link");
+    fail_if(!_link, "Error adding link");
     _link = pico_ipv6_link_add(dev[0], a[1], nm64);
-    fail_if (!_link, "Error adding link");
+    fail_if(!_link, "Error adding link");
     /* add 2 routes to each of the links */
     ret = pico_ipv6_route_add(S, r[0], nm128, a[0], 1, l[0]);
     fail_if(ret != 0, "Error adding route");
@@ -269,9 +269,9 @@ START_TEST (test_ipv6)
 
     /* add 2 links to dev[1] */
     _link = pico_ipv6_link_add(dev[1], a[8], nm64);
-    fail_if (!_link, "Error adding link");
+    fail_if(!_link, "Error adding link");
     _link = pico_ipv6_link_add(dev[1], a[9], nm64);
-    fail_if (!_link, "Error adding link");
+    fail_if(!_link, "Error adding link");
     /* add 2 routes to each of the links */
     ret = pico_ipv6_route_add(S, r[6], nm128, a[8], 1, l[8]);
     fail_if(ret != 0, "Error adding route");
@@ -629,10 +629,8 @@ START_TEST (test_mld_sockopts)
 
         source = index->keyValue;
         if (memcmp(&source->ip6, &mreq_source[0].mcast_source_addr, sizeof(struct pico_ip6)) == 0) { /* OK */
-        }
-        else if (memcmp(&source->ip6, &mreq_source[1].mcast_source_addr, sizeof(struct pico_ip6)) == 0) { /* OK */
-        }
-        else {
+        } else if (memcmp(&source->ip6, &mreq_source[1].mcast_source_addr, sizeof(struct pico_ip6)) == 0) {   /* OK */
+        } else {
             fail("MCASTFilter (INCLUDE + INCLUDE) incorrect\n");
         }
     }
@@ -662,8 +660,7 @@ START_TEST (test_mld_sockopts)
 
         source = index->keyValue;
         if (memcmp(&source->ip6, &mreq_source[2].mcast_source_addr, sizeof(struct pico_ip6)) == 0) { /* OK */
-        }
-        else {
+        } else {
             fail("MCASTFilter (INCLUDE + EXCLUDE) incorrect\n");
         }
     }
@@ -696,10 +693,8 @@ START_TEST (test_mld_sockopts)
 
         source = index->keyValue;
         if (memcmp(&source->ip6, &mreq_source[0].mcast_source_addr, sizeof(struct pico_ip6)) == 0) { /* OK */
-        }
-        else if (memcmp(&source->ip6, &mreq_source[1].mcast_source_addr, sizeof(struct pico_ip6)) == 0) { /* OK */
-        }
-        else {
+        } else if (memcmp(&source->ip6, &mreq_source[1].mcast_source_addr, sizeof(struct pico_ip6)) == 0) {   /* OK */
+        } else {
             fail("MCASTFilter (EXCLUDE + INCLUDE) incorrect\n");
         }
     }
@@ -737,10 +732,8 @@ START_TEST (test_mld_sockopts)
 
         source = index->keyValue;
         if (memcmp(&source->ip6, &mreq_source[3].mcast_source_addr, sizeof(struct pico_ip6) == 0)) { /* OK */
-        }
-        else if (memcmp(&source->ip6, &mreq_source[4].mcast_source_addr, sizeof(struct pico_ip6)) == 0) { /* OK */
-        }
-        else {
+        } else if (memcmp(&source->ip6, &mreq_source[4].mcast_source_addr, sizeof(struct pico_ip6)) == 0) {   /* OK */
+        } else {
             fail("MCASTFilter (EXCLUDE + EXCLUDE) incorrect\n");
         }
     }

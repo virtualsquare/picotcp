@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Milan Platisa
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -78,8 +78,7 @@ int pico_ipv6_path_add(struct pico_stack *S, const struct pico_ipv6_path_id *pat
                 pico_tree_insert(&S->IPV6PathCache, new);
                 status = PICO_PMTU_OK;
             }
-        }
-        else {
+        } else {
             new->mtu = mtu;
             new->cache_status = PICO_PMTU_CACHE_NEW;
             status = PICO_PMTU_OK;
@@ -135,10 +134,10 @@ static void pico_ipv6_path_gc(pico_time now, void *arg)
     struct pico_tree_node *index = NULL, *_tmp = NULL;
     struct pico_stack *S = (struct pico_stack *)arg;
     IGNORE_PARAMETER(now);
-    if(!pico_tree_empty(&S->IPV6PathCache)) {
+    if (!pico_tree_empty(&S->IPV6PathCache)) {
         pico_tree_foreach_safe(index, &S->IPV6PathCache, _tmp)
         {
-            if(((struct pico_ipv6_path_mtu *)index->keyValue)->cache_status == PICO_PMTU_CACHE_OLD) {
+            if (((struct pico_ipv6_path_mtu *)index->keyValue)->cache_status == PICO_PMTU_CACHE_OLD) {
                 pico_tree_delete(&S->IPV6PathCache, index->keyValue);
             } else {
                 ((struct pico_ipv6_path_mtu *)index->keyValue)->cache_status = PICO_PMTU_CACHE_OLD;

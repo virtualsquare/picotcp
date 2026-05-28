@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -38,9 +38,9 @@
 
 /* --- PROTOTYPES --- */
 key_value_pair_t *
-pico_dns_sd_kv_vector_get( kv_vector *vector, uint16_t index );
+pico_dns_sd_kv_vector_get(kv_vector *vector, uint16_t index);
 int
-pico_dns_sd_kv_vector_erase( kv_vector *vector );
+pico_dns_sd_kv_vector_erase(kv_vector *vector);
 /* ------------------- */
 
 typedef PACKED_STRUCT_DEF pico_dns_srv_record_prefix
@@ -59,7 +59,7 @@ typedef PACKED_STRUCT_DEF pico_dns_srv_record_prefix
  *			converted to a string.
  * ****************************************************************************/
 static uint16_t
-pico_dns_sd_kv_vector_strlen( kv_vector *vector )
+pico_dns_sd_kv_vector_strlen(kv_vector *vector)
 {
     key_value_pair_t *iterator = NULL;
     uint16_t i = 0, len = 0;
@@ -113,14 +113,14 @@ pico_dns_sd_kv_vector_strlen( kv_vector *vector )
  *  @return Pointer to newly created record on success, NULL on failure.
  * ****************************************************************************/
 static struct pico_mdns_record *
-pico_dns_sd_srv_record_create( struct pico_stack *S,
-                               const char *url,
-                               uint16_t priority,
-                               uint16_t weight,
-                               uint16_t port,
-                               const char *target_url,
-                               uint32_t ttl,
-                               uint8_t flags )
+pico_dns_sd_srv_record_create(struct pico_stack *S,
+                              const char *url,
+                              uint16_t priority,
+                              uint16_t weight,
+                              uint16_t port,
+                              const char *target_url,
+                              uint32_t ttl,
+                              uint8_t flags)
 {
     struct pico_mdns_record *record = NULL;
     pico_dns_srv_record *srv_data = NULL;
@@ -175,11 +175,11 @@ pico_dns_sd_srv_record_create( struct pico_stack *S,
  *  @return Pointer to newly created record on success, NULL on failure.
  * ****************************************************************************/
 static struct pico_mdns_record *
-pico_dns_sd_txt_record_create( struct pico_stack *S,
-                               const char *url,
-                               kv_vector key_value_pairs,
-                               uint32_t ttl,
-                               uint8_t flags )
+pico_dns_sd_txt_record_create(struct pico_stack *S,
+                              const char *url,
+                              kv_vector key_value_pairs,
+                              uint32_t ttl,
+                              uint8_t flags)
 {
     struct pico_mdns_record *record = NULL;
     key_value_pair_t *iterator = NULL;
@@ -242,7 +242,7 @@ pico_dns_sd_txt_record_create( struct pico_stack *S,
  *  @return Returns 0 on success, something else on failure.
  * ****************************************************************************/
 static int
-pico_dns_sd_kv_delete( key_value_pair_t **kv_pair )
+pico_dns_sd_kv_delete(key_value_pair_t **kv_pair)
 {
     /* Check params */
     if (!kv_pair || !(*kv_pair)) {
@@ -272,7 +272,7 @@ pico_dns_sd_kv_delete( key_value_pair_t **kv_pair )
  *  @return Pointer to newly created KV-instance on success, NULL on failure.
  * ****************************************************************************/
 static key_value_pair_t *
-pico_dns_sd_kv_create( const char *key, const char *value )
+pico_dns_sd_kv_create(const char *key, const char *value)
 {
     key_value_pair_t *kv_pair = NULL;
 
@@ -315,7 +315,7 @@ pico_dns_sd_kv_create( const char *key, const char *value )
  *			it's not.
  * ****************************************************************************/
 static int
-pico_dns_sd_check_type_format( const char *type )
+pico_dns_sd_check_type_format(const char *type)
 {
     uint16_t first_lbl = 0;
     int8_t subtype_present = 0;
@@ -352,7 +352,7 @@ pico_dns_sd_check_type_format( const char *type )
  *			it's not.
  * ****************************************************************************/
 static int
-pico_dns_sd_check_instance_name_format( const char *name )
+pico_dns_sd_check_instance_name_format(const char *name)
 {
     /* First of all check if the total length is larger than 63 bytes */
     if (pico_dns_strlen(name) > 63 || !pico_dns_strlen(name))
@@ -369,8 +369,8 @@ pico_dns_sd_check_instance_name_format( const char *name )
  *  @return Pointer to newly created SIN on success, NULL on failure.
  * ****************************************************************************/
 static char *
-pico_dns_sd_create_service_url( const char *name,
-                                const char *type )
+pico_dns_sd_create_service_url(const char *name,
+                               const char *type)
 {
     char *url = NULL;
     uint16_t len = 0, namelen = 0, typelen = 0;
@@ -410,13 +410,11 @@ pico_dns_sd_create_service_url( const char *name,
  *  This function actually does exactly the same as pico_mdns_init();
  * ****************************************************************************/
 int
-pico_dns_sd_init( struct pico_stack *S,
-                  const char *_hostname,
-                  struct pico_ip4 address,
-                  void (*callback)(pico_mdns_rtree *,
-                                   char *,
-                                   void *),
-                  void *arg )
+pico_dns_sd_init(struct pico_stack *S,
+                 const char *_hostname,
+                 struct pico_ip4 address,
+                 void (*callback)(pico_mdns_rtree *, char *, void *),
+                 void *arg)
 {
     return pico_mdns_init(S, _hostname, address, callback, arg);
 }
@@ -426,16 +424,14 @@ pico_dns_sd_init( struct pico_stack *S,
  *  See pico_mdns.h for description.
  * ****************************************************************************/
 int
-pico_dns_sd_register_service( struct pico_stack *S,
-                              const char *name,
-                              const char *type,
-                              uint16_t port,
-                              kv_vector *txt_data,
-                              uint16_t ttl,
-                              void (*callback)(pico_mdns_rtree *,
-                                               char *,
-                                               void *),
-                              void *arg)
+pico_dns_sd_register_service(struct pico_stack *S,
+                             const char *name,
+                             const char *type,
+                             uint16_t port,
+                             kv_vector *txt_data,
+                             uint16_t ttl,
+                             void (*callback)(pico_mdns_rtree *, char *, void *),
+                             void *arg)
 {
     PICO_MDNS_RTREE_DECLARE(rtree);
     struct pico_mdns_record *srv_record = NULL;
@@ -481,8 +477,8 @@ pico_dns_sd_register_service( struct pico_stack *S,
     if (pico_tree_insert(&rtree, srv_record) == &LEAF) {
         PICO_MDNS_RTREE_DESTROY(&rtree);
         pico_mdns_record_delete((void **)&srv_record);
-		return -1;
-	}
+        return -1;
+    }
 
     if (pico_mdns_claim(S, rtree, callback, arg)) {
         PICO_MDNS_RTREE_DESTROY(&rtree);
@@ -502,11 +498,9 @@ pico_dns_sd_register_service( struct pico_stack *S,
  *  @return When the module successfully started browsing the servicetype.
  * ****************************************************************************/
 int
-pico_dns_sd_browse_service( const char *type,
-                            void (*callback)(pico_mdns_rtree *,
-                                             char *,
-                                             void *),
-                            void *arg )
+pico_dns_sd_browse_service(const char *type,
+                           void (*callback)(pico_mdns_rtree *, char *, void *),
+                           void *arg)
 {
     IGNORE_PARAMETER(type);
     IGNORE_PARAMETER(callback);
@@ -524,7 +518,7 @@ pico_dns_sd_browse_service( const char *type,
  *			failure.
  * ****************************************************************************/
 int
-pico_dns_sd_kv_vector_add( kv_vector *vector, char *key, char *value )
+pico_dns_sd_kv_vector_add(kv_vector *vector, char *key, char *value)
 {
     key_value_pair_t *kv_pair = NULL;
     key_value_pair_t **new_pairs = NULL;
@@ -568,7 +562,7 @@ pico_dns_sd_kv_vector_add( kv_vector *vector, char *key, char *value )
  *  @return key_value_pair_t* on success, NULL on failure.
  * ****************************************************************************/
 key_value_pair_t *
-pico_dns_sd_kv_vector_get( kv_vector *vector, uint16_t index )
+pico_dns_sd_kv_vector_get(kv_vector *vector, uint16_t index)
 {
     /* Check params */
     if (!vector)
@@ -588,7 +582,7 @@ pico_dns_sd_kv_vector_get( kv_vector *vector, uint16_t index )
  *  @return 0 on success, something else on failure.
  * ****************************************************************************/
 int
-pico_dns_sd_kv_vector_erase( kv_vector *vector )
+pico_dns_sd_kv_vector_erase(kv_vector *vector)
 {
     uint16_t i = 0;
 

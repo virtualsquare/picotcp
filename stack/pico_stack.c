@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -77,7 +77,7 @@ void pico_to_lowercase(char *str)
     if (!str)
         return;
 
-    while(str[i]) {
+    while (str[i]) {
         if ((str[i] <= 'Z') && (str[i] >= 'A'))
             str[i] = (char) (str[i] - (char)('A' - 'a'));
 
@@ -268,7 +268,7 @@ MOCKABLE int32_t pico_network_receive(struct pico_frame *f)
     return (int32_t)f->buffer_len;
 }
 
-/// Interface towards socket for frame sending
+/*/ Interface towards socket for frame sending */
 int32_t pico_network_send(struct pico_frame *f)
 {
     if (!f || !f->sock || !f->sock->net) {
@@ -395,16 +395,16 @@ int pico_datalink_receive(struct pico_frame *f)
         /* If device has stack with datalink-layer pass frame through it */
         switch (f->dev->mode) {
             #ifdef PICO_SUPPORT_802154
-            case LL_MODE_IEEE802154:
-                f->datalink_hdr = f->buffer;
-                return pico_enqueue(pico_proto_6lowpan_ll.q_in, f);
+        case LL_MODE_IEEE802154:
+            f->datalink_hdr = f->buffer;
+            return pico_enqueue(pico_proto_6lowpan_ll.q_in, f);
             #endif
-            default:
+        default:
                 #ifdef PICO_SUPPORT_ETH
-                f->datalink_hdr = f->buffer;
-                return pico_enqueue(pico_proto_ethernet.q_in,f);
+            f->datalink_hdr = f->buffer;
+            return pico_enqueue(pico_proto_ethernet.q_in, f);
                 #else
-                return -1;
+            return -1;
                 #endif
         }
     } else {
@@ -421,14 +421,14 @@ MOCKABLE int pico_datalink_send(struct pico_frame *f)
     if (f->dev->eth) {
         switch (f->dev->mode) {
             #ifdef PICO_SUPPORT_802154
-            case LL_MODE_IEEE802154:
-                return pico_enqueue(pico_proto_6lowpan.q_out, f);
+        case LL_MODE_IEEE802154:
+            return pico_enqueue(pico_proto_6lowpan.q_out, f);
             #endif
-            default:
+        default:
                 #ifdef PICO_SUPPORT_ETH
-                return pico_enqueue(pico_proto_ethernet.q_out, f);
+            return pico_enqueue(pico_proto_ethernet.q_out, f);
                 #else
-                return -1;
+            return -1;
                 #endif
         }
     } else {
@@ -448,8 +448,7 @@ struct pico_frame *pico_stack_recv_new_frame(struct pico_device *dev, uint8_t *b
         return NULL;
 
     f = pico_frame_alloc(len);
-    if (!f)
-    {
+    if (!f) {
         dbg("Cannot alloc incoming frame!\n");
         return NULL;
     }
@@ -476,7 +475,7 @@ struct pico_frame *pico_stack_recv_new_frame(struct pico_device *dev, uint8_t *b
  */
 int32_t MOCKABLE pico_stack_recv(struct pico_device *dev, uint8_t *buffer, uint32_t len)
 {
-    struct pico_frame *f = pico_stack_recv_new_frame (dev, buffer, len);
+    struct pico_frame *f = pico_stack_recv_new_frame(dev, buffer, len);
     int32_t ret;
 
     if (!f)
@@ -497,14 +496,12 @@ static int32_t _pico_stack_recv_zerocopy(struct pico_device *dev, uint8_t *buffe
         return -1;
 
     f = pico_frame_alloc_skeleton(len, ext_buffer);
-    if (!f)
-    {
+    if (!f) {
         dbg("Cannot alloc incoming frame!\n");
         return -1;
     }
 
-    if (pico_frame_skeleton_set_buffer(f, buffer) < 0)
-    {
+    if (pico_frame_skeleton_set_buffer(f, buffer) < 0) {
         dbg("Invalid zero-copy buffer!\n");
         PICO_FREE(f->usage_count);
         PICO_FREE(f);
@@ -559,8 +556,7 @@ int32_t pico_seq_compare(uint32_t a, uint32_t b)
 {
     uint32_t thresh = ((uint32_t)(-1)) >> 1;
 
-    if (a > b) /* return positive number, if not wrapped */
-    {
+    if (a > b) { /* return positive number, if not wrapped */
         if ((a - b) > thresh) /* b wrapped */
             return -(int32_t)(b - a); /* b = very small,     a = very big      */
         else
@@ -568,8 +564,7 @@ int32_t pico_seq_compare(uint32_t a, uint32_t b)
 
     }
 
-    if (a < b) /* return negative number, if not wrapped */
-    {
+    if (a < b) { /* return negative number, if not wrapped */
         if ((b - a) > thresh) /* a wrapped */
             return (int32_t)(a - b); /* a = very small,     b = very big      */
         else
@@ -585,13 +580,12 @@ static void pico_check_timers(struct pico_stack *S)
     struct pico_timer *t;
     struct pico_timer_ref tref_unused, *tref = heap_first(S->Timers);
     S->pico_tick = PICO_TIME_MS();
-    while((tref) && (tref->expire <= S->pico_tick)) {
+    while ((tref) && (tref->expire <= S->pico_tick)) {
         t = tref->tmr;
         if (t && t->timer)
             t->timer(S->pico_tick, t->arg);
 
-        if (t)
-        {
+        if (t) {
             PICO_FREE(t);
         }
 
@@ -611,7 +605,7 @@ long long int pico_stack_go(struct pico_stack *S)
         return -1;
     /* Execute jobs again, in case they were scheduled in timer execution */
     pico_execute_pending_jobs(S);
-    return(long long int)((tref->expire - S->pico_tick) + 1);
+    return (long long int)((tref->expire - S->pico_tick) + 1);
 }
 #endif
 
@@ -625,8 +619,7 @@ void MOCKABLE pico_timer_cancel(struct pico_stack *S, uint32_t id)
     for (i = 1; i <= S->Timers->n; i++) {
         tref = heap_get_element(S->Timers, i);
         if (tref->id == id) {
-            if (tref->tmr)
-            {
+            if (tref->tmr) {
                 PICO_FREE(tref->tmr);
                 tref->tmr = NULL;
                 tref->id = 0;
@@ -646,8 +639,7 @@ void pico_timer_cancel_hashed(struct pico_stack *S, uint32_t hash)
     for (i = 1; i <= S->Timers->n; i++) {
         tref = heap_get_element(S->Timers, i);
         if (tref->hash == hash) {
-            if (tref->tmr)
-            {
+            if (tref->tmr) {
                 PICO_FREE(tref->tmr);
                 tref->tmr = NULL;
                 tref[i].id = 0;
@@ -708,8 +700,7 @@ static int calc_score(struct pico_stack *S)
 
             /* also add non-changed S->scores */
             total += S->score[i];
-        }
-        else if (S->ret[i] == S->score[i]) {
+        } else if (S->ret[i] == S->score[i]) {
             /* no used loop S->score - gradually decrease */
 
             /*  dbg("%3d - ",0); */
@@ -878,12 +869,12 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 #ifdef PICO_SUPPORT_IPV6
     pico_protocol_init(*S, &pico_proto_ipv6);
     ATTACH_QUEUES(*S, ipv6, pico_proto_ipv6);
-	EMPTY_TREE((*S)->Tree_dev_ip6_link, ipv6_link_compare);
-	EMPTY_TREE((*S)->IPV6Routes, ipv6_route_compare);
-	EMPTY_TREE((*S)->IPV6Links, ipv6_link_compare);
-	EMPTY_TREE((*S)->IPV6NQueue, pico_ipv6_nd_qcompare);
-	EMPTY_TREE((*S)->IPV6NCache, pico_ipv6_neighbor_compare);
-	EMPTY_TREE((*S)->IPV6RCache, pico_ipv6_router_compare);
+    EMPTY_TREE((*S)->Tree_dev_ip6_link, ipv6_link_compare);
+    EMPTY_TREE((*S)->IPV6Routes, ipv6_route_compare);
+    EMPTY_TREE((*S)->IPV6Links, ipv6_link_compare);
+    EMPTY_TREE((*S)->IPV6NQueue, pico_ipv6_nd_qcompare);
+    EMPTY_TREE((*S)->IPV6NCache, pico_ipv6_neighbor_compare);
+    EMPTY_TREE((*S)->IPV6RCache, pico_ipv6_router_compare);
 #   ifdef PICO_SUPPORT_IPV6FRAG
     EMPTY_TREE((*S)->ipv6_fragments, pico_ipv6_frag_compare);
 #   endif
@@ -905,7 +896,7 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 #ifdef PICO_SUPPORT_ICMP6
     pico_protocol_init(*S, &pico_proto_icmp6);
     ATTACH_QUEUES(*S, icmp6, pico_proto_icmp6);
-    EMPTY_TREE((*S)->IPV6Pings, icmp6_cookie_compare); 
+    EMPTY_TREE((*S)->IPV6Pings, icmp6_cookie_compare);
 #endif
 
 #if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
@@ -946,7 +937,7 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
     EMPTY_TREE((*S)->NSTable, dns_nameserver_cmp);
     pico_dns_client_init((*S));
 #endif
-    
+
 
 #ifdef PICO_SUPPORT_MDNS
 #   if PICO_MDNS_ALLOW_CACHING == 1
@@ -974,7 +965,7 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 
 #ifdef PICO_SUPPORT_IPV6PMTU
     pico_ipv6_path_init((*S), PICO_PMTU_CACHE_CLEANUP_INTERVAL);
-    EMPTY_TREE((*S)->IPV6PathCache, pico_ipv6_path_compare); 
+    EMPTY_TREE((*S)->IPV6PathCache, pico_ipv6_path_compare);
     (*S)->ipv6_path_cache_gc_timer.interval = PICO_PMTU_CACHE_CLEANUP_INTERVAL;
 #endif
 
@@ -996,7 +987,7 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
 #endif
 #ifdef PICO_SUPPORT_6LOWPAN
     if (pico_6lowpan_init(*S))
-       return -1;
+        return -1;
 #endif
 #ifdef PICO_SUPPORT_SNTP_CLIENT
     (*S)->sntp_port = 123u;
@@ -1062,10 +1053,9 @@ static void pico_terminate_timers(struct pico_stack *S)
     struct pico_timer *t;
     struct pico_timer_ref tref_unused, *tref = heap_first(S->Timers);
     S->pico_tick = PICO_TIME_MS();
-    while(tref) {
+    while (tref) {
         t = tref->tmr;
-        if (t)
-        {
+        if (t) {
             PICO_FREE(t);
         }
 
@@ -1106,7 +1096,7 @@ void pico_stack_deinit(struct pico_stack *S)
     pico_socket_destroy_all(S);
 
     /* Cleanup: queues */
-    
+
 #ifdef PICO_SUPPORT_ETH
     DETACH_QUEUES(S, ethernet);
 #endif

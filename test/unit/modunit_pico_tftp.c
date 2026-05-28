@@ -244,7 +244,7 @@ END_TEST
 START_TEST(tc_pico_tftp_abort)
 {
     int ret;
-    struct pico_stack * S;
+    struct pico_stack *S;
 
     pico_stack_init(&S);
 

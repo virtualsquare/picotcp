@@ -71,8 +71,8 @@ PACKED_STRUCT_DEF pico_6lowpan_ext
 PACKED_STRUCT_DEF pico_ll {
     uint16_t proto;
     uint16_t hatype;
-    uint8_t  pktype;
-    uint8_t  halen;
+    uint8_t pktype;
+    uint8_t halen;
     struct   pico_eth hwaddr;
     struct   pico_device *dev;
 };

@@ -28,7 +28,7 @@ extern volatile unsigned int pico_ms_tick;
 static inline void *pico_zalloc(size_t size)
 {
     void *ptr = malloc(size);
-    if(ptr)
+    if (ptr)
         memset(ptr, 0u, size);
 
     return ptr;
@@ -47,7 +47,7 @@ static inline pico_time PICO_TIME(void)
 static inline void PICO_IDLE(void)
 {
     unsigned int now = pico_ms_tick;
-    while(now == pico_ms_tick) ;
+    while (now == pico_ms_tick);
 }
 
 #endif  /* PICO_PIC32 */

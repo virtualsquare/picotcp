@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Kristof Roelants
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -119,8 +119,7 @@ static struct pico_dns_ns *pico_dns_client_add_ns(struct pico_stack *S, struct p
     };                          /* 0.0.0.0 */
 
     /* Do not add 0.0.0.0 addresses, which some DHCP servers might reply */
-    if (!pico_ipv4_compare(ns_addr, &zero))
-    {
+    if (!pico_ipv4_compare(ns_addr, &zero)) {
         pico_err = PICO_ERR_EINVAL;
         return NULL;
     }
@@ -347,8 +346,7 @@ static char *pico_dns_client_seek_suffix(char *suf, struct pico_dns_header *pre,
     while (i++ < short_be(pre->ancount)) {
         comp = short_from(suf);
         compression = short_be(comp);
-        switch (compression >> 14)
-        {
+        switch (compression >> 14) {
         case PICO_DNS_POINTER:
             while (compression >> 14 == PICO_DNS_POINTER) {
                 dns_dbg("DNS: pointer\n");
@@ -424,7 +422,7 @@ static void pico_dns_client_retransmission(pico_time now, void *arg)
     struct pico_dns_client_retransmission_bookmark *b;
     IGNORE_PARAMETER(now);
 
-    if(!arg)
+    if (!arg)
         return;
 
     /* search for the dns query and free used space */
@@ -451,20 +449,19 @@ static void pico_dns_client_retransmission(pico_time now, void *arg)
 
 static int pico_dns_client_check_rdlength(uint16_t qtype, uint16_t rdlength)
 {
-    switch (qtype)
-    {
-        case PICO_DNS_TYPE_A:
-            if (rdlength != PICO_DNS_RR_A_RDLENGTH)
-                return -1;
-            break;
+    switch (qtype) {
+    case PICO_DNS_TYPE_A:
+        if (rdlength != PICO_DNS_RR_A_RDLENGTH)
+            return -1;
+        break;
 #ifdef PICO_SUPPORT_IPV6
-        case PICO_DNS_TYPE_AAAA:
-            if (rdlength != PICO_DNS_RR_AAAA_RDLENGTH)
-                return -1;
-            break;
+    case PICO_DNS_TYPE_AAAA:
+        if (rdlength != PICO_DNS_RR_AAAA_RDLENGTH)
+            return -1;
+        break;
 #endif
-        default:
-            break;
+    default:
+        break;
     }
 
     return 0;
@@ -481,8 +478,7 @@ static int pico_dns_client_user_callback(struct pico_dns_record_suffix *asuffix,
         return -1;
     }
 
-    switch (q->qtype)
-    {
+    switch (q->qtype) {
     case PICO_DNS_TYPE_A:
         ip = long_from(rdata);
         str = PICO_ZALLOC(PICO_DNS_IPV4_ADDR_LEN);
@@ -604,7 +600,7 @@ static void pico_dns_client_callback(uint16_t ev, struct pico_socket *s)
     if (!q)
         return;
 
-    // FIX: what if the query is not a PTR query?
+    /* FIX: what if the query is not a PTR query? */
     domain = (char *)header + sizeof(struct pico_dns_header);
     qsuffix = (struct pico_dns_question_suffix *)pico_dns_client_seek(domain);
     /* valid asuffix is determined dynamically later on */
@@ -639,7 +635,7 @@ static int pico_dns_create_message(struct pico_stack *S, struct pico_dns_header 
         return -1;
     }
 
-    if(arpa == PICO_DNS_ARPA4) {
+    if (arpa == PICO_DNS_ARPA4) {
         strcpy(inaddr_arpa, ".in-addr.arpa");
         strlen = pico_dns_strlen(url);
     }
@@ -668,7 +664,7 @@ static int pico_dns_create_message(struct pico_stack *S, struct pico_dns_header 
     domain = (char *) *header + sizeof(struct pico_dns_header);
     *qsuffix = (struct pico_dns_question_suffix *)(domain + *urlen);
 
-    if(arpa == PICO_DNS_ARPA4) {
+    if (arpa == PICO_DNS_ARPA4) {
         memcpy(domain + PICO_DNS_LABEL_INITIAL, url, strlen);
         pico_dns_mirror_addr(domain + PICO_DNS_LABEL_INITIAL);
         memcpy(domain + PICO_DNS_LABEL_INITIAL + strlen, inaddr_arpa, arpalen);
@@ -698,9 +694,9 @@ static int pico_dns_client_addr_label_check_len(const char *url)
     label = url;
     p = label;
 
-    while(*p != (char) 0) {
+    while (*p != (char) 0) {
         count = 0;
-        while((*p != (char)0)) {
+        while ((*p != (char)0)) {
             if (*p == '.') {
                 label = ++p;
                 break;
@@ -746,7 +742,7 @@ static int pico_dns_client_getaddr_init(struct pico_stack *S, const char *url, u
     if (pico_dns_client_getaddr_check(url, callback) < 0)
         return -1;
 
-    if(pico_dns_create_message(S, &header, &qsuffix, PICO_DNS_NO_ARPA, url, &lblen, &len) != 0)
+    if (pico_dns_create_message(S, &header, &qsuffix, PICO_DNS_NO_ARPA, url, &lblen, &len) != 0)
         return -1;
 
 #ifdef PICO_SUPPORT_IPV6
@@ -791,7 +787,7 @@ static int pico_dns_getname_univ(struct pico_stack *S, const char *ip, void (*ca
         return -1;
     }
 
-    if(pico_dns_create_message(S, &header, &qsuffix, arpa, ip, &lblen, &len) != 0)
+    if (pico_dns_create_message(S, &header, &qsuffix, arpa, ip, &lblen, &len) != 0)
         return -1;
 
     pico_dns_question_fill_suffix(qsuffix, PICO_DNS_TYPE_PTR, PICO_DNS_CLASS_IN);
@@ -827,8 +823,7 @@ int pico_dns_client_nameserver(struct pico_stack *S, struct pico_ip4 *ns, uint8_
         return -1;
     }
 
-    switch (flag)
-    {
+    switch (flag) {
     case PICO_DNS_NS_ADD:
         if (!pico_dns_client_add_ns(S, ns))
             return -1;

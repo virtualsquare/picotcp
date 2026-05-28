@@ -34,7 +34,7 @@ extern uint32_t max_mem;
 extern uint32_t cur_mem;
 
 /*
-   #define TIME_PRESCALE
+ #define TIME_PRESCALE
  */
 #define dbg printf
 

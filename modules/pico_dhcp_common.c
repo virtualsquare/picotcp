@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Frederik Van Slycken
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -54,8 +54,7 @@ uint8_t pico_dhcp_are_options_valid(void *ptr, int32_t len)
     uint8_t optlen = 0, *p = ptr;
 
     while (len > 0) {
-        switch (*p)
-        {
+        switch (*p) {
         case PICO_DHCP_OPT_END:
             return 1;
 

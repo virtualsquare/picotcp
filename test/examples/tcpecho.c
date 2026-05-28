@@ -21,7 +21,7 @@ int send_tcpecho(struct pico_socket *s)
                     len = 0;
                 }
             }
-        } while((w > 0) && (pos < len));
+        } while ((w > 0) && (pos < len));
     }
 
     return ww;

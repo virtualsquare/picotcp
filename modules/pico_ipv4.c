@@ -65,7 +65,7 @@ int pico_ipv4_rawsocket_cmp(void *ka, void *kb)
         return -1;
     if (a->id > b->id)
         return 1;
-    return (0);
+    return 0;
 }
 #endif
 
@@ -98,8 +98,7 @@ int MOCKABLE pico_ipv4_to_string(char *ipbuf, const uint32_t ip)
         return -1;
     }
 
-    for(i = 0; i < 4; i++)
-    {
+    for (i = 0; i < 4; i++) {
         if (addr[i] > 99) {
             *ipbuf++ = (char)('0' + (addr[i] / 100));
             *ipbuf++ = (char)('0' + ((addr[i] % 100) / 10));
@@ -143,12 +142,11 @@ int MOCKABLE pico_string_to_ipv4(const char *ipstr, uint32_t *ip)
     if (pico_string_check_null_args(ipstr, ip) < 0)
         return -1;
 
-    while((p = *ipstr++) != 0 && cnt < PICO_SIZE_IP4)
-    {
+    while ((p = *ipstr++) != 0 && cnt < PICO_SIZE_IP4) {
         if (pico_is_digit(p)) {
             overflow = (uint16_t) ((10 * buf[cnt]) + (p - '0'));
-            if(overflow > UINT8_MAX) {
-              return -1;
+            if (overflow > UINT8_MAX) {
+                return -1;
             }
             buf[cnt] = (uint8_t) overflow;
         } else if (p == '.') {
@@ -189,7 +187,7 @@ int pico_ipv4_valid_netmask(uint32_t mask)
      *
      * */
 
-    for(i = 0; i < 32; i++) {
+    for (i = 0; i < 32; i++) {
         if ((mask_swap << i) & 0x80000000) {
             if (end) {
                 pico_err = PICO_ERR_EINVAL;
@@ -241,7 +239,7 @@ int pico_ipv4_is_valid_src(struct pico_stack *S, uint32_t address, struct pico_d
     if (pico_ipv4_is_broadcast(S, address)) {
         dbg("Source is a broadcast address, discard packet\n");
         return 0;
-    } else if ( pico_ipv4_is_multicast(address)) {
+    } else if (pico_ipv4_is_multicast(address)) {
         dbg("Source is a multicast address, discard packet\n");
         return 0;
     } else if (pico_ipv4_is_invalid_loopback(address, dev)) {
@@ -419,7 +417,7 @@ struct pico_socket *pico_socket_ipv4_open(struct pico_stack *S, uint16_t proto)
         pico_err = PICO_ERR_ENOMEM;
         return NULL;
     }
-    if ((proto & 0x00FF)== PICO_RAWSOCKET_RAW)
+    if ((proto & 0x00FF) == PICO_RAWSOCKET_RAW)
         s->hdr_included = 1;
     s->id = S->IP4Socket_id++;
     s->proto = (uint8_t)(proto & 0x00FF);
@@ -431,7 +429,7 @@ struct pico_socket *pico_socket_ipv4_open(struct pico_stack *S, uint16_t proto)
 }
 
 int pico_socket_ipv4_recvfrom(struct pico_socket *s, void *buf, uint32_t len, void *orig,
-                                  uint16_t *remote_port)
+                              uint16_t *remote_port)
 {
     struct pico_frame *f;
     uint8_t *data;
@@ -519,7 +517,7 @@ int pico_socket_ipv4_sendto(struct pico_socket *s, const void *buf, uint32_t len
     struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
     (void)dst;
     if (!s4->hdr_included && (s4->proto == PICO_PROTO_IPV4)) {
-       /* Raw socket: no send allowed withouth IP_HDRINCL, or if protocol is IPPROTO_IP */
+        /* Raw socket: no send allowed withouth IP_HDRINCL, or if protocol is IPPROTO_IP */
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
@@ -579,21 +577,21 @@ int pico_socket_ipv4_close(struct pico_socket *arg)
 int pico_setsockopt_ipv4(struct pico_socket *s, int option, void *value)
 {
     struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
-    switch(option) {
-        case PICO_SOCKET_OPT_IP_HDRINCL:
-            if (s4->proto == PICO_RAWSOCKET_RAW) {
-                pico_err = PICO_ERR_EINVAL;
-                return -1;
-            }
-            s4->hdr_included = (*(int*)value)?1:0;
-            return 0;
-        case PICO_SOCKET_OPT_IP_DONTROUTE:
-            s4->dontroute = (*(int*)value)?1:0;
-            return 0;
-        case PICO_SOCKET_OPT_IP_BINDTODEVICE:
-            s->dev = (struct pico_device *)value;
-            s->local_addr.ip4.addr = 0;
-            return 0;
+    switch (option) {
+    case PICO_SOCKET_OPT_IP_HDRINCL:
+        if (s4->proto == PICO_RAWSOCKET_RAW) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
+        s4->hdr_included = (*(int*)value)?1:0;
+        return 0;
+    case PICO_SOCKET_OPT_IP_DONTROUTE:
+        s4->dontroute = (*(int*)value)?1:0;
+        return 0;
+    case PICO_SOCKET_OPT_IP_BINDTODEVICE:
+        s->dev = (struct pico_device *)value;
+        s->local_addr.ip4.addr = 0;
+        return 0;
     }
     /* switch's default */
     pico_err = PICO_ERR_EINVAL;
@@ -603,18 +601,18 @@ int pico_setsockopt_ipv4(struct pico_socket *s, int option, void *value)
 int pico_getsockopt_ipv4(struct pico_socket *s, int option, void *value)
 {
     int *val = (int *)value;
-    void ** pval = (void *)value;
+    void **pval = (void *)value;
     struct pico_socket_ipv4 *s4 = (struct pico_socket_ipv4 *)s;
-    switch(option) {
-        case PICO_SOCKET_OPT_IP_HDRINCL:
-            *val = (int)s4->hdr_included;
-            return 0;
-        case PICO_SOCKET_OPT_IP_DONTROUTE:
-            *val = (int)s4->dontroute;
-            return 0;
-        case PICO_SOCKET_OPT_IP_BINDTODEVICE:
-            *pval = s->dev;
-            return 0;
+    switch (option) {
+    case PICO_SOCKET_OPT_IP_HDRINCL:
+        *val = (int)s4->hdr_included;
+        return 0;
+    case PICO_SOCKET_OPT_IP_DONTROUTE:
+        *val = (int)s4->dontroute;
+        return 0;
+    case PICO_SOCKET_OPT_IP_BINDTODEVICE:
+        *pval = s->dev;
+        return 0;
     }
     /* switch's default */
     pico_err = PICO_ERR_EINVAL;
@@ -716,8 +714,7 @@ static int pico_ipv4_process_in(struct pico_stack *S, struct pico_protocol *self
     }
 
 #if defined(PICO_SUPPORT_IPV4FRAG) || defined(PICO_SUPPORT_IPV6FRAG)
-    if (f->frag & (PICO_IPV4_MOREFRAG | PICO_IPV4_FRAG_MASK))
-    {
+    if (f->frag & (PICO_IPV4_MOREFRAG | PICO_IPV4_FRAG_MASK)) {
 #ifdef PICO_SUPPORT_IPV4FRAG
         pico_ipv4_process_frag(hdr, f, hdr->proto);
         /* Frame can be discarded, frag will handle its own copy */
@@ -877,8 +874,8 @@ struct pico_ip4 pico_ipv4_route_get_gateway(struct pico_stack *S, struct pico_ip
         pico_err = PICO_ERR_EHOSTUNREACH;
         return nullip;
     }
-    else
-        return route->gateway;
+
+    return route->gateway;
 }
 
 struct pico_ip4 *pico_ipv4_source_find(struct pico_stack *S, const struct pico_ip4 *dst)
@@ -964,7 +961,7 @@ static void pico_ipv4_mcast_print_groups(struct pico_ipv4_link *mcast_link)
     (void) source;
 
     ip_mcast_dbg("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-    ip_mcast_dbg("+                           MULTICAST list interface %-16s             +\n", mcast_link->dev->name);
+    ip_mcast_dbg("+                           MULTICAST list interface %-16s                        +\n", mcast_link->dev->name);
     ip_mcast_dbg("+---------------------------------------------------------------------------------+\n");
     ip_mcast_dbg("+  nr  |    interface     | host group | reference count | filter mode |  source  +\n");
     ip_mcast_dbg("+---------------------------------------------------------------------------------+\n");
@@ -1003,9 +1000,9 @@ static int mcast_group_update(struct pico_mcast_group *g, struct pico_tree *MCAS
                 source->addr = ((struct pico_ip4 *)index->keyValue)->addr;
                 if (pico_tree_insert(&g->MCASTSources, source)) {
                     dbg("IPv4: Failed to insert source in tree\n");
-					PICO_FREE(source);
-					return -1;
-				}
+                    PICO_FREE(source);
+                    return -1;
+                }
             }
         }
     }
@@ -1052,8 +1049,8 @@ int pico_ipv4_mcast_join(struct pico_stack *S, struct pico_ip4 *mcast_link, stru
         if (pico_tree_insert(link->MCASTGroups, g)) {
             dbg("IPv4: Failed to insert group in tree\n");
             PICO_FREE(g);
-			return -1;
-		}
+            return -1;
+        }
 
 #ifdef PICO_SUPPORT_IGMP
         pico_igmp_state_change(S, mcast_link, mcast_group, filter_mode, MCASTFilter, PICO_IGMP_STATE_CREATE);
@@ -1313,7 +1310,7 @@ int pico_ipv4_frame_push(struct pico_stack *S, struct pico_frame *f, struct pico
 #ifdef PICO_SUPPORT_IPV4FRAG
         (0 == (f->frag & PICO_IPV4_MOREFRAG))  &&
 #endif
-        1 )
+        1)
         S->ipv4_progressive_id++;
 
     if (f->send_ttl > 0) {
@@ -1338,8 +1335,7 @@ int pico_ipv4_frame_push(struct pico_stack *S, struct pico_frame *f, struct pico
         hdr->frag = short_be(f->frag);
     }
 
-    if (proto == PICO_PROTO_ICMP4)
-    {
+    if (proto == PICO_PROTO_ICMP4) {
         hdr->frag = short_be(f->frag);
     }
 
@@ -1361,7 +1357,7 @@ int pico_ipv4_frame_push(struct pico_stack *S, struct pico_frame *f, struct pico
         struct pico_frame *cpy;
         int retval;
         /* Sending UDP multicast datagram, am I member? If so, loopback copy */
-        if ((proto != PICO_PROTO_IGMP) && (pico_ipv4_mcast_filter(S,f) == 0)) {
+        if ((proto != PICO_PROTO_IGMP) && (pico_ipv4_mcast_filter(S, f) == 0)) {
             ip_mcast_dbg("MCAST: sender is member of group, loopback copy\n");
             cpy = pico_frame_copy(f);
             if (!cpy) {
@@ -1383,7 +1379,7 @@ int pico_ipv4_frame_push(struct pico_stack *S, struct pico_frame *f, struct pico
     {
         union pico_address node_address;
         node_address.ip4.addr = hdr->dst.addr;
-        if(hdr->dst.addr && pico_ipv4_is_unicast(hdr->dst.addr))
+        if (hdr->dst.addr && pico_ipv4_is_unicast(hdr->dst.addr))
             pico_aodv_lookup(&node_address);
     }
 #endif
@@ -1391,7 +1387,7 @@ int pico_ipv4_frame_push(struct pico_stack *S, struct pico_frame *f, struct pico
     if (pico_ipv4_link_get(S, &hdr->dst)) {
         /* it's our own IP */
         return pico_enqueue(&S->q_ipv4.in, f);
-    } else{
+    } else {
         /* TODO: Check if there are members subscribed here */
         return pico_enqueue(&S->q_ipv4.out, f);
     }
@@ -1454,7 +1450,7 @@ int MOCKABLE pico_ipv4_route_add(struct pico_stack *S, struct pico_ip4 address, 
         new->link = link;
     } else {
         struct pico_ipv4_route *r = route_find(S, &gateway);
-        if (!r ) { /* Specified Gateway is unreachable */
+        if (!r) {  /* Specified Gateway is unreachable */
             pico_err = PICO_ERR_EHOSTUNREACH;
             PICO_FREE(new);
             return -1;
@@ -1478,8 +1474,8 @@ int MOCKABLE pico_ipv4_route_add(struct pico_stack *S, struct pico_ip4 address, 
     if (pico_tree_insert(&S->Routes, new)) {
         dbg("IPv4: Failed to insert route in tree\n");
         PICO_FREE(new);
-		return -1;
-	}
+        return -1;
+    }
 
     dbg_route();
     return 0;
@@ -1565,8 +1561,8 @@ int pico_ipv4_link_add(struct pico_stack *S, struct pico_device *dev, struct pic
         PICO_FREE(new->MCASTGroups);
 #endif
         PICO_FREE(new);
-		return -1;
-	}
+        return -1;
+    }
 
 #ifdef PICO_SUPPORT_MCAST
     do {
@@ -1581,7 +1577,7 @@ int pico_ipv4_link_add(struct pico_stack *S, struct pico_device *dev, struct pic
 
         mcast_all_hosts.addr = PICO_MCAST_ALL_HOSTS;
         pico_ipv4_mcast_join(S, &address, &mcast_all_hosts, 1, PICO_IP_MULTICAST_EXCLUDE, NULL);
-    } while(0);
+    } while (0);
 #endif
 
     network.addr = address.addr & netmask.addr;
@@ -1651,7 +1647,7 @@ int pico_ipv4_link_del(struct pico_stack *S, struct pico_device *dev, struct pic
             pico_tree_delete(found->MCASTGroups, g);
             PICO_FREE(g);
         }
-    } while(0);
+    } while (0);
     PICO_FREE(found->MCASTGroups);
 #endif
 
@@ -1744,7 +1740,7 @@ static int pico_ipv4_rebound_large(struct pico_stack *S, struct pico_frame *f)
     hdr = (struct pico_ipv4_hdr *) f->net_hdr;
     dst.addr = hdr->src.addr;
 
-    while(total_payload_written < len) {
+    while (total_payload_written < len) {
         uint32_t space = (uint32_t)len - total_payload_written;
         if (space > PICO_IPV4_MAXPAYLOAD)
             space = PICO_IPV4_MAXPAYLOAD;
@@ -1755,12 +1751,9 @@ static int pico_ipv4_rebound_large(struct pico_stack *S, struct pico_frame *f)
             return -1;
         }
 
-        if (space + total_payload_written < len)
-        {
+        if (space + total_payload_written < len) {
             fr->frag |= PICO_IPV4_MOREFRAG;
-        }
-        else
-        {
+        } else {
             fr->frag &= PICO_IPV4_FRAG_MASK;
         }
 
@@ -1914,7 +1907,7 @@ int pico_ipv4_cleanup_links(struct pico_stack *S, struct pico_device *dev)
     struct pico_tree_node *index = NULL, *_tmp = NULL;
     struct pico_ipv4_link *link = NULL;
 
-    if(!dev || !dev->stack)
+    if (!dev || !dev->stack)
         return PICO_ERR_EINVAL;
 
     pico_tree_foreach_safe(index, &S->Tree_dev_link, _tmp) {
