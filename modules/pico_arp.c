@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -53,8 +53,7 @@ static void pico_arp_queued_trigger(void)
 {
     int i;
     struct pico_frame *f;
-    for (i = 0; i < PICO_ARP_MAX_PENDING; i++)
-    {
+    for (i = 0; i < PICO_ARP_MAX_PENDING; i++) {
         f = frames_queued[i];
         if (f) {
             if (pico_datalink_send(f) <= 0)
@@ -148,7 +147,7 @@ struct pico_ip4 *pico_arp_reverse_lookup(struct pico_stack *S, struct pico_eth *
     struct pico_tree_node *index;
     pico_tree_foreach(index, &S->arp_tree){
         search = index->keyValue;
-        if(memcmp(&(search->eth.addr), &dst->addr, 6) == 0)
+        if (memcmp(&(search->eth.addr), &dst->addr, 6) == 0)
             return &search->ipv4;
     }
     return NULL;
@@ -160,8 +159,7 @@ static void pico_arp_unreachable(struct pico_stack *S, struct pico_ip4 *a)
     struct pico_frame *f;
     struct pico_ipv4_hdr *hdr;
     struct pico_ip4 dst;
-    for (i = 0; i < PICO_ARP_MAX_PENDING; i++)
-    {
+    for (i = 0; i < PICO_ARP_MAX_PENDING; i++) {
         f = frames_queued[i];
         if (f) {
             hdr = (struct pico_ipv4_hdr *) f->net_hdr;
@@ -182,7 +180,7 @@ static void pico_arp_unreachable(struct pico_stack *S, struct pico_ip4 *a)
 static void pico_arp_retry(struct pico_stack *S, struct pico_frame *f, struct pico_ip4 *where)
 {
     if (++f->failure_count < 4) {
-        arp_dbg ("================= ARP REQUIRED: %d =============\n\n", f->failure_count);
+        arp_dbg("================= ARP REQUIRED: %d =============\n\n", f->failure_count);
         /* check if dst is local (gateway = 0), or if to use gateway */
         pico_arp_request(f->dev, where, PICO_ARP_QUERY);
     } else {
@@ -201,7 +199,7 @@ struct pico_eth *pico_arp_get(struct pico_stack *S, struct pico_frame *f)
         return NULL;
 
     l = pico_ipv4_link_get(S, &hdr->dst);
-    if(l) {
+    if (l) {
         /* address belongs to ourself */
         return &l->dev->eth->mac;
     }
@@ -225,8 +223,7 @@ struct pico_eth *pico_arp_get(struct pico_stack *S, struct pico_frame *f)
 void pico_arp_postpone(struct pico_frame *f)
 {
     int i;
-    for (i = 0; i < PICO_ARP_MAX_PENDING; i++)
-    {
+    for (i = 0; i < PICO_ARP_MAX_PENDING; i++) {
         if (!frames_queued[i]) {
             if (f->failure_count < 4)
                 frames_queued[i] = f;
@@ -246,7 +243,7 @@ static void dbg_arp(void)
 
     pico_tree_foreach(index, &S->arp_tree) {
         a = index->keyValue;
-        arp_dbg("ARP to  %08x, mac: %02x:%02x:%02x:%02x:%02x:%02x\n", a->ipv4.addr, a->eth.addr[0], a->eth.addr[1], a->eth.addr[2], a->eth.addr[3], a->eth.addr[4], a->eth.addr[5] );
+        arp_dbg("ARP to  %08x, mac: %02x:%02x:%02x:%02x:%02x:%02x\n", a->ipv4.addr, a->eth.addr[0], a->eth.addr[1], a->eth.addr[2], a->eth.addr[3], a->eth.addr[4], a->eth.addr[5]);
     }
 }
 #endif
@@ -293,7 +290,7 @@ static int pico_arp_add_entry(struct pico_arp *entry)
 int pico_arp_create_entry(uint8_t *hwaddr, struct pico_ip4 ipv4, struct pico_device *dev)
 {
     struct pico_arp*arp = PICO_ZALLOC(sizeof(struct pico_arp));
-    if(!arp) {
+    if (!arp) {
         pico_err = PICO_ERR_ENOMEM;
         return -1;
     }
@@ -312,14 +309,13 @@ int pico_arp_create_entry(uint8_t *hwaddr, struct pico_ip4 ipv4, struct pico_dev
 
 static void pico_arp_check_conflict(struct pico_stack *S, struct pico_arp_hdr *hdr)
 {
-    if (S->conflict_ipv4.conflict)
-    {
-        if((S->conflict_ipv4.ip.addr == hdr->src.addr) &&
-           (memcmp(hdr->s_mac, S->conflict_ipv4.mac.addr, PICO_SIZE_ETH) != 0))
-            S->conflict_ipv4.conflict(S, PICO_ARP_CONFLICT_REASON_CONFLICT );
+    if (S->conflict_ipv4.conflict) {
+        if ((S->conflict_ipv4.ip.addr == hdr->src.addr) &&
+            (memcmp(hdr->s_mac, S->conflict_ipv4.mac.addr, PICO_SIZE_ETH) != 0))
+            S->conflict_ipv4.conflict(S, PICO_ARP_CONFLICT_REASON_CONFLICT);
 
-        if((hdr->src.addr == 0) && (hdr->dst.addr == S->conflict_ipv4.ip.addr))
-            S->conflict_ipv4.conflict(S, PICO_ARP_CONFLICT_REASON_PROBE );
+        if ((hdr->src.addr == 0) && (hdr->dst.addr == S->conflict_ipv4.ip.addr))
+            S->conflict_ipv4.conflict(S, PICO_ARP_CONFLICT_REASON_PROBE);
     }
 }
 
@@ -522,8 +518,7 @@ int32_t pico_arp_request(struct pico_device *dev, struct pico_ip4 *dst, uint8_t 
     if (!q)
         return -1;
 
-    if (type == PICO_ARP_QUERY)
-    {
+    if (type == PICO_ARP_QUERY) {
         src = pico_ipv4_source_find(dev->stack, dst);
         if (!src) {
             pico_frame_discard(q);

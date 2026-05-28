@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -57,12 +57,9 @@ int pico_getsockopt_tcp(struct pico_socket *s, int option, void *value)
         /* state of the NODELAY option */
         *(int *)value = PICO_SOCKET_GETOPT(s, PICO_SOCKET_OPT_TCPNODELAY);
         return 0;
-    }
-    else if (option == PICO_SOCKET_OPT_RCVBUF) {
+    } else if (option == PICO_SOCKET_OPT_RCVBUF) {
         return pico_tcp_get_bufsize_in(s, (uint32_t *)value);
-    }
-
-    else if (option == PICO_SOCKET_OPT_SNDBUF) {
+    } else if (option == PICO_SOCKET_OPT_SNDBUF) {
         return pico_tcp_get_bufsize_out(s, (uint32_t *)value);
     }
 
@@ -91,33 +88,27 @@ int pico_setsockopt_tcp(struct pico_socket *s, int option, void *value)
     if (option ==  PICO_TCP_NODELAY) {
         tcp_set_nagle_option(s, value);
         return 0;
-    }
-    else if (option == PICO_SOCKET_OPT_RCVBUF) {
+    } else if (option == PICO_SOCKET_OPT_RCVBUF) {
         uint32_t *val = (uint32_t*)value;
         pico_tcp_set_bufsize_in(s, *val);
         return 0;
-    }
-    else if (option == PICO_SOCKET_OPT_SNDBUF) {
+    } else if (option == PICO_SOCKET_OPT_SNDBUF) {
         uint32_t *val = (uint32_t*)value;
         pico_tcp_set_bufsize_out(s, *val);
         return 0;
-    }
-    else if (option == PICO_SOCKET_OPT_KEEPCNT) {
+    } else if (option == PICO_SOCKET_OPT_KEEPCNT) {
         uint32_t *val = (uint32_t*)value;
         pico_tcp_set_keepalive_probes(s, *val);
         return 0;
-    }
-    else if (option == PICO_SOCKET_OPT_KEEPIDLE) {
+    } else if (option == PICO_SOCKET_OPT_KEEPIDLE) {
         uint32_t *val = (uint32_t*)value;
         pico_tcp_set_keepalive_time(s, *val);
         return 0;
-    }
-    else if (option == PICO_SOCKET_OPT_KEEPINTVL) {
+    } else if (option == PICO_SOCKET_OPT_KEEPINTVL) {
         uint32_t *val = (uint32_t*)value;
         pico_tcp_set_keepalive_intvl(s, *val);
         return 0;
-    }
-    else if (option == PICO_SOCKET_OPT_LINGER) {
+    } else if (option == PICO_SOCKET_OPT_LINGER) {
         uint32_t *val = (uint32_t*)value;
         pico_tcp_set_linger(s, *val);
         return 0;
@@ -132,7 +123,7 @@ void pico_socket_tcp_cleanup(struct pico_socket *sock)
 {
 #ifdef PICO_SUPPORT_TCP
     /* for tcp sockets go further and clean the sockets inside queue */
-    if(is_sock_tcp(sock))
+    if (is_sock_tcp(sock))
         pico_tcp_cleanup_queues(sock);
 
 #endif
@@ -142,7 +133,7 @@ void pico_socket_tcp_cleanup(struct pico_socket *sock)
 void pico_socket_tcp_delete(struct pico_socket *s)
 {
 #ifdef PICO_SUPPORT_TCP
-    if(s->parent)
+    if (s->parent)
         s->parent->number_of_pending_conn--;
 
 #endif
@@ -209,7 +200,7 @@ static int socket_tcp_do_deliver(struct pico_socket *s, struct pico_frame *f)
         pico_tcp_input(s, f);
         if ((s->ev_pending) && s->wakeup) {
             s->wakeup(s->ev_pending, s);
-            if(!s->parent)
+            if (!s->parent)
                 s->ev_pending = 0;
         }
 
@@ -239,10 +230,9 @@ int pico_socket_tcp_deliver(struct pico_sockport *sp, struct pico_frame *f)
             found = socket_tcp_deliver_ipv6(s, f);
         }
 
-        if (found)
-        {
+        if (found) {
             target = found;
-            if ( found->remote_port != 0)
+            if (found->remote_port != 0)
                 /* only break if it's connected */
                 break;
         }
@@ -291,7 +281,7 @@ int pico_socket_tcp_read(struct pico_socket *s, void *buf, uint32_t len)
 void transport_flags_update(struct pico_frame *f, struct pico_socket *s)
 {
 #ifdef PICO_SUPPORT_TCP
-    if(is_sock_tcp(s))
+    if (is_sock_tcp(s))
         pico_tcp_flags_update(f, s);
 
 #endif

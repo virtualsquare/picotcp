@@ -95,7 +95,7 @@ int modem_read(struct pico_device *dev, void *data, int len)
 #ifdef DEBUG_FLOW
     if (r > 0) {
         printf(" <<< ");
-        for(idx = 0; idx < r; idx++) {
+        for (idx = 0; idx < r; idx++) {
             printf(" %02x", ((uint8_t*)data)[idx]);
         }
         printf("\n");
@@ -111,7 +111,7 @@ int modem_write(struct pico_device *dev, const void *data, int len)
     int r;
 #ifdef DEBUG_FLOW
     printf(" >>> ");
-    for(idx = 0; idx < len; idx++) {
+    for (idx = 0; idx < len; idx++) {
         printf(" %02x", ((uint8_t*)data)[idx]);
     }
     printf("\n");
@@ -211,7 +211,7 @@ int main(int argc, const char *argv[])
 
     pico_ppp_connect(ppp);
 
-    while(1 < 2) {
+    while (1 < 2) {
         pico_stack_tick(ppp->stack);
         usleep(1000);
         if (ppp->link_state(ppp) && !ping_on) {

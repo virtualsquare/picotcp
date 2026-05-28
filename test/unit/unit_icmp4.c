@@ -16,14 +16,14 @@ void cb_ping(struct pico_icmp4_stats *s)
             ping_test_var++;
         }
 
-        fail_if (s->seq > NUM_PING);
+        fail_if(s->seq > NUM_PING);
     } else {
         dbg("PING %lu to %s: Error %d\n", s->seq, host, s->err);
         exit(1);
     }
 }
 
-START_TEST (test_icmp4_ping)
+START_TEST(test_icmp4_ping)
 {
     struct pico_ip4 local = {
         0
@@ -122,7 +122,7 @@ START_TEST (test_icmp4_ping)
     memcpy(temp_buf, buffer + 12, 4);
     memcpy(buffer + 12, buffer + 16, 4);
     memcpy(buffer + 16, temp_buf, 4);
-    buffer[26] = (uint8_t)~buffer[26]; /* flip some bits in the sequence number, to see if the packet gets ignored properly */
+    buffer[26] = (uint8_t) ~buffer[26]; /* flip some bits in the sequence number, to see if the packet gets ignored properly */
 
     /* using the mock-device because otherwise I have to put everything in a pico_frame correctly myself. */
     pico_mock_network_write(mock, buffer, len);
@@ -197,10 +197,10 @@ START_TEST (test_icmp4_incoming_ping)
     len = pico_mock_network_read(mock, buffer2, buffer2len);
     /* inspect it */
 
-    while(cntr < len) {
+    while (cntr < len) {
         printf("0x%02x ", buffer2[cntr]);
         cntr++;
-        if(cntr % 4 == 0)
+        if (cntr % 4 == 0)
             printf("\n");
     }
     fail_unless(len == buffer2len, "ping reply length does not match, expected len: %d, got: %d", buffer2len, len);
@@ -338,7 +338,7 @@ void icmp4_unreach_socket_cb(uint16_t ev, struct pico_socket *s)
     }
 }
 
-START_TEST (test_icmp4_unreachable_recv)
+START_TEST(test_icmp4_unreachable_recv)
 {
     struct pico_ip4 local = {
         .addr = long_be(0x0a280064)

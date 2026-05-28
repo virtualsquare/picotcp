@@ -23,29 +23,29 @@ int printbuf(uint8_t *buf, uint32_t len, const char *str, uint8_t printbufactive
     uint8_t printMethod = 0;
     uint32_t cntr = 0;
     uint32_t cntr2 = 0;
-    if((printbufactive) && (printMethod == 0)) {
+    if ((printbufactive) && (printMethod == 0)) {
         printf("\n%s:\n", str);
-        for(cntr = 0; cntr < len; cntr++) {
-            if((cntr % 8) == 0 && cntr != 0)
+        for (cntr = 0; cntr < len; cntr++) {
+            if ((cntr % 8) == 0 && cntr != 0)
                 printf(" ");
 
-            if((cntr % 16) == 0 && cntr != 0)
+            if ((cntr % 16) == 0 && cntr != 0)
                 printf("\n");
 
-            if((cntr % 16) == 0)
+            if ((cntr % 16) == 0)
                 printf("%03x0  ", cntr2++);
 
             printf("%02x ", buf[cntr]);
         }
         printf("\n");
-    }else if((printbufactive) && (printMethod == 1)) {
+    } else if ((printbufactive) && (printMethod == 1)) {
         printf("\n%s:\n", str);
         printf("Buf = {");
-        for(cntr = 0; cntr < len; cntr++) {
-            if(cntr != 0)
+        for (cntr = 0; cntr < len; cntr++) {
+            if (cntr != 0)
                 printf(",");
 
-            if((cntr % 16 == 0) && (cntr != 0))
+            if ((cntr % 16 == 0) && (cntr != 0))
                 printf("\n");
 
             printf("0x%02x", buf[cntr]);

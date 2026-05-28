@@ -34,7 +34,7 @@ static inline void sam_dbg(const char *format, ...)
     print_uart(msg);
 }
 
-//#define dbg sam_dbg
+/*#define dbg sam_dbg */
 #define dbg(...) do { } while(0)
 
 extern volatile uint32_t sam_tick;
@@ -56,6 +56,6 @@ static inline unsigned long PICO_TIME_MS(void)
 static inline void PICO_IDLE(void)
 {
     unsigned long tick_now = sam_tick;
-    while(tick_now == sam_tick) ;
+    while (tick_now == sam_tick);
 }
 

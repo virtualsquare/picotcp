@@ -10,7 +10,7 @@ void callback_dhcpclient(void*cli, int code)
     char gw_txt_addr[30];
     IGNORE_PARAMETER(cli);
 
-    if(code == PICO_DHCP_SUCCESS) {
+    if (code == PICO_DHCP_SUCCESS) {
         gateway = pico_dhcp_get_gateway(&dhcp_client_ptr);
         pico_ipv4_to_string(gw_txt_addr, gateway.addr);
     }
@@ -20,7 +20,7 @@ void callback_dhcpclient(void*cli, int code)
 
 int generate_dhcp_msg(uint8_t *buf, uint32_t *len, uint8_t type)
 {
-    if(type == DHCP_MSG_TYPE_DISCOVER) {
+    if (type == DHCP_MSG_TYPE_DISCOVER) {
         uint8_t buffer[] = {
             0x01, 0x01, 0x06, 0x00, 0x0c, 0x10,
             0x53, 0xe6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -42,9 +42,9 @@ int generate_dhcp_msg(uint8_t *buf, uint32_t *len, uint8_t type)
         };
         *len = sizeof(buffer);
         memcpy(&(buf[0]), buffer, *len);
-    }else if(type == DHCP_MSG_TYPE_OFFER) {
+    } else if (type == DHCP_MSG_TYPE_OFFER) {
         return 1;
-    }else if(type == DHCP_MSG_TYPE_REQUEST) {
+    } else if (type == DHCP_MSG_TYPE_REQUEST) {
         uint32_t i = 0;
         uint8_t buffer1[] = {
             /* 0x63,0x82,0x53,0x63,// MAGIC COOKIE */
@@ -61,18 +61,18 @@ int generate_dhcp_msg(uint8_t *buf, uint32_t *len, uint8_t type)
 
         memcpy(&(buf[0x123]), &(buffer1[0]), sizeof(buffer1));
         *len = sizeof(buffer1) + 0x123;
-        for(i = *len; i < 0x150; i++) {
+        for (i = *len; i < 0x150; i++) {
             buf[i + 10] = 0x00;
         }
         return 0;
-    }else if(type == DHCP_MSG_TYPE_ACK) {
+    } else if (type == DHCP_MSG_TYPE_ACK) {
         return 1;
     }
 
     return 0;
 }
 
-START_TEST (test_dhcp_server_api)
+START_TEST(test_dhcp_server_api)
 {
 /************************************************************************
  * Check if dhcp recv works correctly if
@@ -458,7 +458,7 @@ START_TEST (test_dhcp_client)
     tick_it(S, 3);
 
     /* read discover message from network */
-    len = pico_mock_network_read(mock, buf, BUFLEN );
+    len = pico_mock_network_read(mock, buf, BUFLEN);
     fail_unless(len, "No msg received on network!");
     printbuf(&(buf[0]), len, "DHCP-DISCOVER packet", printbufactive);
     fail_unless(buf[0x011c] == 0x01, "No DHCP Discover received after initiate negotiation");

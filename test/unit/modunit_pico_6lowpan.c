@@ -42,8 +42,8 @@
 #include <string.h>
 
 /*******************************************************************************
-*  MACROS
-******************************************************************************/
+ *  MACROS
+ ******************************************************************************/
 
 #define STARTING()                                                             \
         printf("*********************** STARTING %s ***\n", __func__);     \
@@ -108,8 +108,8 @@ dbg_buffer(uint8_t *buf, size_t len)
 }
 
 /*******************************************************************************
-*  CTX
-******************************************************************************/
+ *  CTX
+ ******************************************************************************/
 
 START_TEST(tc_compare_prefix)
 {
@@ -124,17 +124,17 @@ START_TEST(tc_compare_prefix)
     TRYING("With 2 equal prefixes\n");
     ret = compare_prefix(a.addr, b.addr, 54);
     RESULTS();
-    FAIL_UNLESS(0 == ret, test, "Prefixes are equal, should've returned 0, ret = %d",ret);
+    FAIL_UNLESS(0 == ret, test, "Prefixes are equal, should've returned 0, ret = %d", ret);
 
     TRYING("With b > a\n");
     ret = compare_prefix(a.addr, b.addr, 60);
     RESULTS();
-    FAIL_UNLESS(ret, test, "Prefixes are not equal, shouldn't have returned 0, ret = %d",ret);
+    FAIL_UNLESS(ret, test, "Prefixes are not equal, shouldn't have returned 0, ret = %d", ret);
 
     TRYING("With c > b\n");
     ret = compare_prefix(b.addr, c.addr, 64);
     RESULTS();
-    FAIL_UNLESS(ret, test, "Prefixes are not equal, shouldn't have returned 0, ret = %d",ret);
+    FAIL_UNLESS(ret, test, "Prefixes are not equal, shouldn't have returned 0, ret = %d", ret);
 
     ENDING(test);
 }
@@ -205,22 +205,22 @@ START_TEST(tc_ctx_lookup)
 END_TEST
 
 /*******************************************************************************
-*  IPHC
-******************************************************************************/
+ *  IPHC
+ ******************************************************************************/
 
 #ifdef PICO_6LOWPAN_IPHC_ENABLED
 
 START_TEST(tc_compressor_vtf)
 {
     int test = 1, ret = 0;
-    uint8_t ori_fl[] = {0x64,0x00,0x00,0x00};
-    uint8_t ori_dscp[] = {0x62,0x00,0x00,0x00};
-    uint8_t ori_notc[] = {0x60,0x0f,0xed,0xcb};
-    uint8_t ori_inline[] = {0x6f,0xaf,0xed,0xcb};
+    uint8_t ori_fl[] = {0x64, 0x00, 0x00, 0x00};
+    uint8_t ori_dscp[] = {0x62, 0x00, 0x00, 0x00};
+    uint8_t ori_notc[] = {0x60, 0x0f, 0xed, 0xcb};
+    uint8_t ori_inline[] = {0x6f, 0xaf, 0xed, 0xcb};
     uint8_t comp_fl[] = {0x40};
     uint8_t comp_dscp[] = {0x20};
-    uint8_t comp_notc[] = {0x0f,0xed,0xcb};
-    uint8_t comp_inline[] = {0xfa,0x0f,0xed,0xcb};
+    uint8_t comp_notc[] = {0x0f, 0xed, 0xcb};
+    uint8_t comp_inline[] = {0xfa, 0x0f, 0xed, 0xcb};
     uint8_t comp[4] = {0, 0, 0, 0};
     uint8_t iphc[3] = {0, 0, 0};
 
@@ -277,19 +277,19 @@ END_TEST
 START_TEST(tc_decompressor_vtf)
 {
     int test = 1, ret = 0;
-    uint8_t ori_fl[] = {0x64,0x00,0x00,0x00};
-    uint8_t ori_dscp[] = {0x62,0x00,0x00,0x00};
-    uint8_t ori_notc[] = {0x60,0x0f,0xed,0xcb};
-    uint8_t ori_inline[] = {0x6f,0xaf,0xed,0xcb};
+    uint8_t ori_fl[] = {0x64, 0x00, 0x00, 0x00};
+    uint8_t ori_dscp[] = {0x62, 0x00, 0x00, 0x00};
+    uint8_t ori_notc[] = {0x60, 0x0f, 0xed, 0xcb};
+    uint8_t ori_inline[] = {0x6f, 0xaf, 0xed, 0xcb};
     uint8_t comp_fl[] = {0x40};
     uint8_t comp_dscp[] = {0x20};
-    uint8_t comp_notc[] = {0x0f,0xed,0xcb};
-    uint8_t comp_inline[] = {0xfa,0x0f,0xed,0xcb};
+    uint8_t comp_notc[] = {0x0f, 0xed, 0xcb};
+    uint8_t comp_inline[] = {0xfa, 0x0f, 0xed, 0xcb};
     uint8_t ori[4] = {0};
-    uint8_t iphc_fl[3] = {TF_ELIDED_FL, 0,0};
-    uint8_t iphc_dscp[3] = {TF_ELIDED_FL, 0,0};
-    uint8_t iphc_notc[3] = {TF_ELIDED_DSCP, 0,0};
-    uint8_t iphc_inline[3] = {TF_INLINE, 0,0};
+    uint8_t iphc_fl[3] = {TF_ELIDED_FL, 0, 0};
+    uint8_t iphc_dscp[3] = {TF_ELIDED_FL, 0, 0};
+    uint8_t iphc_notc[3] = {TF_ELIDED_DSCP, 0, 0};
+    uint8_t iphc_inline[3] = {TF_INLINE, 0, 0};
 
     STARTING();
 
@@ -466,7 +466,7 @@ START_TEST(tc_compressor_hl)
     ori = 153;
     ret = compressor_hl(&ori, &comp, &iphc, NULL, NULL, NULL);
     RESULTS();
-    FAIL_UNLESS(1 == ret, test, "Should've returned 1, ret = %d",ret);
+    FAIL_UNLESS(1 == ret, test, "Should've returned 1, ret = %d", ret);
     FAIL_UNLESS(0 == iphc, test, "Should've set IPHC bits correctly");
 
     ENDING(test);
@@ -486,21 +486,21 @@ START_TEST(tc_decompressor_hl)
     TRYING("HL 1 compressed\n");
     ret = decompressor_hl(&ori, &comp, &iphc, NULL, NULL, NULL);
     RESULTS();
-    FAIL_UNLESS(0 == ret, test, "Should've returned 0, ret = %d",ret );
+    FAIL_UNLESS(0 == ret, test, "Should've returned 0, ret = %d", ret);
     FAIL_UNLESS(1 == ori, test, "Should filled in correct hop limit");
 
     TRYING("HL 64 compressed\n");
     iphc = HL_COMPRESSED_64;
     ret = decompressor_hl(&ori, &comp, &iphc, NULL, NULL, NULL);
     RESULTS();
-    FAIL_UNLESS(0 == ret, test, "Should've returned 0, ret = %d",ret );
+    FAIL_UNLESS(0 == ret, test, "Should've returned 0, ret = %d", ret);
     FAIL_UNLESS(64 == ori, test, "Should filled in correct hop limit");
 
     TRYING("HL 255 compressed\n");
     iphc = HL_COMPRESSED_255;
     ret = decompressor_hl(&ori, &comp, &iphc, NULL, NULL, NULL);
     RESULTS();
-    FAIL_UNLESS(0 == ret, test, "Should've returned 0, ret = %d",ret );
+    FAIL_UNLESS(0 == ret, test, "Should've returned 0, ret = %d", ret);
     FAIL_UNLESS(255 == ori, test, "Should filled in correct hop limit");
 
     TRYING("HL not compressed\n");
@@ -508,7 +508,7 @@ START_TEST(tc_decompressor_hl)
     comp = 125;
     ret = decompressor_hl(&ori, &comp, &iphc, NULL, NULL, NULL);
     RESULTS();
-    FAIL_UNLESS(1 == ret, test, "Should've returned 0, ret = %d",ret );
+    FAIL_UNLESS(1 == ret, test, "Should've returned 0, ret = %d", ret);
     FAIL_UNLESS(125 == ori, test, "Should filled in correct hop limit");
 
     ENDING(test);
@@ -523,7 +523,7 @@ START_TEST(tc_addr_comp_mode)
     struct pico_ip6 local;
     struct pico_ip6 local2;
     struct pico_ip6 local3;
-    union pico_ll_addr addr = { .pan = { .addr.data = {1,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_SHORT }};
+    union pico_ll_addr addr = { .pan = { .addr.data = {1, 2, 3, 4, 5, 6, 7, 8}, .mode = AM_6LOWPAN_SHORT }};
     struct pico_device dev = { .mode = LL_MODE_IEEE802154 };
     struct pico_stack *S = NULL;
     pico_string_to_ipv6("ff00:0:0:0:0:0:e801:100", ip.addr);
@@ -605,7 +605,7 @@ START_TEST(tc_addr_comp_prefix)
     RESULTS();
     FAIL_UNLESS(COMP_STATELESS == ret, test, "Should've return COMP_STATELESS, ret = %d", ret);
     FAIL_UNLESS(!iphc[1], test, "Shouldn't have set any IPHC bytes, iphc = %02X", iphc[1]);
-    memset(iphc, 0,3);
+    memset(iphc, 0, 3);
 
     TRYING("With a unicast address where there's context available for\n");
     ctx_insert(local3, 13, 64, 0, PICO_IPHC_CTX_COMPRESS, dev);
@@ -622,12 +622,12 @@ START_TEST(tc_compressor_src)
 {
     int test = 1;
     struct pico_ip6 unspec = {{ 0 }};
-    struct pico_ip6 ll_mac = {{0xfe,0x80,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
-    struct pico_ip6 ll_nmac_16 = {{0xfe,0x80,0,0,0,0,0,0  ,0,0,0,0xff,0xfe,0,0x12,0x34}};
-    struct pico_ip6 ll_nmac_64 = {{0xfe,0x80,0,0,0,0,0,0 ,8,7,6,5,4,3,2,1}};
-    struct pico_ip6 ip_ctx = {{0x2a,0xaa,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
-    struct pico_ip6 ip_stateless = {{0x2a,0xbb,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
-    union pico_ll_addr mac = { .pan = {.addr.data = {3,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_EXT } };
+    struct pico_ip6 ll_mac = {{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}};
+    struct pico_ip6 ll_nmac_16 = {{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0x12, 0x34}};
+    struct pico_ip6 ll_nmac_64 = {{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1}};
+    struct pico_ip6 ip_ctx = {{0x2a, 0xaa, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}};
+    struct pico_ip6 ip_stateless = {{0x2a, 0xbb, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}};
+    union pico_ll_addr mac = { .pan = {.addr.data = {3, 2, 3, 4, 5, 6, 7, 8}, .mode = AM_6LOWPAN_EXT }};
     struct pico_device *dev = NULL;
     struct pico_stack *S = NULL;
     int ret = 0;
@@ -656,13 +656,13 @@ START_TEST(tc_compressor_src)
     dev->mode = LL_MODE_ETHERNET;
     ret = compressor_src(ll_mac.addr, buf, iphc, &mac, NULL, dev);
     RESULTS();
-    FAIL_UNLESS(-1 == ret, test, "Should've indicated error, invalid device, ret = %d",ret);
+    FAIL_UNLESS(-1 == ret, test, "Should've indicated error, invalid device, ret = %d", ret);
 
     TRYING("With mac derived address, should elide fully\n");
     dev->mode = LL_MODE_IEEE802154;
     ret = compressor_src(ll_mac.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
-    dbg_buffer(iphc,3);
+    dbg_buffer(iphc, 3);
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(0 == ret, test, "Should've returned compressed size of 0, ret = %d", ret);
@@ -672,7 +672,7 @@ START_TEST(tc_compressor_src)
     TRYING("With non mac derived 16-bit derivable address\n");
     ret = compressor_src(ll_nmac_16.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
-    dbg_buffer(iphc,3);
+    dbg_buffer(iphc, 3);
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(2 == ret, test, "Should've returned compressed size of 2, ret = %d", ret);
@@ -683,7 +683,7 @@ START_TEST(tc_compressor_src)
     TRYING("With non mac derived 64-bit derivable address\n");
     ret = compressor_src(ll_nmac_64.addr, buf, iphc, &mac, NULL, dev);
     OUTPUT();
-    dbg_buffer(iphc,3);
+    dbg_buffer(iphc, 3);
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
     FAIL_UNLESS(8 == ret, test, "Should've returned compressed size of 8, ret = %d", ret);
@@ -709,7 +709,7 @@ START_TEST(tc_compressor_src)
     dbg_buffer(iphc, 3);
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
-    FAIL_UNLESS(PICO_SIZE_IP6 == ret, test, "Should've returned compressed size of 16, ret = %d",ret);
+    FAIL_UNLESS(PICO_SIZE_IP6 == ret, test, "Should've returned compressed size of 16, ret = %d", ret);
     FAIL_UNLESS((iphc[1] & SRC_STATEFUL) == 0, test, "Shouldn't have set SAC");
     FAIL_UNLESS((iphc[1] & SRC_COMPRESSED) == 0, test, "Should've set SAM to '00', iphc = %02X", iphc[1]);
     FAIL_UNLESS(0 == memcmp(buf, ip_stateless.addr, PICO_SIZE_IP6), test, "Should've copied the source address inline");
@@ -723,42 +723,42 @@ START_TEST(tc_decompressor_src)
     int test = 1;
     int ret = 0;
 
-    union pico_ll_addr mac = { .pan = {.addr.data = {3,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_EXT } };
+    union pico_ll_addr mac = { .pan = {.addr.data = {3, 2, 3, 4, 5, 6, 7, 8}, .mode = AM_6LOWPAN_EXT }};
     struct pico_device *dev = NULL;
     struct pico_stack *S = NULL;
 
     /* Stateless compression */
     uint8_t iphc1[] = {0x00, 0x00, 0x00};
     uint8_t buf1[] = {0x2a, 0xbb, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08};
-    struct pico_ip6 ip1 = {{0x2a,0xbb,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
+    struct pico_ip6 ip1 = {{0x2a, 0xbb, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}};
 
     /* With context */
     uint8_t iphc2[] = {0x00, 0xf0, 0xd0};
     uint8_t buf2[] = {0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    struct pico_ip6 ip2 = {{0x2a,0xaa,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
+    struct pico_ip6 ip2 = {{0x2a, 0xaa, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}};
 
     /* Link-local non-mac 64-bit derivable address */
     uint8_t iphc4[] = {0x00, 0x10, 0x00};
     uint8_t buf4[] = {0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    struct pico_ip6 ip4 = {{0xfe,0x80,0,0,0,0,0,0 ,8,7,6,5,4,3,2,1}};
+    struct pico_ip6 ip4 = {{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 8, 7, 6, 5, 4, 3, 2, 1}};
 
     /* Link-local non-mac 16-bit derivable address */
     uint8_t iphc3[] = {0x00, 0x20, 0x00};
     uint8_t buf3[] = {0x12, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    struct pico_ip6 ip3 = {{0xfe,0x80,0,0,0,0,0,0  ,0,0,0,0xff,0xfe,0,0x12,0x34}};
+    struct pico_ip6 ip3 = {{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0x12, 0x34}};
 
     /* Link-local mac derivable address */
     uint8_t iphc5[] = {0x00, 0x30, 0x00};
     uint8_t buf5[] = {0};
-    struct pico_ip6 ip5 = {{0xfe,0x80,0,0,0,0,0,0  ,1,2,3,4,5,6,7,8}};
+    struct pico_ip6 ip5 = {{0xfe, 0x80, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8}};
 
     /* Context non-mac 16-bit derivable address */
     uint8_t iphc6[] = {0x00, 0xE0, 0xd0};
     uint8_t buf6[] = {0x12, 0x34, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    struct pico_ip6 ip6 = {{0x2a,0xaa,0,0,0,0,0,0  ,0,0,0,0xff,0xfe,0,0x12,0x34}};
+    struct pico_ip6 ip6 = {{0x2a, 0xaa, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xfe, 0, 0x12, 0x34}};
 
     uint8_t buf[PICO_SIZE_IP6] = { 0 };
-    
+
     pico_stack_init(&S);
 
     dev = pico_null_create(S, "dummy");
@@ -830,19 +830,19 @@ START_TEST(tc_compressor_dst)
     int test = 1;
     int ret = 0;
 
-    union pico_ll_addr mac = { .pan = {.addr.data = {3,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_EXT } };
+    union pico_ll_addr mac = { .pan = {.addr.data = {3, 2, 3, 4, 5, 6, 7, 8}, .mode = AM_6LOWPAN_EXT }};
     struct pico_device dev;
 
     /* Multicast 48-bit */
-    struct pico_ip6 mcast1 = {{0xff,0x12,0,0,0,0,0,0 ,0,0,0,5,4,3,2,1}};
-    uint8_t buf1[] = {0x12,5,4,3,2,1};
+    struct pico_ip6 mcast1 = {{0xff, 0x12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 4, 3, 2, 1}};
+    uint8_t buf1[] = {0x12, 5, 4, 3, 2, 1};
 
     /* Multicast 32-bit */
-    struct pico_ip6 mcast2 = {{0xFF,0x34,0,0,0,0,0,0 ,0,0,0,0,0,1,2,3}};
-    uint8_t buf2[] = {0x34,1,2,3};
+    struct pico_ip6 mcast2 = {{0xFF, 0x34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3}};
+    uint8_t buf2[] = {0x34, 1, 2, 3};
 
     /* Multicast 8-bit */
-    struct pico_ip6 mcast3 = {{0xFF,0x02,0,0,0,0,0,0 ,0,0,0,0,0,0,0,5}};
+    struct pico_ip6 mcast3 = {{0xFF, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5}};
     uint8_t buf3 = 5;
 
     uint8_t iphc[3] = { 0 };
@@ -896,22 +896,22 @@ START_TEST(tc_decompressor_dst)
     int test = 1;
     int ret = 0;
 
-    union pico_ll_addr mac = { .pan = {.addr.data = {3,2,3,4,5,6,7,8}, .mode = AM_6LOWPAN_EXT } };
+    union pico_ll_addr mac = { .pan = {.addr.data = {3, 2, 3, 4, 5, 6, 7, 8}, .mode = AM_6LOWPAN_EXT }};
     struct pico_device dev;
 
     /* Multicast 48-bit */
     uint8_t iphc1[3] = {0x00, 0x09, 0x00};
-    struct pico_ip6 mcast1 = {{0xff,0x12,0,0,0,0,0,0 ,0,0,0,5,4,3,2,1}};
-    uint8_t buf1[] = {0x12,5,4,3,2,1};
+    struct pico_ip6 mcast1 = {{0xff, 0x12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 4, 3, 2, 1}};
+    uint8_t buf1[] = {0x12, 5, 4, 3, 2, 1};
 
     /* Multicast 32-bit */
     uint8_t iphc2[3] = {0x00, 0x0a, 0x00};
-    struct pico_ip6 mcast2 = {{0xFF,0x34,0,0,0,0,0,0 ,0,0,0,0,0,1,2,3}};
-    uint8_t buf2[] = {0x34,1,2,3};
+    struct pico_ip6 mcast2 = {{0xFF, 0x34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3}};
+    uint8_t buf2[] = {0x34, 1, 2, 3};
 
     /* Multicast 8-bit */
     uint8_t iphc3[3] = {0x00, 0x0b, 0x00};
-    struct pico_ip6 mcast3 = {{0xFF,0x02,0,0,0,0,0,0 ,0,0,0,0,0,0,0,5}};
+    struct pico_ip6 mcast3 = {{0xFF, 0x02, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5}};
     uint8_t buf3[] = {5};
 
     uint8_t buf[PICO_SIZE_IP6] = { 0 };
@@ -920,7 +920,7 @@ START_TEST(tc_decompressor_dst)
     STARTING();
 
     TRYING("48-bit compressed address\n");
-    ret = decompressor_dst(buf,buf1,iphc1,NULL, &mac,&dev);
+    ret = decompressor_dst(buf, buf1, iphc1, NULL, &mac, &dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -928,15 +928,15 @@ START_TEST(tc_decompressor_dst)
     FAIL_UNLESS(0 == memcmp(mcast1.addr, buf, PICO_SIZE_IP6), test, "Should've correctly decompressed the mcast address");
 
     TRYING("32-bit compressed address\n");
-    ret = decompressor_dst(buf,buf2,iphc2,NULL, &mac,&dev);
+    ret = decompressor_dst(buf, buf2, iphc2, NULL, &mac, &dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
-    FAIL_UNLESS(4 == ret, test, "Should've returned compressed length of 4, ret = %d",ret);
+    FAIL_UNLESS(4 == ret, test, "Should've returned compressed length of 4, ret = %d", ret);
     FAIL_UNLESS(0 == memcmp(mcast2.addr, buf, PICO_SIZE_IP6), test, "Should've correctly decompressed 32-bit mcast address");
 
     TRYING("8-bit compressed address\n");
-    ret = decompressor_dst(buf,buf3, iphc3, NULL, &mac, &dev);
+    ret = decompressor_dst(buf, buf3, iphc3, NULL, &mac, &dev);
     OUTPUT();
     dbg_buffer(buf, PICO_SIZE_IP6);
     RESULTS();
@@ -947,34 +947,34 @@ START_TEST(tc_decompressor_dst)
 }
 END_TEST
 static const unsigned char ipv6_frame[61] = {
-0x60, 0x00, 0x00, 0x00, 0x00, 0x15, 0x3c, 0xff, /* `.....<. */
-0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
-0x02, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00, /* ........ */
-0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
-0x00, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x65, 0x63, /* ......ec */
-0x11, 0x00, 0x1e, 0x00, 0x01, 0x02, 0x00, 0x00, /* ........ */
-0x4d, 0x4c, 0x4d, 0x4c, 0x00, 0x0d, 0x7b, 0x50, /* MLML..{P */
-0xff, 0x00, 0x01, 0x01, 0x08                    /* ..... */
+    0x60, 0x00, 0x00, 0x00, 0x00, 0x15, 0x3c, 0xff, /* `.....<. */
+    0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+    0x02, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00, /* ........ */
+    0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+    0x00, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x65, 0x63, /* ......ec */
+    0x11, 0x00, 0x1e, 0x00, 0x01, 0x02, 0x00, 0x00, /* ........ */
+    0x4d, 0x4c, 0x4d, 0x4c, 0x00, 0x0d, 0x7b, 0x50, /* MLML..{P */
+    0xff, 0x00, 0x01, 0x01, 0x08                    /* ..... */
 };
 
 static const unsigned char lowpan_frame[18] = {
-0x7f, 0x33, 0xe7, 0x02, 0x1e, 0x00, 0xf0,
-0x4d, 0x4c, 0x4d, 0x4c, 0x7b, 0x50, 0xff, 0x00,
-0x01, 0x01, 0x08
+    0x7f, 0x33, 0xe7, 0x02, 0x1e, 0x00, 0xf0,
+    0x4d, 0x4c, 0x4d, 0x4c, 0x7b, 0x50, 0xff, 0x00,
+    0x01, 0x01, 0x08
 };
 
 static const unsigned char comp_frame[22] = {
-0x7f, 0x33, 0xe7, 0x06, 0x1e, 0x00, 0x01, 0x02,
-0x00, 0x00, 0xf0, 0x4d, 0x4c, 0x4d, 0x4c, 0x7b,
-0x50, 0xff, 0x00, 0x01, 0x01, 0x08
+    0x7f, 0x33, 0xe7, 0x06, 0x1e, 0x00, 0x01, 0x02,
+    0x00, 0x00, 0xf0, 0x4d, 0x4c, 0x4d, 0x4c, 0x7b,
+    0x50, 0xff, 0x00, 0x01, 0x01, 0x08
 };
 
 START_TEST(tc_compressor_iphc)
 {
     int test = 1;
     struct pico_frame *f = pico_frame_alloc(61);
-    union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
-    union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
+    union pico_ll_addr src = { .pan = {.addr.data = {0x00, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_EXT }};
+    union pico_ll_addr dst = { .pan = {.addr.data = {0x65, 0x63, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_SHORT }};
     int compressed_len = 0;
     struct pico_device *dev = NULL;
     struct pico_stack *S = NULL;
@@ -1013,24 +1013,25 @@ START_TEST(tc_decompressor_iphc)
 {
     int test = 1;
     struct pico_frame *f = pico_frame_alloc(2);
-    union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
-    union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
+    union pico_ll_addr src = { .pan = {.addr.data = {0x00, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_EXT }};
+    union pico_ll_addr dst = { .pan = {.addr.data = {0x65, 0x63, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_SHORT }};
     struct pico_device *dev = NULL;
     struct pico_stack *S = NULL;
     int compressed_len = 0;
     uint8_t *buf = NULL;
     uint8_t hdr[40] = {
-    0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, /* `.....<. */
-    0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
-    0x02, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00, /* ........ */
-    0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
-    0x00, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x65, 0x63 };
+        0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, /* `.....<. */
+        0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+        0x02, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00, /* ........ */
+        0xfe, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
+        0x00, 0x00, 0x00, 0xff, 0xfe, 0x00, 0x65, 0x63
+    };
 
     pico_stack_init(&S);
 
     dev = pico_null_create(S, "dummy");
     dev->mode = LL_MODE_IEEE802154;
-    
+
     memcpy(f->buffer, lowpan_frame, 2);
     f->net_hdr = f->buffer;
     f->dev = dev;
@@ -1257,8 +1258,8 @@ START_TEST(tc_pico_iphc_compress)
 {
     int test = 1;
     struct pico_frame *f = pico_frame_alloc(61);
-    union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
-    union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
+    union pico_ll_addr src = { .pan = {.addr.data = {0x00, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_EXT }};
+    union pico_ll_addr dst = { .pan = {.addr.data = {0x65, 0x63, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_SHORT }};
     struct pico_device *dev = NULL;
     struct pico_stack *S = NULL;
     struct pico_frame *new = NULL;
@@ -1267,7 +1268,7 @@ START_TEST(tc_pico_iphc_compress)
 
     dev = pico_null_create(S, "dummy");
     dev->mode = LL_MODE_IEEE802154;
-    
+
     memcpy(f->buffer, ipv6_frame, 61);
     f->net_hdr = f->buffer;
     f->net_len = 48;
@@ -1297,8 +1298,8 @@ START_TEST(tc_pico_iphc_decompress)
 {
     int test = 0;
     struct pico_frame *f = pico_frame_alloc(61);
-    union pico_ll_addr src = { .pan = {.addr.data = {0x00,0x80,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_EXT } };
-    union pico_ll_addr dst = { .pan = {.addr.data = {0x65,0x63,0xe1,0x03,0x00,0x00,0x9d,0x00}, .mode = AM_6LOWPAN_SHORT } };
+    union pico_ll_addr src = { .pan = {.addr.data = {0x00, 0x80, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_EXT }};
+    union pico_ll_addr dst = { .pan = {.addr.data = {0x65, 0x63, 0xe1, 0x03, 0x00, 0x00, 0x9d, 0x00}, .mode = AM_6LOWPAN_SHORT }};
     struct pico_device *dev = NULL;
     struct pico_stack *S = NULL;
     struct pico_frame *new = NULL;
@@ -1340,7 +1341,8 @@ static int rx_called = 0;
 static int tx_called = 0;
 static uint8_t tx_len = 0;
 
-int pico_datalink_send(struct pico_frame *f) {
+int pico_datalink_send(struct pico_frame *f)
+{
     dbg("Datalink_send called!\n");
     if (++tx_called == 2) {
         memcpy(tx, f->start, f->len);
@@ -1549,7 +1551,7 @@ START_TEST(tc_tx_rx)
     app_ping(S, (char *)arg);
 
     printf("%s: launching PicoTCP loop\n", __FUNCTION__);
-    while(!rx) {
+    while (!rx) {
         pico_stack_tick(S);
         usleep(2000);
     }
@@ -1602,9 +1604,9 @@ static Suite *pico_suite(void)
 
     tcase_add_test(TCase_compare_prefix, tc_compare_prefix);
     suite_add_tcase(s, TCase_compare_prefix);
-    tcase_add_test(TCase_compare_6lowpan_ctx ,tc_compare_6lowpan_ctx);
+    tcase_add_test(TCase_compare_6lowpan_ctx, tc_compare_6lowpan_ctx);
     suite_add_tcase(s, TCase_compare_6lowpan_ctx);
-    tcase_add_test(TCase_ctx_lookup ,tc_ctx_lookup);
+    tcase_add_test(TCase_ctx_lookup, tc_ctx_lookup);
     suite_add_tcase(s, TCase_ctx_lookup);
 
 /*******************************************************************************
@@ -1653,7 +1655,7 @@ static Suite *pico_suite(void)
     suite_add_tcase(s, TCase_pico_iphc_decompress);
 #endif
 
-    tcase_add_test(TCase_tx_rx ,tc_tx_rx);
+    tcase_add_test(TCase_tx_rx, tc_tx_rx);
     suite_add_tcase(s, TCase_tx_rx);
 
     return s;

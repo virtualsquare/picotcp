@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -119,7 +119,7 @@ struct iphc_ctx * ctx_lookup_id(struct pico_stack *S, uint8_t id)
 
     pico_tree_foreach(i, &S->SixLowPanCTXTree) {
         key = i->keyValue;
-        if (key && id ==key->id)
+        if (key && id == key->id)
             return key;
     }
     return NULL;
@@ -317,7 +317,6 @@ pico_6lowpan_ll_process_out(struct pico_stack *S, struct pico_protocol *self, st
         if ((f->net_hdr - datalink_len) < f->buffer) /* Before buffer bound check */
             goto fin;
     }
-
     /* Frame is ready for sending to the device driver */
     f->start = f->datalink_hdr;
     f->len = (uint32_t)(f->len + datalink_len);
@@ -344,19 +343,18 @@ pico_6lowpan_ll_process_in(struct pico_stack *S, struct pico_protocol *self, str
     for (i = NUM_LL_EXTENSIONS - 1; i >= 0; i--) {
         ret = exts[i].in(f);
         switch (ret) {
-            case FRAME_6LOWPAN_LL_RELEASE:
-                /* Success, frame is somewhere else now... */
-                break;
-            case FRAME_6LOWPAN_LL_DISCARD:
-                /* Something went wrong, discard the frame */
-                pico_frame_discard(f);
-                break;
-            default:
-                /* Success, update link layer header length */
-                len = (uint32_t)(len + (uint32_t)ret);
+        case FRAME_6LOWPAN_LL_RELEASE:
+            /* Success, frame is somewhere else now... */
+            break;
+        case FRAME_6LOWPAN_LL_DISCARD:
+            /* Something went wrong, discard the frame */
+            pico_frame_discard(f);
+            break;
+        default:
+            /* Success, update link layer header length */
+            len = (uint32_t)(len + (uint32_t)ret);
         }
     }
-
     /* Determine size at network layer */
     f->net_len = (uint16_t)(f->len - len);
     f->len = (uint32_t)(f->len - len);
@@ -382,7 +380,7 @@ int32_t pico_6lowpan_stack_recv(struct pico_device *dev, uint8_t *buffer, uint32
     } else {
         return pico_stack_recv(dev, buffer, len);
     }
-    return -1; // return ERROR
+    return -1; /* return ERROR */
 }
 
 /* Proxy for pico_devloop_sendto_dev, 6LoWPAN-devices have a different interface with pico. This
@@ -441,10 +439,10 @@ pico_6lowpan_ll_push(struct pico_frame *f)
         return pl_available;
 
     /* Make sure these addresses are retrievable from the frame on processing */
-    if (pico_enqueue(pico_proto_6lowpan_ll.q_out,f) > 0) {
-        return 0; // Frame enqueued for later processing
+    if (pico_enqueue(pico_proto_6lowpan_ll.q_out, f) > 0) {
+        return 0; /* Frame enqueued for later processing */
     }
-    return -1; // Return ERROR
+    return -1; /* Return ERROR */
 }
 
 struct pico_protocol pico_proto_6lowpan_ll = {

@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -301,9 +301,9 @@ PACKED_STRUCT_DEF pico_icmp6_opt_6co
     uint8_t type;
     uint8_t len;
     uint8_t clen;
-    uint8_t id: 4;
-    uint8_t res: 3;
-    uint8_t c: 1;
+    uint8_t id : 4;
+    uint8_t res : 3;
+    uint8_t c : 1;
     uint16_t lifetime;
     uint8_t prefix;
 };

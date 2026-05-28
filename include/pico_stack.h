@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -90,7 +90,7 @@ struct arp_service_ipconflict {
        ATTACH_QUEUES_LISTENERS(St, pname, P); \
     } while(0)
 
-#define EMPTY_TREE(name,comp) \
+#define EMPTY_TREE(name, comp) \
      do { name.root = &LEAF; name.compare = comp;} while(0)
 
 struct pico_timer
@@ -148,8 +148,8 @@ struct pico_stack {
 
 #ifdef PICO_SUPPORT_IPV4
     DECLARE_QUEUES(ipv4);
-    struct pico_tree Tree_dev_link; 
-    struct pico_tree Routes; 
+    struct pico_tree Tree_dev_link;
+    struct pico_tree Routes;
     uint16_t ipv4_progressive_id;
     struct pico_ipv4_route *default_bcast_route;
 #   ifdef PICO_SUPPORT_RAWSOCKETS
@@ -217,7 +217,7 @@ struct pico_stack {
 #if defined(PICO_SUPPORT_IGMP) && defined(PICO_SUPPORT_MCAST)
     DECLARE_QUEUES(igmp);
     struct pico_tree IGMPParameters, IGMPTimers, IGMPAllow, IGMPBlock;
-    struct pico_tree MCASTSockets, MCASTFilter, MCASTFilter_ipv6;  
+    struct pico_tree MCASTSockets, MCASTFilter, MCASTFilter_ipv6;
 #endif
 
 #ifdef PICO_SUPPORT_UDP
@@ -271,10 +271,10 @@ struct pico_stack {
     struct pico_tree DNSTable;
 #endif
 #ifdef PICO_SUPPORT_MDNS
-#   if (PICO_MDNS_ALLOW_CACHING==1)
+#   if (PICO_MDNS_ALLOW_CACHING == 1)
     /* S->MDNSCache records from mDNS peers on the network */
     struct pico_tree MDNSCache;
-#   endif 
+#   endif
     /* My records for which I want to have the authority */
     struct pico_tree MDNSOwnRecords;
     /* Cookie-tree */

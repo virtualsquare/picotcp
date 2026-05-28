@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Roel Postelmans
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -70,7 +70,7 @@
 #define MCAST_BLOCK_OLD_SOURCES            (6)
 
 
-static void pico_mcast_src_filtering_cleanup(struct mcast_filter_parameters *mcast )
+static void pico_mcast_src_filtering_cleanup(struct mcast_filter_parameters *mcast)
 {
     struct pico_tree_node *index = NULL, *_tmp = NULL;
     /* cleanup filters */
@@ -83,7 +83,7 @@ static void pico_mcast_src_filtering_cleanup(struct mcast_filter_parameters *mca
         pico_tree_delete(mcast->block, index->keyValue);
     }
 }
-static int pico_mcast_src_filtering_inc_inc(struct mcast_filter_parameters*mcast )
+static int pico_mcast_src_filtering_inc_inc(struct mcast_filter_parameters*mcast)
 {
     struct pico_tree_node *index = NULL;
     union pico_address *source;
@@ -96,7 +96,7 @@ static int pico_mcast_src_filtering_inc_inc(struct mcast_filter_parameters*mcast
             pico_tree_foreach(index, mcast->p->MCASTFilter) /* B */
             {
                 if (pico_tree_insert(mcast->allow, index->keyValue) == &LEAF) {
-               	    multicast_dbg("MCAST: Failed to insert entry in tree\n");
+                    multicast_dbg("MCAST: Failed to insert entry in tree\n");
                     return -1;
                 }
                 mcast->sources++;
@@ -119,7 +119,7 @@ static int pico_mcast_src_filtering_inc_inc(struct mcast_filter_parameters*mcast
         if (pico_tree_insert(mcast->allow, index->keyValue) == &LEAF) {
             multicast_dbg("MCAST: Failed to insert entry in tree\n");
             return -1;
-		}
+        }
         mcast->sources++;
     }
     pico_tree_foreach(index, &mcast->g->MCASTSources) /* A */
@@ -141,7 +141,7 @@ static int pico_mcast_src_filtering_inc_inc(struct mcast_filter_parameters*mcast
         if (pico_tree_insert(mcast->block, index->keyValue) == &LEAF) {
             multicast_dbg("MCAST: Failed to insert entry in tree\n");
             return -1;
-		}
+        }
         mcast->sources++;
     }
     pico_tree_foreach(index, mcast->p->MCASTFilter) /* B */
@@ -160,7 +160,7 @@ static int pico_mcast_src_filtering_inc_inc(struct mcast_filter_parameters*mcast
     return MCAST_NO_REPORT;
 }
 
-static int pico_mcast_src_filtering_inc_excl(struct mcast_filter_parameters*mcast )
+static int pico_mcast_src_filtering_inc_excl(struct mcast_filter_parameters*mcast)
 {
     struct pico_tree_node *index = NULL;
     mcast->record_type = MCAST_CHANGE_TO_EXCLUDE_MODE;
@@ -170,12 +170,12 @@ static int pico_mcast_src_filtering_inc_excl(struct mcast_filter_parameters*mcas
         if (pico_tree_insert(mcast->block, index->keyValue) == &LEAF) {
             multicast_dbg("MCAST: Failed to insert entry in tree\n");
             return -1;
-		}
+        }
         mcast->sources++;
     }
     return 0;
 }
-static int pico_mcast_src_filtering_excl_inc(struct mcast_filter_parameters*mcast )
+static int pico_mcast_src_filtering_excl_inc(struct mcast_filter_parameters*mcast)
 {
     struct pico_tree_node *index = NULL;
     mcast->record_type = MCAST_CHANGE_TO_INCLUDE_MODE;
@@ -186,14 +186,14 @@ static int pico_mcast_src_filtering_excl_inc(struct mcast_filter_parameters*mcas
             if (pico_tree_insert(mcast->allow, index->keyValue) == &LEAF) {
                 multicast_dbg("MCAST: Failed to insert entry in tree\n");
                 return -1;
-			}
+            }
             mcast->sources++;
         }
     } /* else { allow stays empty } */
 
     return 0;
 }
-static int pico_mcast_src_filtering_excl_excl(struct mcast_filter_parameters*mcast )
+static int pico_mcast_src_filtering_excl_excl(struct mcast_filter_parameters*mcast)
 {
     struct pico_tree_node *index = NULL;
     struct pico_ip6 *source = NULL;
@@ -204,7 +204,7 @@ static int pico_mcast_src_filtering_excl_excl(struct mcast_filter_parameters*mca
         if (pico_tree_insert(mcast->block, index->keyValue) == &LEAF) {
             multicast_dbg("MCAST: Failed to insert entry in tree\n");
             return -1;
-		}
+        }
 
         mcast->sources++;
     }
@@ -227,7 +227,7 @@ static int pico_mcast_src_filtering_excl_excl(struct mcast_filter_parameters*mca
         if (pico_tree_insert(mcast->allow, index->keyValue) == &LEAF) {
             multicast_dbg("MCAST: Failed to insert entry in tree\n");
             return -1;
-		}
+        }
         mcast->sources++;
     }
     pico_tree_foreach(index, mcast->p->MCASTFilter) /* B */
@@ -266,7 +266,7 @@ int8_t pico_mcast_generate_filter(struct pico_stack *S, struct mcast_filter_para
     case PICO_IP_MULTICAST_INCLUDE:
         switch (p->filter_mode) {
         case PICO_IP_MULTICAST_INCLUDE:
-            if(pico_mcast_src_filtering_inc_inc(filter) == MCAST_NO_REPORT)
+            if (pico_mcast_src_filtering_inc_inc(filter) == MCAST_NO_REPORT)
                 return MCAST_NO_REPORT;
 
             break;
@@ -287,7 +287,7 @@ int8_t pico_mcast_generate_filter(struct pico_stack *S, struct mcast_filter_para
             break;
         case PICO_IP_MULTICAST_EXCLUDE:
             /* BLOCK (B-A) */
-            if(pico_mcast_src_filtering_excl_excl(filter) == MCAST_NO_REPORT)
+            if (pico_mcast_src_filtering_excl_excl(filter) == MCAST_NO_REPORT)
                 return MCAST_NO_REPORT;
 
             break;

@@ -16,7 +16,7 @@ struct pico_socket *pico_socket_open(struct pico_stack *S, uint16_t net, uint16_
     (void) net;
     (void) proto;
     (void) wakeup;
-    fail_unless (sock != NULL);
+    fail_unless(sock != NULL);
     sock->stack = S;
     return sock;
 }
@@ -61,7 +61,7 @@ int pico_string_to_ipv6(const char *ipstr, uint8_t *ip)
 }
 
 /* Used in pico_sntp_sync_start_ipv4 */
-int pico_ipv4_to_string(char* ipbuf, const uint32_t ip)
+int pico_ipv4_to_string(char*ipbuf, const uint32_t ip)
 {
     (void) ipbuf;
     (void) ip;
@@ -69,7 +69,7 @@ int pico_ipv4_to_string(char* ipbuf, const uint32_t ip)
 }
 
 /* Used in pico_sntp_sync_start_ipv6 */
-int pico_ipv6_to_string(char* ipbuf, const uint8_t ip[PICO_SIZE_IP6])
+int pico_ipv6_to_string(char*ipbuf, const uint8_t ip[PICO_SIZE_IP6])
 {
     (void) ipbuf;
     (void) ip;
@@ -201,9 +201,9 @@ START_TEST(tc_pico_sntp_cleanup)
     pico_stack_init(&S);
 
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
-    fail_unless (ck != NULL);
+    fail_unless(ck != NULL);
     ck->hostname = PICO_ZALLOC(sizeof(char) * 5);
-    fail_unless (ck->hostname != NULL);
+    fail_unless(ck->hostname != NULL);
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
@@ -228,9 +228,9 @@ START_TEST(tc_pico_sntp_parse)
     pico_stack_init(&S);
 
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
-    fail_unless (ck != NULL);
+    fail_unless(ck != NULL);
     ck->hostname = PICO_ZALLOC(sizeof(char) * 5);
-    fail_unless (ck->hostname != NULL);
+    fail_unless(ck->hostname != NULL);
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
@@ -259,9 +259,9 @@ START_TEST(tc_pico_sntp_client_wakeup)
     pico_stack_init(&S);
 
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
-    fail_unless (ck != NULL);
+    fail_unless(ck != NULL);
     ck->hostname = PICO_ZALLOC(sizeof(char) * 5);
-    fail_unless (ck->hostname != NULL);
+    fail_unless(ck->hostname != NULL);
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
@@ -284,9 +284,9 @@ START_TEST(tc_sntp_receive_timeout)
     pico_stack_init(&S);
 
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
-    fail_unless (ck != NULL);
+    fail_unless(ck != NULL);
     ck->hostname = PICO_ZALLOC(sizeof(char) * 5);
-    fail_unless (ck->hostname != NULL);
+    fail_unless(ck->hostname != NULL);
     ck->stamp = 0ull;
     ck->cb_synced = cb_synced;
 
@@ -310,7 +310,7 @@ START_TEST(tc_pico_sntp_send)
     struct pico_stack *S = NULL;
 
     pico_stack_init(&S);
-    
+
     sock.priv = &ck;
     sock.stack = S;
 
@@ -337,7 +337,7 @@ START_TEST(tc_dnsCallback)
 END_TEST
 START_TEST(tc_pico_sntp_sync)
 {
-    const char *sntp_server= "ntp.nasa.gov";
+    const char *sntp_server = "ntp.nasa.gov";
     struct pico_stack *S = NULL;
 
     pico_stack_init(&S);
@@ -370,7 +370,7 @@ END_TEST
 START_TEST(tc_pico_sntp_sync_start)
 {
     struct sntp_server_ns_cookie ck = { 0 };
-    union pico_address sntp_addr = { .ip4.addr= 0ul };
+    union pico_address sntp_addr = { .ip4.addr = 0ul };
     struct pico_stack *S = NULL;
 
     pico_stack_init(&S);
@@ -410,7 +410,7 @@ START_TEST(tc_pico_sntp_sync_start_ipv4)
 END_TEST
 START_TEST(tc_pico_sntp_sync_start_ipv6)
 {
-    union pico_address sntp_addr = { .ip6.addr = { 0 } };
+    union pico_address sntp_addr = { .ip6.addr = { 0 }};
     struct pico_stack *S = NULL;
 
     pico_stack_init(&S);

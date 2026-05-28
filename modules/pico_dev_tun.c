@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -56,7 +56,7 @@ static int pico_tun_poll(struct pico_device *dev, int loop_score)
     int len;
     pfd.fd = tun->fd;
     pfd.events = POLLIN;
-    do  {
+    do {
         if (poll(&pfd, 1, 0) <= 0)
             return loop_score;
 
@@ -65,7 +65,7 @@ static int pico_tun_poll(struct pico_device *dev, int loop_score)
             loop_score--;
             pico_stack_recv(dev, buf, (uint32_t)len);
         }
-    } while(loop_score > 0);
+    } while (loop_score > 0);
     return 0;
 }
 
@@ -74,7 +74,7 @@ static int pico_tun_poll(struct pico_device *dev, int loop_score)
 void pico_tun_destroy(struct pico_device *dev)
 {
     struct pico_device_tun *tun = (struct pico_device_tun *) dev;
-    if(tun->fd > 0)
+    if (tun->fd > 0)
         close(tun->fd);
 }
 
@@ -83,15 +83,15 @@ static int tun_open(char *name)
 {
     struct ifreq ifr;
     int tun_fd;
-    if((tun_fd = open("/dev/net/tun", O_RDWR)) < 0) {
-        return(-1);
+    if ((tun_fd = open("/dev/net/tun", O_RDWR)) < 0) {
+        return -1;
     }
 
     memset(&ifr, 0, sizeof(ifr));
     ifr.ifr_flags = IFF_TUN | IFF_NO_PI;
-    strncpy(ifr.ifr_name, name, IFNAMSIZ-1);
-    if(ioctl(tun_fd, TUNSETIFF, &ifr) < 0) {
-        return(-1);
+    strncpy(ifr.ifr_name, name, IFNAMSIZ - 1);
+    if (ioctl(tun_fd, TUNSETIFF, &ifr) < 0) {
+        return -1;
     }
 
     return tun_fd;
@@ -106,7 +106,7 @@ struct pico_device *pico_tun_create(struct pico_stack *S, char *name)
     if (!tun)
         return NULL;
 
-    if( 0 != pico_device_init(S, (struct pico_device *)tun, name, NULL)) {
+    if (0 != pico_device_init(S, (struct pico_device *)tun, name, NULL)) {
         dbg("Tun init failed.\n");
         pico_tun_destroy((struct pico_device *)tun);
         return NULL;

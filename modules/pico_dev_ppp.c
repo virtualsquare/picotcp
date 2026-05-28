@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012 TASS Belgium NV.
  * Authors: Serge Gadeyne, Daniele Lacamera, Maxime Vincent
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -320,8 +320,9 @@ static void lcp_optflags_print(struct pico_device_ppp *ppp, uint8_t *opts, uint3
 #define PPP_TIMER_ON_AUTH       0x10u
 #define PPP_TIMER_ON_IPCP       0x20u
 
-static int should_escape(uint8_t byte) {
-  return (byte == PPPF_FLAG_SEQ || byte == PPPF_CTRL_ESC || byte == PPPF_CTRL || byte < 0x20);
+static int should_escape(uint8_t byte)
+{
+    return (byte == PPPF_FLAG_SEQ || byte == PPPF_CTRL_ESC || byte == PPPF_CTRL || byte < 0x20);
 }
 
 /* Escape and send */
@@ -338,7 +339,7 @@ static int ppp_serial_send_escape(struct pico_device_ppp *ppp, void *buf, int le
         uint32_t idx;
         if (len > 0) {
             ppp_dbg("PPP >>>> ");
-            for(idx = 0; idx < (uint32_t)len; idx++) {
+            for (idx = 0; idx < (uint32_t)len; idx++) {
                 ppp_dbg(" %02x", ((uint8_t *)buf)[idx]);
             }
             ppp_dbg("\n");
@@ -346,8 +347,7 @@ static int ppp_serial_send_escape(struct pico_device_ppp *ppp, void *buf, int le
     }
 #endif
 
-    for (i = 1; i < (len - 1); i++) /* from 1 to len -1, as start/stop are not escaped */
-    {
+    for (i = 1; i < (len - 1); i++) { /* from 1 to len -1, as start/stop are not escaped */
         if (should_escape(in_buf[i]))
             esc_char_count++;
     }
@@ -357,12 +357,12 @@ static int ppp_serial_send_escape(struct pico_device_ppp *ppp, void *buf, int le
 
     newlen = len + esc_char_count;
     out_buf = PICO_ZALLOC((uint32_t)newlen);
-    if(!out_buf)
+    if (!out_buf)
         return -1;
 
     /* Start byte. */
     out_buf[0] = in_buf[0];
-    for(i = 1, j = 1; i < (len - 1); i++) {
+    for (i = 1, j = 1; i < (len - 1); i++) {
         if (should_escape(in_buf[i])) {
             out_buf[j++] = PPPF_CTRL_ESC;
             out_buf[j++] = in_buf[i] ^ 0x20;
@@ -469,8 +469,7 @@ static uint16_t ppp_fcs_char(uint16_t old_crc, uint8_t data)
 static uint16_t ppp_fcs_continue(uint16_t fcs, uint8_t *buf, uint32_t len)
 {
     uint8_t *pos = buf;
-    for (pos = buf; pos < buf + len; pos++)
-    {
+    for (pos = buf; pos < buf + len; pos++) {
         fcs = ppp_fcs_char(fcs, *pos);
     }
     return fcs;
@@ -544,16 +543,14 @@ static int pico_ppp_send(struct pico_device *dev, void *buf, int len)
         return len;
 
     pico_ppp_data_buffer[i++] = PPPF_FLAG_SEQ;
-    if (!LCPOPT_ISSET_PEER(ppp, LCPOPT_ADDRCTL_COMP))
-    {
+    if (!LCPOPT_ISSET_PEER(ppp, LCPOPT_ADDRCTL_COMP)) {
         pico_ppp_data_buffer[i++] = PPPF_ADDR;
         pico_ppp_data_buffer[i++] = PPPF_CTRL;
     }
 
     fcs_start = i;
 
-    if (!LCPOPT_ISSET_PEER(ppp, LCPOPT_PROTO_COMP))
-    {
+    if (!LCPOPT_ISSET_PEER(ppp, LCPOPT_PROTO_COMP)) {
         pico_ppp_data_buffer[i++] = 0x00;
     }
 
@@ -873,12 +870,11 @@ static void lcp_optflags_print(struct pico_device_ppp *ppp, uint8_t *opts, uint3
     int off;
     IGNORE_PARAMETER(ppp);
     ppp_dbg("Parsing options:\n");
-    while(p < (opts + opts_len)) {
+    while (p < (opts + opts_len)) {
         int i;
 
         ppp_dbg("-- LCP opt: %d - len: %d - data:", p[0], p[1]);
-        for (i = 0; i < p[1] - 2; i++)
-        {
+        for (i = 0; i < p[1] - 2; i++) {
             ppp_dbg(" %02X", p[2 + i]);
         }
         ppp_dbg("\n");
@@ -898,13 +894,11 @@ static uint16_t lcp_optflags(struct pico_device_ppp *ppp, uint8_t *pkt, uint32_t
     uint16_t flags = 0;
     uint8_t *p = pkt +  sizeof(struct pico_lcp_hdr);
     int off;
-    while(p < (pkt + len)) {
+    while (p < (pkt + len)) {
         flags = (uint16_t)((uint16_t)(1u << (uint16_t)p[0]) | flags);
 
-        if (adjust_opts && ppp)
-        {
-            switch (p[0])
-            {
+        if (adjust_opts && ppp) {
+            switch (p[0]) {
             case LCPOPT_MRU:
                 /* XXX: Can we accept any MRU ? */
                 ppp_dbg("Adjusting MRU to %02x%02x\n", p[2], p[3]);
@@ -1004,7 +998,7 @@ static void lcp_send_configure_nack(struct pico_device_ppp *ppp)
             dst_opts[dstopts_len++] = p[1];
 
             ppp_dbg("data: ");
-            for(i = 0; i < p[1] - 2u; i++) {                   /* length includes type, length and data fields */
+            for (i = 0; i < p[1] - 2u; i++) {                   /* length includes type, length and data fields */
                 dst_opts[dstopts_len++] = p[2 + i];
                 ppp_dbg("%02X ", p[2 + i]);
             }
@@ -1096,7 +1090,7 @@ static void pap_process_in(struct pico_device_ppp *ppp, uint8_t *pkt, uint32_t l
     if (ppp->auth != 0xc023)
         return;
 
-    switch(p->code) {
+    switch (p->code) {
     case PAP_AUTH_ACK:
         ppp_dbg("PAP: Received Authentication OK!\n");
         evaluate_auth_state(ppp, PPP_AUTH_EVENT_RAA);
@@ -1122,7 +1116,7 @@ static void chap_process_in(struct pico_device_ppp *ppp, uint8_t *pkt, uint32_t 
     if (ppp->auth != 0xc223)
         return;
 
-    switch(ch->code) {
+    switch (ch->code) {
     case CHAP_CHALLENGE:
         ppp_dbg("Received CHAP CHALLENGE\n");
         ppp->pkt = pkt;
@@ -1242,7 +1236,7 @@ static void ipcp_reject_vj(struct pico_device_ppp *ppp, uint8_t *comp_req)
     ih->id = ppp->frame_id++;
     ih->code = PICO_CONF_REQ;
     ih->len = short_be(IPCP_VJ_LEN + sizeof(struct pico_ipcp_hdr));
-    for(i = 0; i < IPCP_OPT_VJ; i++)
+    for (i = 0; i < IPCP_OPT_VJ; i++)
         p[i] = comp_req[i + sizeof(struct pico_ipcp_hdr)];
     ppp_dbg("Sending IPCP CONF REJ VJ\n");
     pico_ppp_ctl_send(&ppp->dev, PPP_PROTO_IPCP,
@@ -1341,7 +1335,7 @@ static void ipcp_process_in(struct pico_device_ppp *ppp, uint8_t *pkt, uint32_t 
     ppp->pkt = pkt;
     ppp->len = len;
 
-    switch(ih->code) {
+    switch (ih->code) {
     case PICO_CONF_ACK:
         ppp_dbg("Received IPCP CONF ACK\n");
         evaluate_ipcp_state(ppp, PPP_IPCP_EVENT_RCA);
@@ -1449,7 +1443,7 @@ static void ppp_recv_data(struct pico_device_ppp *ppp, void *data, uint32_t len)
     uint32_t idx;
     if (len > 0) {
         ppp_dbg("PPP   <<<<< ");
-        for(idx = 0; idx < len; idx++) {
+        for (idx = 0; idx < len; idx++) {
             ppp_dbg(" %02x", ((uint8_t *)data)[idx]);
         }
         ppp_dbg("\n");
@@ -2145,7 +2139,7 @@ static void check_to_lcp(struct pico_device_ppp *ppp)
         if (ppp->timer_val == 0) {
             if (ppp->timer_count == 0)
                 evaluate_lcp_state(ppp, PPP_LCP_EVENT_TO_NEG);
-            else{
+            else {
                 evaluate_lcp_state(ppp, PPP_LCP_EVENT_TO_POS);
                 ppp->timer_count--;
             }
@@ -2206,7 +2200,7 @@ struct pico_device *pico_ppp_create(struct pico_stack *S)
 
     snprintf(devname, MAX_DEVICE_NAME, "ppp%d", ppp_devnum++);
 
-    if( 0 != pico_device_init(S, (struct pico_device *)ppp, devname, NULL)) {
+    if (0 != pico_device_init(S, (struct pico_device *)ppp, devname, NULL)) {
         return NULL;
     }
 

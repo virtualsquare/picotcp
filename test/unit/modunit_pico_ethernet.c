@@ -155,7 +155,7 @@ START_TEST(tc_destination_is_mcast)
 END_TEST
 START_TEST(tc_pico_ipv4_ethernet_receive)
 {
-   /* test this: static int32_t pico_ipv4_ethernet_receive(struct pico_frame *f) */
+    /* test this: static int32_t pico_ipv4_ethernet_receive(struct pico_frame *f) */
     struct pico_frame *f = NULL;
     struct pico_ipv4_hdr *h4 = NULL;
     int ret = 0, count = 0;
@@ -185,7 +185,7 @@ START_TEST(tc_pico_ipv4_ethernet_receive)
 END_TEST
 START_TEST(tc_pico_ipv6_ethernet_receive)
 {
-   /* test this: static int32_t pico_ipv6_ethernet_receive(struct pico_frame *f) */
+    /* test this: static int32_t pico_ipv6_ethernet_receive(struct pico_frame *f) */
     struct pico_frame *f = NULL;
     struct pico_ipv6_hdr *h = NULL;
     struct pico_stack *S = NULL;

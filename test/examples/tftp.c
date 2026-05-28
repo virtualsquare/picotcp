@@ -58,11 +58,10 @@ void del_note(struct note_t *note)
 {
     struct note_t *prev;
 
-    if (note == clipboard)
-    {
+    if (note == clipboard) {
         clipboard = clipboard->next;
         if (note->filename)
-            free (note->filename);
+            free(note->filename);
 
         PICO_FREE(note);
     } else {
@@ -70,12 +69,11 @@ void del_note(struct note_t *note)
             if (prev->next == note) {
                 prev->next = note->next;
                 if (note->filename)
-                    free (note->filename);
+                    free(note->filename);
 
                 PICO_FREE(note);
                 break;
             }
-
     }
 }
 
@@ -400,7 +398,7 @@ struct command_t *parse_arguments_recursive(struct command_t *commands, char *ar
     default:
         fprintf(stderr, "Invalid command %s\n", operation);
         return NULL;
-    };
+    }
 
     new_cmd = add_command(commands, *operation, filename, &remote_address);
     free(operation);

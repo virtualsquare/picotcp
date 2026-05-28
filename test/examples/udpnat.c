@@ -44,7 +44,7 @@ void cb_udpnatclient(uint16_t ev, struct pico_socket *s)
     if (ev & PICO_SOCK_EV_RD) {
         do {
             r = pico_socket_recv(s, recvbuf, 1400);
-        } while(r > 0);
+        } while (r > 0);
     }
 
     if (ev == PICO_SOCK_EV_ERR) {
@@ -73,8 +73,7 @@ void udpnatclient_open_socket(pico_time __attribute__((unused)) now, void __attr
     if (!s)
         exit(1);
 
-    if (pico_socket_connect(s, &udpnatclient_inaddr_dst, udpnatclient_port_be) != 0)
-    {
+    if (pico_socket_connect(s, &udpnatclient_inaddr_dst, udpnatclient_port_be) != 0) {
         printf("Error connecting\n");
         exit(1);
     }
@@ -129,8 +128,7 @@ void app_udpnatclient(struct pico_stack *S, char *arg)
 
     pico_string_to_ipv4(daddr, &inaddr_dst.addr);
 
-    if (pico_socket_connect(s, &inaddr_dst, port_be) != 0)
-    {
+    if (pico_socket_connect(s, &inaddr_dst, port_be) != 0) {
         printf("Error binding the port \n");
         exit(1);
     }

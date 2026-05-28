@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -215,7 +215,6 @@ static struct pico_tftp_session *find_session_by_socket(struct pico_socket *tftp
     for (; pos; pos = pos->next)
         if (pos->socket == tftp_socket)
             return pos;
-
     return NULL;
 }
 
@@ -239,7 +238,6 @@ static void add_session(struct pico_stack *S, struct pico_tftp_session *idx)
     for (pos = S->tftp_sessions; pos; prev = pos, pos = pos->next)
         if (pos->localport > idx->localport)
             break;
-
     if (prev) {
         idx->next = prev->next;
         prev->next = idx;
@@ -1268,7 +1266,7 @@ int32_t pico_tftp_get(struct pico_tftp_session *session, uint8_t *data, int32_t 
 {
     int synchro;
 
-    if (!session || len < session->len ) {
+    if (!session || len < session->len) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }

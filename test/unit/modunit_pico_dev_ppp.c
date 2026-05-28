@@ -216,7 +216,7 @@ START_TEST(tc_ppp_fcs_finish)
 {
     uint16_t fcs = 36440;
     fcs = ppp_fcs_finish(fcs);
-    fail_if (fcs != 29095);
+    fail_if(fcs != 29095);
 }
 END_TEST
 START_TEST(tc_ppp_fcs_start)
@@ -607,13 +607,13 @@ START_TEST(tc_pap_process_in)
     ppp_auth_ev = 0;
     hdr.code = PAP_AUTH_ACK;
     pap_process_in(&_ppp,  (uint8_t *)&hdr, sizeof(hdr));
-    fail_if (ppp_auth_ev != PPP_AUTH_EVENT_RAA);
+    fail_if(ppp_auth_ev != PPP_AUTH_EVENT_RAA);
 
     /* Receive FAILURE (RAN) */
     ppp_auth_ev = 0;
     hdr.code = PAP_AUTH_NAK;
     pap_process_in(&_ppp,  (uint8_t *)&hdr, sizeof(hdr));
-    fail_if (ppp_auth_ev != PPP_AUTH_EVENT_RAN);
+    fail_if(ppp_auth_ev != PPP_AUTH_EVENT_RAN);
 }
 END_TEST
 START_TEST(tc_chap_process_in)
@@ -626,19 +626,19 @@ START_TEST(tc_chap_process_in)
     _ppp.auth = 0xc223;
     hdr.code = CHAP_CHALLENGE;
     chap_process_in(&_ppp,  (uint8_t *)&hdr, sizeof(hdr));
-    fail_if (ppp_auth_ev != PPP_AUTH_EVENT_RAC);
+    fail_if(ppp_auth_ev != PPP_AUTH_EVENT_RAC);
 
     /* Receive SUCCESS (RAA) */
     ppp_auth_ev = 0;
     hdr.code = CHAP_SUCCESS;
     chap_process_in(&_ppp,  (uint8_t *)&hdr, sizeof(hdr));
-    fail_if (ppp_auth_ev != PPP_AUTH_EVENT_RAA);
+    fail_if(ppp_auth_ev != PPP_AUTH_EVENT_RAA);
 
     /* Receive FAILURE (RAN) */
     ppp_auth_ev = 0;
     hdr.code = CHAP_FAILURE;
     chap_process_in(&_ppp, (uint8_t *)&hdr, sizeof(hdr));
-    fail_if (ppp_auth_ev != PPP_AUTH_EVENT_RAN);
+    fail_if(ppp_auth_ev != PPP_AUTH_EVENT_RAN);
 
 }
 END_TEST
@@ -751,7 +751,6 @@ START_TEST(tc_ipcp_process_in)
     /* TODO: test this: static void ipcp_process_in(struct pico_device_ppp *ppp, uint8_t *pkt, uint32_t len) */
     uint8_t req[sizeof(struct pico_ipcp_hdr) + 5 * IPCP_ADDR_LEN];
     uint8_t *p = req + sizeof(struct pico_ipcp_hdr);
-    ;
     memset(&_ppp, 0, sizeof(_ppp));
     _ppp.serial_send = unit_serial_send;
 
@@ -1025,7 +1024,7 @@ END_TEST
 START_TEST(tc_ipcp_bring_up)
 {
     struct pico_stack *S;
-    
+
     pico_stack_init(&S);
 
     memset(&_ppp, 0, sizeof(_ppp));
@@ -1049,8 +1048,8 @@ START_TEST(tc_ipcp_start_timer)
 {
     memset(&_ppp, 0, sizeof(_ppp));
     ipcp_start_timer(&_ppp);
-    fail_if (_ppp.timer_on != PPP_TIMER_ON_IPCP);
-    fail_if (_ppp.timer_val != PICO_PPP_DEFAULT_TIMER * PICO_PPP_DEFAULT_MAX_FAILURE);
+    fail_if(_ppp.timer_on != PPP_TIMER_ON_IPCP);
+    fail_if(_ppp.timer_val != PICO_PPP_DEFAULT_TIMER * PICO_PPP_DEFAULT_MAX_FAILURE);
 }
 END_TEST
 START_TEST(tc_pico_ppp_poll)

@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -128,8 +128,8 @@ static struct pico_aodv_node *aodv_peer_new(struct pico_stack *S, const union pi
     memcpy(&node->dest, addr, sizeof(union pico_address));
     node->stack = S;
     if (pico_tree_insert(&S->aodv_nodes, node)) {
-    	PICO_FREE(node);
-    	return NULL;
+        PICO_FREE(node);
+        return NULL;
     }
 
     return node;

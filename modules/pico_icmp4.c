@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -60,7 +60,7 @@ static void ping_recv_reply(struct pico_stack *S, struct pico_frame *f);
 /* ICMP socket implementation */
 /******************************/
 static uint16_t I4Socket_id = 0;
-struct pico_socket_icmp4 
+struct pico_socket_icmp4
 {
     struct pico_socket sock;
     uint16_t id;
@@ -74,7 +74,7 @@ int icmp4_socket_cmp(void *ka, void *kb)
         return -1;
     if (a->id > b->id)
         return 1;
-    return (0);
+    return 0;
 }
 
 struct pico_socket *pico_socket_icmp4_open(struct pico_stack *S)
@@ -108,7 +108,7 @@ int pico_socket_icmp4_bind(struct pico_socket *s, void *addr, uint16_t port)
 }
 
 int pico_socket_icmp4_recvfrom(struct pico_socket *s, void *buf, int len, void *orig,
-                                  uint16_t *remote_port)
+                               uint16_t *remote_port)
 {
     struct pico_frame *f;
     f = pico_dequeue(&s->q_in);
@@ -145,7 +145,7 @@ int pico_socket_icmp4_sendto_check(struct pico_socket *s, const void *buf, int l
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
-    if(hdr->code != 0) {
+    if (hdr->code != 0) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
@@ -380,7 +380,7 @@ static int8_t pico_icmp4_send_echo(struct pico_stack *S, struct pico_icmp4_ping_
     if (!dev)
         return -1;
 
-    // prevent overflow
+    /* prevent overflow */
     if (cookie->size > PICO_ICMP_MAXCOOKIE)
         return -1;
 
@@ -409,7 +409,7 @@ static void ping_timeout(pico_time now, void *arg)
     struct pico_icmp4_ping_cookie *cookie = (struct pico_icmp4_ping_cookie *)arg;
     IGNORE_PARAMETER(now);
 
-    if(pico_tree_findKey(&cookie->stack->Pings, cookie)) {
+    if (pico_tree_findKey(&cookie->stack->Pings, cookie)) {
         if (cookie->err == PICO_PING_ERR_PENDING) {
             struct pico_icmp4_stats stats;
             stats.dst = cookie->dst;
@@ -460,7 +460,7 @@ static void next_ping(pico_time now, void *arg)
     struct pico_icmp4_ping_cookie *newcookie, *cookie = (struct pico_icmp4_ping_cookie *)arg;
     IGNORE_PARAMETER(now);
 
-    if(pico_tree_findKey(&cookie->stack->Pings, cookie)) {
+    if (pico_tree_findKey(&cookie->stack->Pings, cookie)) {
         if (cookie->err == PICO_PING_ERR_ABORTED)
             return;
 
@@ -475,8 +475,8 @@ static void next_ping(pico_time now, void *arg)
             if (pico_tree_insert(&cookie->stack->Pings, newcookie)) {
                 dbg("ICMP4: Failed to insert new cookie in tree \n");
                 PICO_FREE(newcookie);
-				return;
-			}
+                return;
+            }
 
             if (send_ping(cookie->stack, newcookie)) {
                 dbg("ICMP4: Failed to send ping\n");
@@ -491,7 +491,7 @@ static void ping_recv_reply(struct pico_stack *S, struct pico_frame *f)
 {
     struct pico_icmp4_ping_cookie test, *cookie;
     struct pico_icmp4_hdr *hdr = (struct pico_icmp4_hdr *) f->transport_hdr;
-    test.id  = short_be(hdr->hun.ih_idseq.idseq_id );
+    test.id  = short_be(hdr->hun.ih_idseq.idseq_id);
     test.seq = short_be(hdr->hun.ih_idseq.idseq_seq);
 
     cookie = pico_tree_findKey(&S->Pings, &test);
@@ -507,7 +507,7 @@ static void ping_recv_reply(struct pico_stack *S, struct pico_frame *f)
         stats.time = S->pico_tick - cookie->timestamp;
         stats.err = cookie->err;
         stats.ttl = ((struct pico_ipv4_hdr *)f->net_hdr)->ttl;
-        if(cookie->cb != NULL)
+        if (cookie->cb != NULL)
             cookie->cb(&stats);
     } else {
         dbg("Reply for seq=%d, not found.\n", test.seq);
@@ -520,7 +520,7 @@ int pico_icmp4_ping(struct pico_stack *S, char *dst, int count, int interval, in
     struct pico_icmp4_ping_cookie *cookie;
     uint32_t dst_a;
 
-    if((dst == NULL) || (interval == 0) || (timeout == 0) || (count == 0)) {
+    if ((dst == NULL) || (interval == 0) || (timeout == 0) || (count == 0)) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }
@@ -551,8 +551,8 @@ int pico_icmp4_ping(struct pico_stack *S, char *dst, int count, int interval, in
     if (pico_tree_insert(&S->Pings, cookie)) {
         dbg("ICMP4: Failed to insert cookie in tree \n");
         PICO_FREE(cookie);
-		return -1;
-	}
+        return -1;
+    }
 
     if (send_ping(S, cookie)) {
         PICO_FREE(cookie);

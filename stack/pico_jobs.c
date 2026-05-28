@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
@@ -39,14 +39,14 @@ struct pico_job
 void pico_schedule_job(struct pico_stack *S, void (*exe)(struct pico_stack *, void*), void *arg)
 {
     struct pico_job *job = PICO_ZALLOC(sizeof(struct pico_job));
-    if  (!job)
+    if (!job)
         return;
     job->exe = exe;
     job->arg = arg;
     job->stack = S;
     if (!S->pico_jobs_backlog) {
-       S->pico_jobs_backlog = job;
-       S->pico_jobs_backlog_tail = job;
+        S->pico_jobs_backlog = job;
+        S->pico_jobs_backlog_tail = job;
     } else {
         S->pico_jobs_backlog_tail->next = job;
         S->pico_jobs_backlog_tail = job;
@@ -57,7 +57,7 @@ void pico_execute_pending_jobs(struct pico_stack *S)
 {
     struct pico_job *job;
     /* int count = 0; */
-    while(S->pico_jobs_backlog) {
+    while (S->pico_jobs_backlog) {
         job = S->pico_jobs_backlog;
         if (job->exe) {
             job->exe(job->stack, job->arg);
@@ -69,11 +69,11 @@ void pico_execute_pending_jobs(struct pico_stack *S)
             S->pico_jobs_backlog_tail = NULL;
     }
     /*
-    if (count > max_jobs) {
+       if (count > max_jobs) {
         printf("Max jobs = %d\n", count);
         max_jobs = count;
-    }
-    */
+       }
+     */
 }
 #else
 void pico_schedule_job(struct pico_stack *S, void (*exe)(struct pico_stack *, void*), void *arg)

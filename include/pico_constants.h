@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -68,7 +68,7 @@ static inline uint32_t pico_hash(const void *buf, uint32_t size)
     uint32_t hash = 5381;
     uint32_t i;
     const uint8_t *ptr = (const uint8_t *)buf;
-    for(i = 0; i < size; i++)
+    for (i = 0; i < size; i++)
         hash = ((hash << 5) + hash) + ptr[i]; /* hash * 33 + char */
     return hash;
 }

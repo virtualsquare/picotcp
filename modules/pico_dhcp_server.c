@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Frederik Van Slycken, Kristof Roelants
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -138,9 +138,9 @@ static inline struct pico_dhcp_server_setting *dhcps_try_open_socket(struct pico
     }
 
     if (pico_tree_insert(&dhcps->dev->stack->DHCPSettings, dhcps)) {
-    	dhcps_dbg("DHCP server ERROR: could not insert settings in tree\n");
-		PICO_FREE(dhcps);
-		return NULL;
+        dhcps_dbg("DHCP server ERROR: could not insert settings in tree\n");
+        PICO_FREE(dhcps);
+        return NULL;
     }
 
     return dhcps;
@@ -249,10 +249,10 @@ static struct pico_dhcp_server_negotiation *pico_dhcp_server_add_negotiation(str
 
     dhcp_negotiation_set_ciaddr(dhcpn);
     if (pico_tree_insert(&dev->stack->DHCPNegotiations, dhcpn)) {
-		dhcps_dbg("DHCP server ERROR: could not insert negotiations in tree\n");
-		PICO_FREE(dhcpn);
-		return NULL;
-	}
+        dhcps_dbg("DHCP server ERROR: could not insert negotiations in tree\n");
+        PICO_FREE(dhcpn);
+        return NULL;
+    }
 
     return dhcpn;
 }

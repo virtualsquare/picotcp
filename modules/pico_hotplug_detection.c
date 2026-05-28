@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Frederik Van Slycken
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -87,8 +87,7 @@ static void hotplug_timer_cb(__attribute__((unused)) pico_time t, void *v)
             cb(hpdev->dev, event);
             pico_tree_delete(&hpdev->init_callbacks, cb);
         }
-        if (new_state != hpdev->prev_state)
-        {
+        if (new_state != hpdev->prev_state) {
             /* we don't know if one of the callbacks might deregister, so be safe */
             pico_tree_foreach_safe(cb_node, &(hpdev->callbacks), cb_safe)
             {
@@ -107,8 +106,7 @@ static void hotplug_timer_cb(__attribute__((unused)) pico_time t, void *v)
 
 static int ensure_hotplug_timer(struct pico_stack *S)
 {
-    if (S->hotplug_timer_id == 0)
-    {
+    if (S->hotplug_timer_id == 0) {
         S->hotplug_timer_id = pico_timer_add(S, PICO_HOTPLUG_INTERVAL, &hotplug_timer_cb, S);
         if (S->hotplug_timer_id == 0) {
             dbg("HOTPLUG: Failed to start timer\n");
@@ -134,11 +132,9 @@ int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device
     }
 
     hotplug_dev = (struct pico_hotplug_device*)pico_tree_findKey(&dev->stack->Hotplug_device_tree, &search);
-    if (!hotplug_dev )
-    {
+    if (!hotplug_dev) {
         hotplug_dev = PICO_ZALLOC(sizeof(struct pico_hotplug_device));
-        if (!hotplug_dev)
-        {
+        if (!hotplug_dev) {
             pico_err = PICO_ERR_ENOMEM;
             return -1;
         }
@@ -151,20 +147,20 @@ int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device
         hotplug_dev->init_callbacks.compare = &callback_compare;
         if (pico_tree_insert(&dev->stack->Hotplug_device_tree, hotplug_dev)) {
             PICO_FREE(hotplug_dev);
-        	return -1;
-		}
+            return -1;
+        }
     }
 
     if (pico_tree_insert(&(hotplug_dev->callbacks), cb) == &LEAF) {
         PICO_FREE(hotplug_dev);
         return -1;
-	}
+    }
 
     if (pico_tree_insert(&(hotplug_dev->init_callbacks), cb) == &LEAF) {
         pico_tree_delete(&(hotplug_dev->callbacks), cb);
         PICO_FREE(hotplug_dev);
-		return -1;
-	}
+        return -1;
+    }
 
     if (ensure_hotplug_timer(dev->stack) < 0) {
         pico_hotplug_deregister((struct pico_device *)hotplug_dev, cb);
@@ -188,14 +184,12 @@ int pico_hotplug_deregister(struct pico_device *dev, void (*cb)(struct pico_devi
 
     pico_tree_delete(&hotplug_dev->callbacks, cb);
     pico_tree_delete(&hotplug_dev->init_callbacks, cb);
-    if (pico_tree_empty(&hotplug_dev->callbacks))
-    {
+    if (pico_tree_empty(&hotplug_dev->callbacks)) {
         pico_tree_delete(&dev->stack->Hotplug_device_tree, hotplug_dev);
         PICO_FREE(hotplug_dev);
     }
 
-    if (pico_tree_empty(&dev->stack->Hotplug_device_tree) && dev->stack->hotplug_timer_id != 0)
-    {
+    if (pico_tree_empty(&dev->stack->Hotplug_device_tree) && dev->stack->hotplug_timer_id != 0) {
         pico_timer_cancel(dev->stack, dev->stack->hotplug_timer_id);
         dev->stack->hotplug_timer_id = 0;
     }

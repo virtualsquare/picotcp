@@ -96,7 +96,7 @@ void cb_udpclient(uint16_t ev, struct pico_socket *s)
 
         do {
             r = pico_socket_recv(s, recvbuf, udpclient_pas->datasize);
-        } while ( r > 0);
+        } while (r > 0);
         free(recvbuf);
     }
 
@@ -265,22 +265,22 @@ void app_udpclient(struct pico_stack *S, char *arg)
 
     /* free strdups */
     if (daddr)
-        free (daddr);
+        free(daddr);
 
     if (lport)
-        free (lport);
+        free(lport);
 
     if (sport)
-        free (sport);
+        free(sport);
 
     if (s_datasize)
-        free (s_datasize);
+        free(s_datasize);
 
     if (s_loops)
-        free (s_loops);
+        free(s_loops);
 
     if (s_subloops)
-        free (s_subloops);
+        free(s_subloops);
 
     return;
 

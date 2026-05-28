@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -70,22 +70,22 @@ static int pico_vde_send(struct pico_device *dev, void *buf, int len)
 
 void pico_vde_dsr(void *arg)
 {
-   int len;
-   struct pico_device_vde *vde = (struct pico_device_vde *)arg;
-   unsigned char buf[VDE_MTU];
-   len = vde_recv(vde->conn, buf, VDE_MTU, 0);
-   if (len > 0) {
-       pico_stack_recv(&vde->dev, buf, (uint32_t)len);
-   }
+    int len;
+    struct pico_device_vde *vde = (struct pico_device_vde *)arg;
+    unsigned char buf[VDE_MTU];
+    len = vde_recv(vde->conn, buf, VDE_MTU, 0);
+    if (len > 0) {
+        pico_stack_recv(&vde->dev, buf, (uint32_t)len);
+    }
 }
 
 int pico_vde_WFI(struct pico_device *dev, int timeout_ms)
 {
-   struct pollfd pfd;
-   struct pico_device_vde *vde = (struct pico_device_vde *) dev;
-   pfd.fd = vde_datafd(vde->conn);
-   pfd.events = POLLIN;
-   return poll(&pfd, 1, timeout_ms);
+    struct pollfd pfd;
+    struct pico_device_vde *vde = (struct pico_device_vde *) dev;
+    pfd.fd = vde_datafd(vde->conn);
+    pfd.events = POLLIN;
+    return poll(&pfd, 1, timeout_ms);
 }
 
 #endif
@@ -98,7 +98,7 @@ static int pico_vde_poll(struct pico_device *dev, int loop_score)
     int len;
     pfd.fd = vde_datafd(vde->conn);
     pfd.events = POLLIN;
-    do  {
+    do {
         if (poll(&pfd, 1, 0) <= 0)
             return loop_score;
 
@@ -110,7 +110,7 @@ static int pico_vde_poll(struct pico_device *dev, int loop_score)
                 pico_stack_recv(dev, buf, (uint32_t)len);
             }
         }
-    } while(loop_score > 0);
+    } while (loop_score > 0);
     return 0;
 }
 
@@ -153,8 +153,8 @@ struct pico_device *MOCKABLE pico_vde_create(struct pico_stack *S, char *sock, c
         return NULL;
     }
 
-    if( 0 != pico_device_init(S, (struct pico_device *)vde, name, mac)) {
-        dbg ("Vde init failed.\n");
+    if (0 != pico_device_init(S, (struct pico_device *)vde, name, mac)) {
+        dbg("Vde init failed.\n");
         pico_vde_destroy((struct pico_device *)vde);
         return NULL;
     }

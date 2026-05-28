@@ -23,7 +23,7 @@ START_TEST(tc_pico_dns_client_callback)
 
     s = pico_udp_open();
     fail_if(!s);
-    
+
     s->proto = &pico_proto_udp;
     s->stack = S;
 

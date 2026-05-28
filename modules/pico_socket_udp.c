@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -54,18 +54,17 @@ struct pico_socket *pico_socket_udp_open(struct pico_stack *S)
 
 
 #if defined (PICO_SUPPORT_IPV4) || defined (PICO_SUPPORT_IPV6)
-static int pico_enqueue_and_wakeup_if_needed(struct pico_queue *q_in, struct pico_socket* s, struct pico_frame* cpy)
+static int pico_enqueue_and_wakeup_if_needed(struct pico_queue *q_in, struct pico_socket*s, struct pico_frame*cpy)
 {
-        if (pico_enqueue(q_in, cpy) > 0) {
-            if (s->wakeup){
-                s->wakeup(PICO_SOCK_EV_RD, s);
-            }
+    if (pico_enqueue(q_in, cpy) > 0) {
+        if (s->wakeup) {
+            s->wakeup(PICO_SOCK_EV_RD, s);
         }
-        else {
-            pico_frame_discard(cpy);
-            return -1;
-        }
-        return 0;
+    } else {
+        pico_frame_discard(cpy);
+        return -1;
+    }
+    return 0;
 }
 #endif
 
@@ -164,8 +163,7 @@ static inline int pico_socket_udp_deliver_ipv6_mcast(struct pico_socket *s, stru
     if (pico_ipv6_is_unspecified(s->local_addr.ip6.addr) || /* If our local ip is ANY, or... */
         (dev == f->dev)) {     /* the source of the bcast packet is a neighbor... */
         cpy = pico_frame_copy(f);
-        if (!cpy)
-        {
+        if (!cpy) {
             return -1;
         }
 
@@ -189,12 +187,9 @@ static int pico_socket_udp_deliver_ipv6(struct pico_socket *s, struct pico_frame
         pico_frame_discard(f);
         return retval;
 #endif
-    }
-    else if (pico_ipv6_is_unspecified(s->local_addr.ip6.addr) || (pico_ipv6_compare(&s_local, &p_dst) == 0))
-    { /* Either local socket is ANY, or matches dst */
+    } else if (pico_ipv6_is_unspecified(s->local_addr.ip6.addr) || (pico_ipv6_compare(&s_local, &p_dst) == 0)) {   /* Either local socket is ANY, or matches dst */
         cpy = pico_frame_copy(f);
-        if (!cpy)
-        {
+        if (!cpy) {
             pico_frame_discard(f);
             return -1;
         }
@@ -241,7 +236,7 @@ int pico_socket_udp_deliver(struct pico_sockport *sp, struct pico_frame *f)
 
 int pico_setsockopt_udp(struct pico_socket *s, int option, void *value)
 {
-    switch(option) {
+    switch (option) {
     case PICO_SOCKET_OPT_RCVBUF:
         s->q_in.max_size = (*(uint32_t*)value);
         return 0;
@@ -262,7 +257,7 @@ int pico_setsockopt_udp(struct pico_socket *s, int option, void *value)
 int pico_getsockopt_udp(struct pico_socket *s, int option, void *value)
 {
     uint32_t *val = (uint32_t *)value;
-    switch(option) {
+    switch (option) {
     case PICO_SOCKET_OPT_RCVBUF:
         *val = s->q_in.max_size;
         return 0;

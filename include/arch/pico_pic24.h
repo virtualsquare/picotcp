@@ -20,9 +20,9 @@
 #endif
 
 /*
-   #ifndef __PIC24FJ256GA106__
-   #define __PIC24FJ256GA106__
-   #endif
+ #ifndef __PIC24FJ256GA106__
+ #define __PIC24FJ256GA106__
+ #endif
  */
 
 #ifndef PICO_MAX_SOCKET_FRAMES
@@ -59,7 +59,7 @@ static inline void pico_free(void *tgt)
 # define pico_free(x) free(x)
 #endif
 
-extern void *pvPortMalloc( size_t xWantedSize );
+extern void *pvPortMalloc(size_t xWantedSize);
 extern volatile pico_time __pic24_tick;
 
 static inline unsigned long PICO_TIME(void)
@@ -94,7 +94,7 @@ static inline void PICO_IDLE(void)
     TIMBASE_INT_E = 1;
     /* Doesn't matter that this call isn't interrupt safe, */
     /* we just check for the value to change */
-    while(tick_now == __pic24_tick) ;
+    while (tick_now == __pic24_tick);
 }
 
 #endif

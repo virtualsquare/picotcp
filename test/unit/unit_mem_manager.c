@@ -11,7 +11,7 @@
 
 volatile pico_err_t pico_err;
 
-START_TEST (test_compare_slab_keys)
+START_TEST(test_compare_slab_keys)
 {
 
     uint32_t len1 = 1200;
@@ -487,10 +487,8 @@ START_TEST (test_init_page)
     tree_node = pico_tree_findNode(&manager->tree, &doublelenptr);
     ck_assert(tree_node != NULL);
     slab_node = tree_node->keyValue;
-    while(slab_node != NULL)
-    {
-        if(slab_node->slab == slab)
-        {
+    while (slab_node != NULL) {
+        if (slab_node->slab == slab) {
             vlag = 1;
             break;
         }
@@ -499,16 +497,13 @@ START_TEST (test_init_page)
     }
     ck_assert(vlag != 0);
     vlag = 0;
-    for(i = 0; i < page1->slabs_max - 1; i++)
-    {
+    for (i = 0; i < page1->slabs_max - 1; i++) {
         byteptr += sizeof(struct pico_mem_block);
         byteptr += page1->slab_size;
         slab = (struct pico_mem_block*) byteptr;
         slab_node = tree_node->keyValue;
-        while(slab_node != NULL)
-        {
-            if(slab_node->slab == slab)
-            {
+        while (slab_node != NULL) {
+            if (slab_node->slab == slab) {
                 vlag = 1;
                 break;
             }
@@ -528,10 +523,8 @@ START_TEST (test_init_page)
     tree_node = pico_tree_findNode(&manager->tree, &doublelenptr);
     ck_assert(tree_node != NULL);
     slab_node = tree_node->keyValue;
-    while(slab_node != NULL)
-    {
-        if(slab_node->slab == slab)
-        {
+    while (slab_node != NULL) {
+        if (slab_node->slab == slab) {
             vlag = 1;
             break;
         }
@@ -540,16 +533,13 @@ START_TEST (test_init_page)
     }
     ck_assert(vlag != 0);
     vlag = 0;
-    for(i = 0; i < page2->slabs_max - 1; i++)
-    {
+    for (i = 0; i < page2->slabs_max - 1; i++) {
         byteptr += sizeof(struct pico_mem_block);
         byteptr += page2->slab_size;
         slab = (struct pico_mem_block*) byteptr;
         slab_node = tree_node->keyValue;
-        while(slab_node != NULL)
-        {
-            if(slab_node->slab == slab)
-            {
+        while (slab_node != NULL) {
+            if (slab_node->slab == slab) {
                 vlag = 1;
                 break;
             }
@@ -1136,16 +1126,12 @@ START_TEST (test_zero_initialize)
     memset(bytestream, 'a', size);
 
     _pico_mem_zero_initialize(bytestream + leftBound, size - leftBound - rightBound);
-    for(i = 0; i < size; i++)
-    {
-        if(i < leftBound || i >= size - rightBound)
-        {
+    for (i = 0; i < size; i++) {
+        if (i < leftBound || i >= size - rightBound) {
             /* printf("Bytestream[%i] = '%c' ?= '%c'\n", i, bytestream[i], 'a'); */
             ck_assert(bytestream[i] == 'a');
             uninitialized++;
-        }
-        else
-        {
+        } else {
             /* printf("Bytestream[%i] = '%c' ?= '%c'\n", i, bytestream[i], 0); */
             ck_assert(bytestream[i] == 0);
             initialized++;
@@ -2130,7 +2116,7 @@ Suite *pico_suite(void)
     tcase_add_test(mm, test_manager_extra_alloc);
     tcase_add_test(mm, test_page0_zalloc);
     tcase_add_test(mm, test_init_page);
-    tcase_add_test(mm, test_mem_init_whitebox );
+    tcase_add_test(mm, test_mem_init_whitebox);
     tcase_add_test(mm, test_free_and_merge_heap_block);
     tcase_add_test(mm, test_determine_max_free_space);
     tcase_add_test(mm, test_free_slab_block);

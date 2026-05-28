@@ -29,8 +29,8 @@ extern volatile unsigned int pico_ms_tick;
 extern void *pico_mutex_init(void);
 extern void pico_mutex_lock(void*);
 extern void pico_mutex_unlock(void*);
-extern void *pvPortMalloc( size_t xSize );
-extern void vPortFree( void *pv );
+extern void *pvPortMalloc(size_t xSize);
+extern void vPortFree(void *pv);
 
     #define pico_free(x) vPortFree(x)
     #define free(x)      vPortFree(x)
@@ -39,7 +39,7 @@ static inline void *pico_zalloc(size_t size)
 {
     void *ptr = pvPortMalloc(size);
 
-    if(ptr)
+    if (ptr)
         memset(ptr, 0u, size);
 
     return ptr;
@@ -53,25 +53,25 @@ extern int32_t prescale_time;
 static inline pico_time PICO_TIME_MS()
 {
     #ifdef TIME_PRESCALE
-        return pico_ms_tick << prescale_time;
+    return pico_ms_tick << prescale_time;
     #else
-        return pico_ms_tick;
+    return pico_ms_tick;
     #endif
 }
 
 static inline pico_time PICO_TIME()
 {
     #ifdef TIME_PRESCALE
-        return (pico_ms_tick / 1000) << prescale_time;
+    return (pico_ms_tick / 1000) << prescale_time;
     #else
-        return (pico_ms_tick / 1000);
+    return (pico_ms_tick / 1000);
     #endif
 }
 
 static inline void PICO_IDLE(void)
 {
     pico_time now = PICO_TIME_MS();
-    while(now == PICO_TIME_MS()) ;
+    while (now == PICO_TIME_MS());
 }
 
 #else /* NO RTOS SUPPORT */
@@ -88,7 +88,7 @@ extern void memmeas_free(void *);
 static inline void *pico_zalloc(size_t size)
 {
     void *ptr = malloc(size);
-    if(ptr)
+    if (ptr)
         memset(ptr, 0u, size);
 
     return ptr;
@@ -108,7 +108,7 @@ static inline pico_time PICO_TIME(void)
 static inline void PICO_IDLE(void)
 {
     unsigned int now = pico_ms_tick;
-    while(now == pico_ms_tick) ;
+    while (now == pico_ms_tick);
 }
 
 #endif /* IFNDEF RTOS */

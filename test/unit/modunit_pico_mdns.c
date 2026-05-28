@@ -15,14 +15,12 @@
 #include <check.h>
 
 Suite *pico_suite(void);
-void add_records( struct pico_stack *S ); /* MARK: helper to add records to MyRecords s*/
-int mdns_init( struct pico_stack *S ); /* MARK: Initialise mDNS module */
+void add_records(struct pico_stack *S);   /* MARK: helper to add records to MyRecords s*/
+int mdns_init(struct pico_stack *S);   /* MARK: Initialise mDNS module */
 
 static int amount_callback_executed = 0;
-void callback( pico_mdns_rtree *tree, char *str, void *arg);
-void callback( pico_mdns_rtree *tree,
-               char *str,
-               void *arg ) /* MARK: Generic callback */
+void callback(pico_mdns_rtree *tree, char *str, void *arg);
+void callback(pico_mdns_rtree *tree, char *str, void *arg)   /* MARK: Generic callback */
 {
     IGNORE_PARAMETER(tree);
     IGNORE_PARAMETER(str);
@@ -31,7 +29,7 @@ void callback( pico_mdns_rtree *tree,
     amount_callback_executed++;
 }
 
-int mdns_init( struct pico_stack *S ) /* MARK: Initialise mDNS module */
+int mdns_init(struct pico_stack *S)   /* MARK: Initialise mDNS module */
 {
     struct mock_device *mock = NULL;
 
@@ -1069,10 +1067,10 @@ START_TEST(tc_mdns_record_delete) /* MARK: mdns_record_delete */
     printf("*********************** ending %s * \n", __func__);
 }
 END_TEST
-void add_records( struct pico_stack *S ) /* MARK: helper to add records to MyRecords s*/
+void add_records(struct pico_stack *S)   /* MARK: helper to add records to MyRecords s*/
 {
     struct pico_mdns_record *record = NULL, *record1 = NULL, *record2 = NULL,
-    *record3 = NULL;
+                            *record3 = NULL;
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
@@ -1202,7 +1200,7 @@ START_TEST(tc_mdns_record_tree_del_name) /* MARK: mdns_record_tree_del_name */
 {
     PICO_MDNS_RTREE_DECLARE(hits);
     struct pico_mdns_record *record = NULL, *record1 = NULL, *record2 = NULL,
-    *record3 = NULL;
+                            *record3 = NULL;
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
@@ -1252,7 +1250,7 @@ START_TEST(tc_mdns_record_tree_del_name) /* MARK: mdns_record_tree_del_name */
     fail_unless(0 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 3 records here!\n");
 
-    hits = pico_mdns_rtree_find_name( &S->MDNSOwnRecords, "\3bar\5local", 0);
+    hits = pico_mdns_rtree_find_name(&S->MDNSOwnRecords, "\3bar\5local", 0);
     fail_unless(1 == pico_tree_count(&hits),
                 "mdns_record_tree_find_name should find 1 record here!\n");
     record = pico_tree_first(&hits);
@@ -1300,7 +1298,7 @@ START_TEST(tc_mdns_my_records_add) /* MARK: mdns_my_records_add */
 {
     PICO_MDNS_RTREE_DECLARE(rtree);
     struct pico_mdns_record *record = NULL, *record1 = NULL, *record2 = NULL,
-    *record3 = NULL;
+                            *record3 = NULL;
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
@@ -1391,7 +1389,7 @@ START_TEST(tc_mdns_my_records_claimed_id) /* MARK: mdns_my_records_claimed_id */
 {
     PICO_MDNS_RTREE_DECLARE(hits);
     struct pico_mdns_record *record = NULL, *record1 = NULL, *record2 = NULL,
-    *record3 = NULL;
+                            *record3 = NULL;
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
@@ -1453,7 +1451,7 @@ START_TEST(tc_mdns_my_records_claimed) /* MARK: mdns_my_records_claimed */
 {
     PICO_MDNS_RTREE_DECLARE(rtree);
     struct pico_mdns_record *record = NULL, *record1 = NULL, *record2 = NULL,
-    *record3 = NULL;
+                            *record3 = NULL;
     struct pico_ip4 rdata = {
         long_be(0x00FFFFFF)
     };
@@ -1659,7 +1657,7 @@ START_TEST(tc_mdns_handle_data_as_answers) /* MARK: handle_data_as_answers */
 
     /* Try to create an answer packet */
     packet = pico_dns_answer_create(&rtree, NULL, NULL, &len);
-    fail_if (packet == NULL, "mdns_answer_create returned NULL!\n");
+    fail_if(packet == NULL, "mdns_answer_create returned NULL!\n");
 
     ptr = ((uint8_t *)packet + 12);
 
@@ -1699,7 +1697,7 @@ START_TEST(tc_mdns_handle_data_as_authorities) /* MARK: handle_data_as_authoriti
 
     /* Try to create an answer packet */
     packet = pico_dns_answer_create(&rtree, NULL, NULL, &len);
-    fail_if (packet == NULL, "mdns_answer_create returned NULL!\n");
+    fail_if(packet == NULL, "mdns_answer_create returned NULL!\n");
 
     ptr = ((uint8_t *)packet + 12);
 
@@ -1835,7 +1833,7 @@ START_TEST(tc_mdns_apply_known_answer_suppression) /* MARK: apply_k_a_s */
 
     /* Try to create an answer packet */
     packet = pico_dns_answer_create(&antree, NULL, NULL, &len);
-    fail_if (packet == NULL, "mdns_answer_create returned NULL!\n");
+    fail_if(packet == NULL, "mdns_answer_create returned NULL!\n");
 
     ptr = ((uint8_t *)packet + 12);
 

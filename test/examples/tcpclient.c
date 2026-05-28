@@ -48,7 +48,7 @@ void cb_tcpclient(uint16_t ev, struct pico_socket *s)
 
             if (r < 0)
                 exit(5);
-        } while(r > 0);
+        } while (r > 0);
     }
 
     if (ev & PICO_SOCK_EV_CONN) {
@@ -84,7 +84,7 @@ void cb_tcpclient(uint16_t ev, struct pico_socket *s)
                     if (w < 0)
                         exit(5);
                 }
-            } while(w > 0);
+            } while (w > 0);
         } else {
 #ifdef INFINITE_TCPTEST
             w_size = 0;

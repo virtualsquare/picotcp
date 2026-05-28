@@ -95,7 +95,7 @@ void app_mcastsend_ipv6(struct pico_stack *S, char *arg)
     p = strcat(p + strlen(lport), ",64,10,5,");
 
     /* DAD needs to verify the link address before we can continue */
-    while(!pico_ipv6_link_get(stack, &inaddr_link)) {
+    while (!pico_ipv6_link_get(stack, &inaddr_link)) {
         pico_stack_tick(stack);
         usleep(2000);
     }
@@ -103,7 +103,7 @@ void app_mcastsend_ipv6(struct pico_stack *S, char *arg)
 
     memcpy(&mreq.mcast_group_addr, &inaddr_mcast, sizeof(struct pico_ip6));
     memcpy(&mreq.mcast_link_addr, &inaddr_link, sizeof(struct pico_ip6));
-    if(pico_socket_setoption(udpclient_pas->s, PICO_IP_ADD_MEMBERSHIP, &mreq) < 0) {
+    if (pico_socket_setoption(udpclient_pas->s, PICO_IP_ADD_MEMBERSHIP, &mreq) < 0) {
         picoapp_dbg("%s: socket_setoption PICO_IP_ADD_MEMBERSHIP failed: %s\n", __FUNCTION__, strerror(pico_err));
         retval = 1;
     }

@@ -12,9 +12,9 @@
 #include <sys/time.h>
 
 /*
-   #define MEMORY_MEASURE
-   #define TIME_PRESCALE
-   #define PICO_SUPPORT_THREADING
+ #define MEMORY_MEASURE
+ #define TIME_PRESCALE
+ #define PICO_SUPPORT_THREADING
  */
 
 /* uncomment for debugging */
@@ -71,18 +71,18 @@ extern volatile uint32_t pico_ms_tick;
 static inline uint32_t PICO_TIME(void)
 {
     #ifdef TIME_PRESCALE
-        return (pico_ms_tick / 1000) << prescale_time;
+    return (pico_ms_tick / 1000) << prescale_time;
     #else
-        return (pico_ms_tick / 1000);
+    return (pico_ms_tick / 1000);
     #endif
 }
 
 static inline uint32_t PICO_TIME_MS(void)
 {
     #ifdef TIME_PRESCALE
-        return pico_ms_tick << prescale_time;
+    return pico_ms_tick << prescale_time;
     #else
-        return pico_ms_tick;
+    return pico_ms_tick;
     #endif
 }
 

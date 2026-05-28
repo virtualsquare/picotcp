@@ -77,7 +77,7 @@
 
 Suite *pico_suite(void);
 
-START_TEST (test_frame)
+START_TEST(test_frame)
 {
     struct pico_frame *f1;
     struct pico_frame *cpy;

@@ -19,7 +19,7 @@ void sntp_timeout(pico_time __attribute__((unused)) now, void *arg)
 
 void cb_synced(pico_err_t status)
 {
-    if(status == PICO_ERR_ENETDOWN) {
+    if (status == PICO_ERR_ENETDOWN) {
         printf("SNTP: Cannot resolve ntp server name\n");
         exit(1);
     } else if (status == PICO_ERR_ETIMEDOUT) {
@@ -47,12 +47,12 @@ void app_sntp(struct pico_stack *S, char *servername)
     struct pico_timeval tv;
     stack = S;
     printf("Starting SNTP query towards %s\n", servername);
-    if(pico_sntp_gettimeofday(stack, &tv) == 0)
+    if (pico_sntp_gettimeofday(stack, &tv) == 0)
         printf("Wrongly successful gettimeofday\n");
     else
         printf("Unsuccessful gettimeofday (not synced)\n");
 
-    if(pico_sntp_sync(stack, servername, &cb_synced) == 0)
+    if (pico_sntp_sync(stack, servername, &cb_synced) == 0)
         printf("Successful sync call!\n");
     else
         printf("Error in  sync\n");

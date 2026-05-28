@@ -1012,7 +1012,7 @@ START_TEST(tc_pico_dns_answer_create) /* MARK: dns_answer_create */
 
     /* Try to create an answer packet */
     packet = pico_dns_answer_create(&rtree, NULL, NULL, &len);
-    fail_if (packet == NULL, "dns_answer_create returned NULL!\n");
+    fail_if(packet == NULL, "dns_answer_create returned NULL!\n");
     fail_unless(0 == memcmp((void *)packet, (void *)buf, len),
                 "dns_answer_create failed!\n");
 

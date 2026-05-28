@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Jelle De Vleeschouwer
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -175,13 +175,13 @@ frame_802154_format(uint8_t *buf, uint8_t seq, uint16_t intra_pan, uint16_t ack,
     sam = short_be((uint16_t)(src.mode << 14));
 
     /* Fill in frame control field */
-    hdr->fcf |= (uint16_t)(FCF_TYPE_DATA | sec );
+    hdr->fcf |= (uint16_t)(FCF_TYPE_DATA | sec);
     hdr->fcf |= (uint16_t)(FCF_NO_PENDING | ack);
     hdr->fcf |= (uint16_t)(intra_pan | dam | FCF_VER_2003);
     hdr->fcf |= (uint16_t)(sam);
-    hdr->fcf = short_be(hdr->fcf); // Convert to IEEE endianness
+    hdr->fcf = short_be(hdr->fcf); /* Convert to IEEE endianness */
 
-    hdr->seq = seq; // Sequence number
+    hdr->seq = seq; /* Sequence number */
 
     /* Convert addresses to IEEE-endianness */
     pan.addr = short_be(pan.addr);
@@ -191,7 +191,7 @@ frame_802154_format(uint8_t *buf, uint8_t seq, uint16_t intra_pan, uint16_t ack,
     /* Fill in the addresses */
     memcpy(&hdr->pan_id, &pan.addr, SIZE_6LOWPAN_SHORT);
     memcpy(addresses, dst.addr.data, SIZE_6LOWPAN(dst.mode));
-    memcpy(addresses + SIZE_6LOWPAN(dst.mode), src.addr.data,SIZE_6LOWPAN(src.mode));
+    memcpy(addresses + SIZE_6LOWPAN(dst.mode), src.addr.data, SIZE_6LOWPAN(src.mode));
 }
 
 #endif /* PICO_6LOWPAN_NOMAC */
@@ -315,7 +315,7 @@ addr_802154_ll_dst(struct pico_frame *f)
         addr.mode = AM_6LOWPAN_SHORT;
     }
     /* If the address is link local derive the link layer address from the IID */
-    else { // if (pico_ipv6_is_linklocal(dst.addr)) {
+    else { /* if (pico_ipv6_is_linklocal(dst.addr)) { */
         if (IID_16(&dst.addr[8])) {
             addr.addr.data[0] = dst.addr[14];
             addr.addr.data[1] = dst.addr[15];
@@ -336,7 +336,7 @@ addr_802154_ll_dst(struct pico_frame *f)
             pico_ipv6_nd_postpone(f);
         }
     }
-*/
+ */
     return addr;
 }
 
@@ -354,7 +354,7 @@ addr_802154_from_buf(union pico_ll_addr *addr, uint8_t *buf)
 {
     uint8_t len = (uint8_t)*buf++;
 
-    if (len > 8) // OOB check
+    if (len > 8) /* OOB check */
         return -1;
 
     memcpy(addr->pan.addr.data, buf, len);
@@ -404,7 +404,7 @@ addr_802154_cmp(union pico_ll_addr *a, union pico_ll_addr *b)
 static int32_t
 addr_802154_iid(uint8_t iid[8], union pico_ll_addr *addr)
 {
-    uint8_t buf[8] = {0,0,0,0xff,0xfe,0,0,0};
+    uint8_t buf[8] = { 0, 0, 0, 0xff, 0xfe, 0, 0, 0 };
     struct pico_802154 pan = addr->pan;
 
     if (AM_6LOWPAN_SHORT == pan.mode) {
@@ -437,7 +437,7 @@ addr_802154_iid(uint8_t iid[8], union pico_ll_addr *addr)
 static struct pico_frame *
 pico_frame_alloc_with_headroom(uint16_t size, uint16_t headroom, uint16_t overhead)
 {
-    int network_offset = (((headroom + overhead) >> 2) + 1) << 2; // Sufficient headroom for alignment
+    int network_offset = (((headroom + overhead) >> 2) + 1) << 2; /* Sufficient headroom for alignment */
     struct pico_frame *f = pico_frame_alloc((uint32_t)(size + network_offset));
 
     if (!f)

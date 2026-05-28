@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Daniele Lacamera
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -65,7 +65,7 @@ struct pico_device *pico_null_create(struct pico_stack *S, const char *name)
     if (!null)
         return NULL;
 
-    if( 0 != pico_device_init(S, (struct pico_device *)null, name, NULL)) {
+    if (0 != pico_device_init(S, (struct pico_device *)null, name, NULL)) {
         return NULL;
     }
 

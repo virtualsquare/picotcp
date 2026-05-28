@@ -1,12 +1,12 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
  * Authors: Gustav Janssens, Jonas Van Nieuwenberg, Sam Van Den Berge
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -235,16 +235,11 @@ static int compare_slab_keys(void*keyA, void*keyB)
     uint32_t sizeKeyA = ***(uint32_t***) keyA;
     uint32_t sizeKeyB = ***(uint32_t***) keyB;
     DBG_MM_BLUE("Compare called: sizeA = %i, sizeB = %i", sizeKeyA, sizeKeyB);
-    if(sizeKeyA == sizeKeyB)
-    {
+    if (sizeKeyA == sizeKeyB) {
         return 0;
-    }
-    else if(sizeKeyA < sizeKeyB)
-    {
+    } else if (sizeKeyA < sizeKeyB) {
         return 1;
-    }
-    else
-    {
+    } else {
         return -1;
     }
 }
@@ -270,8 +265,7 @@ static void _pico_mem_init_page(struct pico_mem_page*page, size_t slabsize)
     page->slab_size = (uint32_t)slabsize;
     page->slabs_max = (uint16_t)((PICO_MEM_PAGE_SIZE - sizeof(struct pico_mem_page) - sizeof(struct pico_mem_block)) / (slabsize + sizeof(struct pico_mem_block)));
     page->heap_max_size = (uint32_t)(PICO_MEM_PAGE_SIZE - sizeof(struct pico_mem_page) - sizeof(struct pico_mem_block) - (page->slabs_max * (sizeof(struct pico_mem_block) + slabsize)));
-    if(page->heap_max_size < PICO_MIN_HEAP_SIZE)
-    {
+    if (page->heap_max_size < PICO_MIN_HEAP_SIZE) {
         DBG_MM_BLUE("Not enough heap size available with slabsize %u, allocating one slab to heap.", slabsize);
         page->slabs_max--;
         /* DBG_MM_BLUE("Heap size %u -> %lu",page->heap_max_size, page->heap_max_size + sizeof(pico_mem_slab_block) + slabsize); */
@@ -293,8 +287,7 @@ static void _pico_mem_init_page(struct pico_mem_page*page, size_t slabsize)
     heap_block->internals.heap_block.size = page->heap_max_free_space;
 
     byteptr += sizeof(struct pico_mem_block) + heap_block->internals.heap_block.size;
-    for(i = 0; i < page->slabs_max; i++)
-    {
+    for (i = 0; i < page->slabs_max; i++) {
         slab_block = (struct pico_mem_block*) byteptr;
         DBG_MM_BLUE("Slab object %i at %p. Start of object data at %p", i, slab_block, (uint8_t*) slab_block + sizeof(struct pico_mem_slab_block));
         slab_block->type = SLAB_BLOCK_TYPE;
@@ -305,8 +298,7 @@ static void _pico_mem_init_page(struct pico_mem_page*page, size_t slabsize)
 
         DBG_MM("Creating slab_node..");
         slab_node = pico_mem_page0_zalloc(sizeof(struct pico_mem_slab_node));
-        if(slab_node == NULL)
-        {
+        if (slab_node == NULL) {
             DBG_MM_RED("No more space in the manager heap for the housekeeping of slab %i, and no more space for extra manager pages!", i + 1);
             DBG_MM_RED("Debug info:\nUsed size: %u/%u\nmanager_extra = %p", manager->used_size, manager->size, manager->manager_extra);
             DBG_MM_RED("This page will be initialized with %u slabs instead of %u slabs", i, page->slabs_max);
@@ -322,15 +314,12 @@ static void _pico_mem_init_page(struct pico_mem_page*page, size_t slabsize)
 
         slab_block->internals.slab_block.slab_node = slab_node;
 
-        if(tree_node != NULL)
-        {
+        if (tree_node != NULL) {
             struct pico_mem_slab_node*first_node = (struct pico_mem_slab_node*) tree_node->keyValue;
             tree_node->keyValue = slab_node;
             slab_node->next = first_node;
             first_node->prev = slab_node;
-        }
-        else
-        {
+        } else {
             /* Insert new slab_node */
             DBG_MM_BLUE("Inserting new slab node in the tree of size %u", slabsize);
             /* pico_err_t pico_err_backup = pico_err; */
@@ -343,8 +332,7 @@ static void _pico_mem_init_page(struct pico_mem_page*page, size_t slabsize)
             /* IF SLAB_NODE COULDN'T BE INSERTED */
             /* if(pico_err == PICO_ERR_ENOMEM) */
             /* if(temp == &LEAF) */
-            if(temp != NULL)
-            {
+            if (temp != NULL) {
                 DBG_MM_RED("No more space in the manager heap for the housekeeping of slab %i, and no more space for extra manager pages!", i + 1);
                 DBG_MM_RED("This page will be initialized without slabs.");
                 pico_mem_page0_free(slab_node);
@@ -374,8 +362,7 @@ void pico_mem_init(uint32_t memsize)
     uint8_t*startofmanagerheap;
 
     DBG_MM_YELLOW("Initializing memory with memsize %u", memsize);
-    if(memsize < PICO_MEM_PAGE_SIZE * 2)
-    {
+    if (memsize < PICO_MEM_PAGE_SIZE * 2) {
         /* Not enough memory was provided to initialize a manager page and a data page, return without initializing memory */
         /* Set pico_err to an appropriate value */
         pico_err = PICO_ERR_ENOMEM;
@@ -387,8 +374,7 @@ void pico_mem_init(uint32_t memsize)
     /* First pico_mem_page is already included in pico_mem_manager. Others are added. */
     /* manager = pico_azalloc(sizeof(pico_mem_manager) + sizeof(pico_mem_page*)*(pages - 1));	//Points to usermanager if one present */
     manager = pico_zalloc(PICO_MEM_PAGE_SIZE);
-    if( NULL != manager )
-    {
+    if (NULL != manager) {
         manager->size = memsize;
         manager->used_size = PICO_MEM_PAGE_SIZE;
         manager->first_page = NULL;
@@ -411,14 +397,11 @@ void pico_mem_init(uint32_t memsize)
 
         /* Initialize the first page only! */
         page = pico_zalloc(PICO_MEM_PAGE_SIZE);
-        if(page != NULL)
-        {
+        if (page != NULL) {
             manager->used_size += PICO_MEM_PAGE_SIZE;
             DBG_MM_BLUE("Page 1 at %p, manager used size = %u", page, manager->used_size);
             _pico_mem_init_page(page, PICO_MEM_DEFAULT_SLAB_SIZE);
-        }
-        else
-        {
+        } else {
             /* Not enough memory was provided to initialize a manager page and a data page, return without initializing memory */
             /* Set pico_err to an appropriate value */
             pico_err = PICO_ERR_ENOMEM;
@@ -430,9 +413,7 @@ void pico_mem_init(uint32_t memsize)
         }
 
         DBG_MM_GREEN("Memory initialized. Returning from pico_mem_init.");
-    }
-    else
-    {
+    } else {
         /* Not enough memory was provided to initialize a manager page and a data page, return without initializing memory */
         /* Set pico_err to an appropriate value */
         pico_err = PICO_ERR_ENOMEM;
@@ -450,20 +431,15 @@ void pico_mem_deinit()
     struct pico_mem_manager_extra*next_manager_page;
 
     DBG_MM_YELLOW("Pico_mem_deinit called");
-    if(manager == NULL)
-    {
+    if (manager == NULL) {
         DBG_MM_GREEN("No memory instance initialized, returning");
-    }
-    else
-    {
-        while(manager->first_page != NULL)
-        {
+    } else {
+        while (manager->first_page != NULL) {
             next_page = manager->first_page->next_page;
             pico_free(manager->first_page);
             manager->first_page = next_page;
         }
-        while(manager->manager_extra != NULL)
-        {
+        while (manager->manager_extra != NULL) {
             next_manager_page = manager->manager_extra->next;
             pico_free(manager->manager_extra);
             manager->manager_extra = next_manager_page;
@@ -499,8 +475,7 @@ static void*_pico_mem_manager_extra_alloc(struct pico_mem_manager_extra*heap_pag
 
     sizeleft = PICO_MEM_PAGE_SIZE - sizeof(struct pico_mem_manager_extra);
 
-    while(heap_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || heap_block->internals.heap_block.size < len)
-    {
+    while (heap_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || heap_block->internals.heap_block.size < len) {
         sizeleft -= (uint32_t)sizeof(struct pico_mem_block);
         sizeleft -= heap_block->internals.heap_block.size;
         /* DBG_MM("Sizeleft=%i", sizeleft); */
@@ -508,23 +483,19 @@ static void*_pico_mem_manager_extra_alloc(struct pico_mem_manager_extra*heap_pag
         byteptr = (uint8_t*) heap_block + sizeof(struct pico_mem_block);
         byteptr += heap_block->internals.heap_block.size;
         heap_block = (struct pico_mem_block*) byteptr;
-        if(sizeleft <= sizeof(struct pico_mem_block))
-        {
+        if (sizeleft <= sizeof(struct pico_mem_block)) {
             DBG_MM_RED("No more heap space left in the extra manager heap page!");
-            if(heap_page->next == NULL)
-            {
+            if (heap_page->next == NULL) {
                 /* TODO: Probably need another function for this */
                 DBG_MM_RED("Trying to allocate a new page for extra heap space: space usage %uB/%uB", manager->used_size, manager->size);
-                if(manager->used_size + PICO_MEM_PAGE_SIZE > manager->size)
-                {
+                if (manager->used_size + PICO_MEM_PAGE_SIZE > manager->size) {
                     DBG_MM_RED("No more space left for this page!");
                     /* exit(1); */
                     return NULL;
                 }
 
                 extra_heap_page = pico_zalloc(PICO_MEM_PAGE_SIZE);
-                if(extra_heap_page != NULL)
-                {
+                if (extra_heap_page != NULL) {
                     extra_heap_page->blocks = 0;
                     extra_heap_page->next = NULL;
                     extra_heap_page->timestamp = 0;
@@ -538,17 +509,13 @@ static void*_pico_mem_manager_extra_alloc(struct pico_mem_manager_extra*heap_pag
                     manager->used_size += PICO_MEM_PAGE_SIZE;
                     DBG_MM_BLUE("Allocated an extra manager heap page at %p, manager space usage: %uB/%uB", extra_heap_page, manager->used_size, manager->size);
                     return _pico_mem_manager_extra_alloc(extra_heap_page, len);
-                }
-                else
-                {
+                } else {
                     /* This should be a dirty crash */
                     DBG_MM_RED("Page not allocated even though the max size for the memory manager hasn't been reached yet!");
                     /* exit(1); */
                     return NULL;
                 }
-            }
-            else
-            {
+            } else {
                 DBG_MM_RED("This should never happen: debug information:");
                 DBG_MM_RED("manager->manager_extra = %p", manager->manager_extra);
                 DBG_MM_RED("heap_page = %p", heap_page);
@@ -563,13 +530,11 @@ static void*_pico_mem_manager_extra_alloc(struct pico_mem_manager_extra*heap_pag
     DBG_MM_BLUE("Found free heap block in extra manager page %p at: %p (%u blocks in use)", heap_page, heap_block, heap_page->blocks);
     heap_block->internals.heap_block.free = HEAP_BLOCK_NOT_FREE;
 
-    if(heap_block->internals.heap_block.size == sizeleft - sizeof(struct pico_mem_block))
-    {
+    if (heap_block->internals.heap_block.size == sizeleft - sizeof(struct pico_mem_block)) {
         DBG_MM_BLUE("End of heap, splitting up into a new block");
         heap_block->internals.heap_block.size = (uint32_t)len;
         sizeleft = (uint32_t)(sizeleft - (uint32_t)sizeof(struct pico_mem_block) - len);
-        if(sizeleft > sizeof(struct pico_mem_block))
-        {
+        if (sizeleft > sizeof(struct pico_mem_block)) {
             sizeleft -= (uint32_t)sizeof(struct pico_mem_block);
             byteptr = (uint8_t*) heap_block + sizeof(struct pico_mem_block);
             byteptr += len;
@@ -578,9 +543,7 @@ static void*_pico_mem_manager_extra_alloc(struct pico_mem_manager_extra*heap_pag
             new_block->internals.heap_block.free = HEAP_BLOCK_FREE;
             new_block->internals.heap_block.size = sizeleft;
             DBG_MM_BLUE("New block: %p, size = %u", new_block, new_block->internals.heap_block.size);
-        }
-        else
-        {
+        } else {
             DBG_MM_RED("No more space in extra manager heap page left to initialize a new heap block!");
             DBG_MM_RED("A new page will be allocated when even more space is needed");
         }
@@ -616,30 +579,25 @@ void*pico_mem_page0_zalloc(size_t len)
     sizeleft = PICO_MEM_PAGE_SIZE - sizeof(struct pico_mem_manager);
     /* this would mean that heap_block is never NULL */
     /* while(heap_block != NULL && ( heap_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || heap_block->internals.heap_block.size < len)) */
-    while(heap_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || heap_block->internals.heap_block.size < len)
-    {
+    while (heap_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || heap_block->internals.heap_block.size < len) {
         sizeleft -= (uint32_t)sizeof(struct pico_mem_block);
         sizeleft -= heap_block->internals.heap_block.size;
         /* DBG_MM("Sizeleft=%i", sizeleft); */
         byteptr = (uint8_t*) heap_block + sizeof(struct pico_mem_block); /* byteptr points to start of heap block data */
         byteptr += heap_block->internals.heap_block.size; /* jump over that data to start of next heap_block */
         heap_block = (struct pico_mem_block*) byteptr;
-        if(sizeleft <= sizeof(struct pico_mem_block))
-        {
+        if (sizeleft <= sizeof(struct pico_mem_block)) {
             DBG_MM_RED("No more heap space left in the manager page!");
-            if(manager->manager_extra == NULL)
-            {
+            if (manager->manager_extra == NULL) {
                 DBG_MM_RED("Trying to allocate a new page for extra heap space: space usage: %uB/%uB", manager->used_size, manager->size);
-                if(manager->used_size + PICO_MEM_PAGE_SIZE > manager->size)
-                {
+                if (manager->used_size + PICO_MEM_PAGE_SIZE > manager->size) {
                     DBG_MM_RED("No more space left for this page!");
                     /* exit(1); */
                     return NULL;
                 }
 
                 heap_page = pico_zalloc(PICO_MEM_PAGE_SIZE);
-                if(heap_page != NULL)
-                {
+                if (heap_page != NULL) {
                     /* Initialize the new heap page */
                     heap_page->blocks = 0;
                     heap_page->next = NULL;
@@ -653,17 +611,13 @@ void*pico_mem_page0_zalloc(size_t len)
                     manager->used_size += PICO_MEM_PAGE_SIZE;
                     DBG_MM_BLUE("Allocated an extra manager heap page at %p, manager space usage: %uB/%uB", heap_page, manager->used_size, manager->size);
                     return _pico_mem_manager_extra_alloc(heap_page, len);
-                }
-                else
-                {
+                } else {
                     /* This should be a dirty crash */
                     DBG_MM_RED("Page not allocated even though the max size for the memory manager hasn't been reached yet!");
                     /* exit(1); */
                     return NULL;
                 }
-            }
-            else
-            {
+            } else {
                 return _pico_mem_manager_extra_alloc(manager->manager_extra, len);
             }
         }
@@ -671,11 +625,9 @@ void*pico_mem_page0_zalloc(size_t len)
     DBG_MM_BLUE("Found free heap block in manager page at : %p", heap_block);
     heap_block->internals.heap_block.free = HEAP_BLOCK_NOT_FREE;
 
-    if(heap_block->internals.heap_block.size == sizeleft - sizeof(struct pico_mem_block))
-    {
+    if (heap_block->internals.heap_block.size == sizeleft - sizeof(struct pico_mem_block)) {
         sizeleft = (uint32_t)(sizeleft - (uint32_t)sizeof(struct pico_mem_block) - len);
-        if(sizeleft > sizeof(struct pico_mem_block))
-        {
+        if (sizeleft > sizeof(struct pico_mem_block)) {
             DBG_MM_BLUE("End of heap, splitting up into a new block");
             heap_block->internals.heap_block.size = (uint32_t)len;
             sizeleft -= (uint32_t)sizeof(struct pico_mem_block);
@@ -685,9 +637,7 @@ void*pico_mem_page0_zalloc(size_t len)
             new_block->internals.heap_block.free = HEAP_BLOCK_FREE;
             new_block->internals.heap_block.size = sizeleft;
             DBG_MM_BLUE("New block: %p, size = %u", new_block, new_block->internals.heap_block.size);
-        }
-        else
-        {
+        } else {
             /* DBG_MM_RED("ERROR! No more space in manager heap left to initialise a new heap_block!"); */
             /* exit(1); */
             DBG_MM_RED("No more space in manager heap left to initialize a new heap block!");
@@ -724,11 +674,9 @@ static void _pico_mem_free_and_merge_heap_block(struct pico_mem_page*page, struc
     byteptr += curr->internals.heap_block.size;
     next = (struct pico_mem_block*) byteptr;
 
-    while(curr->type == HEAP_BLOCK_TYPE && next->type == HEAP_BLOCK_TYPE)
-    {
+    while (curr->type == HEAP_BLOCK_TYPE && next->type == HEAP_BLOCK_TYPE) {
         DBG_MM("Checking heap block (%s) with size %u at %p", (curr->internals.heap_block.free == HEAP_BLOCK_FREE) ? "free" : "not free", curr->internals.heap_block.size, curr);
-        if(curr->internals.heap_block.free == HEAP_BLOCK_FREE && next->internals.heap_block.free == HEAP_BLOCK_FREE)
-        {
+        if (curr->internals.heap_block.free == HEAP_BLOCK_FREE && next->internals.heap_block.free == HEAP_BLOCK_FREE) {
             DBG_MM_BLUE("Merging blocks with sizes %u and %u", curr->internals.heap_block.size, next->internals.heap_block.size);
             curr->internals.heap_block.size += (uint32_t)sizeof(struct pico_mem_block) + next->internals.heap_block.size;
         }
@@ -742,8 +690,7 @@ static void _pico_mem_free_and_merge_heap_block(struct pico_mem_page*page, struc
         next = (struct pico_mem_block*) byteptr;
     }
     DBG_MM("Checking heap block (%s) with size %u at %p", (curr->internals.heap_block.free == HEAP_BLOCK_FREE) ? "free" : "not free", curr->internals.heap_block.size, curr);
-    if(curr->type == HEAP_BLOCK_TYPE && prev->internals.heap_block.free == HEAP_BLOCK_FREE && curr->internals.heap_block.free == HEAP_BLOCK_FREE)
-    {
+    if (curr->type == HEAP_BLOCK_TYPE && prev->internals.heap_block.free == HEAP_BLOCK_FREE && curr->internals.heap_block.free == HEAP_BLOCK_FREE) {
         DBG_MM_BLUE("Merging blocks with sizes %u and %u", prev->internals.heap_block.size, curr->internals.heap_block.size);
         prev->internals.heap_block.size += (uint32_t)sizeof(struct pico_mem_block) + curr->internals.heap_block.size;
     }
@@ -769,12 +716,10 @@ static uint32_t _pico_mem_determine_max_free_space(struct pico_mem_page*page)
 
     /* Determine max free space by iterating through the list */
     /* while(mem_block != NULL && mem_block->type == HEAP_BLOCK_TYPE) */
-    while(mem_block->type == HEAP_BLOCK_TYPE)
-    {
+    while (mem_block->type == HEAP_BLOCK_TYPE) {
         /* DBG_MM("Memblock %p of size %i is free %i\n",block, block->size, block->free); */
         DBG_MM("Memblock %s (size %u) at %p", (mem_block->internals.heap_block.free == HEAP_BLOCK_FREE) ? "not in use" : "in use", mem_block->internals.heap_block.size, mem_block);
-        if(mem_block->internals.heap_block.free == HEAP_BLOCK_FREE && mem_block->internals.heap_block.size > maxfreespace)
-        {
+        if (mem_block->internals.heap_block.free == HEAP_BLOCK_FREE && mem_block->internals.heap_block.size > maxfreespace) {
             maxfreespace = mem_block->internals.heap_block.size;
             page->heap_max_free_space = maxfreespace;
         }
@@ -807,8 +752,7 @@ static void _pico_mem_free_slab_block(struct pico_mem_block*slab_block)
 
     slab_node = pico_mem_page0_zalloc(sizeof(struct pico_mem_slab_node));
 
-    if(slab_node == NULL)
-    {
+    if (slab_node == NULL) {
         /* Update the page householding without making the slab available again! */
         DBG_MM_RED("No more space in the manager heap and no more space for extra pages!");
         DBG_MM_RED("This slab will be leaked, but the leak will be plugged at the next cleanup, if and when the page is empty");
@@ -819,15 +763,13 @@ static void _pico_mem_free_slab_block(struct pico_mem_block*slab_block)
     slab_node->slab = slab_block;
     slab_block->internals.slab_block.slab_node = slab_node;
     tree_node = pico_tree_findNode(&manager->tree, slab_node);
-    if(tree_node != NULL)
-    {
+    if (tree_node != NULL) {
         first_slab_node = (struct pico_mem_slab_node*) tree_node->keyValue;
         tree_node->keyValue = slab_node;
         first_slab_node->prev = slab_node;
         slab_node->prev = NULL;
         slab_node->next = first_slab_node;
-    }
-    else{
+    } else {
         DBG_MM_BLUE("No node found for size %i so calling pico_tree_insert", slab_node->slab->internals.slab_block.page->slab_size);
         slab_node->next = NULL;
         slab_node->prev = NULL;
@@ -839,8 +781,7 @@ static void _pico_mem_free_slab_block(struct pico_mem_block*slab_block)
         temp = manager_tree_insert(&manager->tree, slab_node);
 
         /* if(pico_err == PICO_ERR_ENOMEM) */
-        if(temp == &LEAF)
-        {
+        if (temp == &LEAF) {
             DBG_MM_RED("No more space in the manager heap and no more space for extra pages!");
             DBG_MM_RED("This slab will be leaked, but the leak will be plugged at the next cleanup, if and when the page is empty");
             pico_mem_page0_free(slab_node);
@@ -860,14 +801,11 @@ static void _pico_mem_free_slab_block(struct pico_mem_block*slab_block)
  */
 static void _pico_mem_zero_initialize(void*startOfData, size_t len)
 {
-    if(startOfData != NULL)
-    {
+    if (startOfData != NULL) {
         DBG_MM_YELLOW("Zero initializing user memory at %p of %u bytes", startOfData, len);
         memset(startOfData, 0, len);
         DBG_MM_GREEN("Zero initialized.");
-    }
-    else
-    {
+    } else {
         DBG_MM_RED("Got a NULL pointer to zero initialize!");
     }
 }
@@ -883,8 +821,7 @@ static void*_pico_mem_find_heap_block(struct pico_mem_page*page, size_t len)
     uint8_t*byteptr;
 
     DBG_MM_YELLOW("Searching for a heap block of length %u in page %p (largest free block size = %u)", len, page, page->heap_max_free_space);
-    if(page->heap_max_free_space < len )
-    {
+    if (page->heap_max_free_space < len) {
         DBG_MM_RED("Size %u > max free space %u of the page. This should only happen when this page is newly created, and its heap space is not large enough for the heap length!", len, page->heap_max_free_space);
         return NULL;
     }
@@ -895,16 +832,14 @@ static void*_pico_mem_find_heap_block(struct pico_mem_page*page, size_t len)
     /* If mem_block == NULL then a free block at the end of the list is found. */
     /* Else, if the block is free and the size > len, an available block is also found. */
     /* while(mem_block != NULL && mem_block->type == HEAP_BLOCK_TYPE  && ( mem_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || mem_block->internals.heap_block.size < len)) */
-    while(mem_block->type == HEAP_BLOCK_TYPE  && (mem_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || mem_block->internals.heap_block.size < len))
-    {
+    while (mem_block->type == HEAP_BLOCK_TYPE  && (mem_block->internals.heap_block.free == HEAP_BLOCK_NOT_FREE || mem_block->internals.heap_block.size < len)) {
         /* DBG_MM_RED("Skipping heap block in use at %p of size %i", mem_block, mem_block->size); */
         DBG_MM_BLUE("Skipping heap block %s (size %u) at %p", (mem_block->internals.heap_block.free == HEAP_BLOCK_FREE) ? "not in use" : "in use", mem_block->internals.heap_block.size, mem_block);
         byteptr = (uint8_t*) mem_block + sizeof(struct pico_mem_block);
         byteptr += mem_block->internals.heap_block.size;
         mem_block = (struct pico_mem_block*) byteptr;
     }
-    if(mem_block->type == SLAB_BLOCK_TYPE)
-    {
+    if (mem_block->type == SLAB_BLOCK_TYPE) {
         DBG_MM_RED("No free heap block of contiguous size %u could be found in page %p", len, page);
         /* exit(1); */
         return NULL;
@@ -915,8 +850,7 @@ static void*_pico_mem_find_heap_block(struct pico_mem_page*page, size_t len)
     page->timestamp = 0;
 
     /* Check to split the block into two smaller blocks */
-    if(mem_block->internals.heap_block.size >= (len + sizeof(struct pico_mem_block) + PICO_MEM_MINIMUM_OBJECT_SIZE))
-    {
+    if (mem_block->internals.heap_block.size >= (len + sizeof(struct pico_mem_block) + PICO_MEM_MINIMUM_OBJECT_SIZE)) {
         byteptr = (uint8_t*) mem_block + sizeof(struct pico_mem_block);
         byteptr += len;
         inserted_block = (struct pico_mem_block*) byteptr;
@@ -956,14 +890,13 @@ static void*_pico_mem_find_slab(size_t len)
     /* The compare function takes an int*** length */
     node = pico_tree_findNode(&manager->tree, &doublelenptr);
 
-    if(node != NULL) {
+    if (node != NULL) {
         /* DBG_MM_BLUE("Found node, size = %d ", ((pico_mem_slab_node*) node->keyValue)->slab->size); */
         struct pico_mem_slab_node*slab_node = node->keyValue;
         slab_node->slab->internals.slab_block.page->slabs_free--;
         slab_node->slab->internals.slab_block.page->timestamp = 0;
         DBG_MM_BLUE("Found node, size = %u at page %p, %u free slabs left in page", slab_node->slab->internals.slab_block.page->slab_size, slab_node->slab->internals.slab_block.page, slab_node->slab->internals.slab_block.page->slabs_free);
-        if(slab_node->next == NULL)
-        {
+        if (slab_node->next == NULL) {
             DBG_MM_BLUE("This was the last available slab object. Deleting the tree node now.");
             /* if this is the last slab object of this size in the tree, then also delete the tree_node! */
 
@@ -972,9 +905,7 @@ static void*_pico_mem_find_slab(size_t len)
             manager_tree_delete(&manager->tree, &doublelenptr);
 
 
-        }
-        else
-        {
+        } else {
             /* Remove the pico_mem_slab_node by making the keyvalue of the pico_tree_node point to the next element. */
             slab_node->next->prev = NULL;
             node->keyValue = slab_node->next;
@@ -1007,26 +938,21 @@ void pico_mem_free(void*ptr)
 
     DBG_MM_YELLOW("Free called on %p", ptr);
 
-    if(ptr == NULL) return;
+    if (ptr == NULL)return;
 
     generic_block = (struct pico_mem_block*) ptr;
     generic_block--;
 
-    if(generic_block->type == SLAB_BLOCK_TYPE)
-    {
-        if(generic_block->internals.slab_block.slab_node)
-        {
+    if (generic_block->type == SLAB_BLOCK_TYPE) {
+        if (generic_block->internals.slab_block.slab_node) {
             DBG_MM_RED("ERROR: Double free on a slab block (recovered)!");
             return;
         }
 
         DBG_MM_BLUE("Request to free a slab block");
         _pico_mem_free_slab_block(generic_block);
-    }
-    else if(generic_block->type == HEAP_BLOCK_TYPE)
-    {
-        if(generic_block->internals.heap_block.free == HEAP_BLOCK_FREE)
-        {
+    } else if (generic_block->type == HEAP_BLOCK_TYPE) {
+        if (generic_block->internals.heap_block.free == HEAP_BLOCK_FREE) {
             DBG_MM_RED("ERROR: Double free on a heap block (recovered)!");
             return;
         }
@@ -1036,11 +962,9 @@ void pico_mem_free(void*ptr)
         /* Update the page housekeeping */
         /* Update the housekeeping of the extra manager pages */
         page = manager->first_page;
-        while(page != NULL)
-        {
+        while (page != NULL) {
             DBG_MM_BLUE("Checking page %i at %p", i++, page);
-            if(((uint8_t*) page < (uint8_t*) ptr) && ((uint8_t*) ptr < (uint8_t*) page + PICO_MEM_PAGE_SIZE))
-            {
+            if (((uint8_t*) page < (uint8_t*) ptr) && ((uint8_t*) ptr < (uint8_t*) page + PICO_MEM_PAGE_SIZE)) {
                 /* DBG_MM_RED("page < ptr < page + PICO_MEM_PAGE_SIZE"); */
                 /* DBG_MM_RED("%p < %p < %p", (uint8_t*) page, (uint8_t*) ptr, (uint8_t*) page + PICO_MEM_PAGE_SIZE); */
                 _pico_mem_free_and_merge_heap_block(page, generic_block);
@@ -1050,9 +974,7 @@ void pico_mem_free(void*ptr)
 
             page = page->next_page;
         }
-    }
-    else
-    {
+    } else {
         DBG_MM_RED("ERROR: You tried to free a pointer from which the type ( heap block or slab object ) could not be determined!!");
     }
 }
@@ -1068,50 +990,37 @@ static void _pico_mem_reset_slab_statistics(void)
 static size_t _pico_mem_determine_slab_size(size_t len)
 {
     DBG_MM_YELLOW("Determining slab size to use, request for %u bytes", len);
-    if (len > slab_sizes[1])
-    {
+    if (len > slab_sizes[1]) {
         slab_size_statistics[2]++;
-        if(slab_size_statistics[2] > 3)
-        {
+        if (slab_size_statistics[2] > 3) {
             _pico_mem_reset_slab_statistics();
-            if(slab_size_global != slab_sizes[2])
-            {
+            if (slab_size_global != slab_sizes[2]) {
                 slab_size_global = slab_sizes[2];
             }
         }
 
-        if(slab_size_global != slab_sizes[2])
-        {
+        if (slab_size_global != slab_sizes[2]) {
             DBG_MM_RED("Using slab size %u, but we have to use a slab size of %u for the request of %u bytes", slab_size_global, slab_sizes[2], len);
             return slab_sizes[2];
         }
-    }
-    else if(len > slab_sizes[0])
-    {
+    } else if (len > slab_sizes[0]) {
         slab_size_statistics[1]++;
-        if (slab_size_statistics[1] > 3)
-        {
+        if (slab_size_statistics[1] > 3) {
             _pico_mem_reset_slab_statistics();
-            if(slab_size_global != slab_sizes[1])
-            {
+            if (slab_size_global != slab_sizes[1]) {
                 slab_size_global = slab_sizes[1];
             }
         }
 
-        if(len > slab_size_global)
-        {
+        if (len > slab_size_global) {
             DBG_MM_RED("Using slab size %u, but we have to use a slab size of %u for the request of %u bytes", slab_size_global, slab_sizes[1], len);
             return slab_sizes[1];
         }
-    }
-    else
-    {
+    } else {
         slab_size_statistics[0]++;
-        if (slab_size_statistics[0] > 3)
-        {
+        if (slab_size_statistics[0] > 3) {
             _pico_mem_reset_slab_statistics();
-            if(slab_size_global != slab_sizes[0])
-            {
+            if (slab_size_global != slab_sizes[0]) {
                 slab_size_global = slab_sizes[0];
             }
         }
@@ -1151,56 +1060,47 @@ void*pico_mem_zalloc(size_t len)
     len += (len % 4 == 0) ? 0 : 4 - len % 4;
     DBG_MM_YELLOW("Aligned size: %i", len);
 
-    if(manager == NULL)
-    {
+    if (manager == NULL) {
         DBG_MM_RED("Invalid alloc, a memory manager hasn't been instantiated yet!");
         return NULL;
     }
 
-    if(len > PICO_MAX_SLAB_SIZE)
-    {
+    if (len > PICO_MAX_SLAB_SIZE) {
         DBG_MM_RED("Invalid alloc, the size you requested is larger than the maximum slab size! (%uB>%uB)", len, PICO_MAX_SLAB_SIZE);
         return NULL;
     }
 
     /* /////// FIND SLAB OBJECTS ///////// */
-    if(len >= PICO_MIN_SLAB_SIZE)
-    {
+    if (len >= PICO_MIN_SLAB_SIZE) {
         /* feed the size into a statistic engine that determines the slabsize to use */
         /* DBG_MM_RED("Placeholder: determine correct slab size to use!"); */
         len = _pico_mem_determine_slab_size(len);
         ret = _pico_mem_find_slab(len);
-        if(ret != NULL) return ret;
+        if (ret != NULL)return ret;
 
         /* No slab object could be found. => Init new page? */
 
         DBG_MM_BLUE("No free slab found, trying to create a new page (Used size = %u, max size = %u)", manager->used_size, manager->size);
-        if(manager->used_size + PICO_MEM_PAGE_SIZE <= manager->size)
-        {
+        if (manager->used_size + PICO_MEM_PAGE_SIZE <= manager->size) {
             struct pico_mem_page*newpage = pico_zalloc(PICO_MEM_PAGE_SIZE);
-            if(newpage != NULL)
-            {
+            if (newpage != NULL) {
                 manager->used_size += PICO_MEM_PAGE_SIZE;
                 DBG_MM_BLUE("Created new page at %p -> used size = %u", newpage, manager->used_size);
                 _pico_mem_init_page(newpage, len);
                 /* Return pointer to first slab in that page */
                 return _pico_mem_find_slab(len);    /* Find the new slab object! */
-            }
-            else
-            {
+            } else {
                 DBG_MM_RED("Not enough space to allocate a new page, even though the max size hasn't been reached yet!");
                 return NULL;
             }
-        }
-        else
-        {
+        } else {
             DBG_MM_RED("Not enough space to allocate a new page!");
             return NULL;
         }
     }
 
     /* /////// FIND HEAP BLOCKS ///////// */
-    if(len < PICO_MEM_MINIMUM_OBJECT_SIZE)
+    if (len < PICO_MEM_MINIMUM_OBJECT_SIZE)
         len = PICO_MEM_MINIMUM_OBJECT_SIZE;
 
     DBG_MM_BLUE("Searching for heap space of length %u now.", len);
@@ -1210,12 +1110,10 @@ void*pico_mem_zalloc(size_t len)
 
     /* The algorithm to find a heap block is based on first fit. */
     /* But when the internal fragmentation is too big, the block is split. */
-    while(page != NULL)
-    {
+    while (page != NULL) {
         /* DBG_MM_RED("Max free space in page %i = %i bytes", pagecounter+1, page->heap.max_free_space); */
         DBG_MM_BLUE("Max free space in page %u = %uB (page=%p)", pagenr, page->heap_max_free_space, page);
-        if(len <= page->heap_max_free_space)
-        {
+        if (len <= page->heap_max_free_space) {
             return _pico_mem_find_heap_block(page, len);
         }
 
@@ -1224,21 +1122,17 @@ void*pico_mem_zalloc(size_t len)
     }
     /* No free heap block could be found, try to alloc a new page */
     DBG_MM_BLUE("No free heap block found, trying to create a new page (Used size = %u, max size = %u)", manager->used_size, manager->size);
-    if(manager->used_size + PICO_MEM_PAGE_SIZE <= manager->size)
-    {
+    if (manager->used_size + PICO_MEM_PAGE_SIZE <= manager->size) {
         struct pico_mem_page*newpage = pico_zalloc(PICO_MEM_PAGE_SIZE);
-        if(newpage != NULL)
-        {
+        if (newpage != NULL) {
             manager->used_size += PICO_MEM_PAGE_SIZE;
             DBG_MM_BLUE("Created new page at %p -> used size = %u", newpage, manager->used_size);
             /* TODO: Careful, if the current slabsize is determined in another way, this needs to change too */
             _pico_mem_init_page(newpage, slab_size_global);
             returnCandidate = _pico_mem_find_heap_block(newpage, len);
-            if(returnCandidate != NULL)
+            if (returnCandidate != NULL)
                 return returnCandidate;
-        }
-        else
-        {
+        } else {
             DBG_MM_RED("Not enough space to allocate a new page, even though the max size hasn't been reached yet!");
             return NULL;
         }
@@ -1269,11 +1163,9 @@ void pico_mem_page0_free(void*ptr)
     node->internals.heap_block.free = HEAP_BLOCK_FREE;
     /* Update the housekeeping of the extra manager pages */
     heap_page = manager->manager_extra;
-    while(heap_page != NULL)
-    {
+    while (heap_page != NULL) {
         DBG_MM_BLUE("Checking extra heap page %i at %p", i++, heap_page);
-        if(((uint8_t*) heap_page < (uint8_t*) ptr) && ((uint8_t*) ptr < (uint8_t*) heap_page + PICO_MEM_PAGE_SIZE))
-        {
+        if (((uint8_t*) heap_page < (uint8_t*) ptr) && ((uint8_t*) ptr < (uint8_t*) heap_page + PICO_MEM_PAGE_SIZE)) {
             /* DBG_MM_RED("heap_page < ptr < heap_page + PICO_MEM_PAGE_SIZE"); */
             /* DBG_MM_RED("%p < %p < %p", (uint8_t*) heap_page, (uint8_t*) ptr, (uint8_t*) heap_page + PICO_MEM_PAGE_SIZE); */
             heap_page->blocks--;
@@ -1311,14 +1203,11 @@ void pico_mem_cleanup(uint32_t timestamp)
     /* Iterate over all pages */
     page = manager->first_page;
     prev_page = NULL;
-    while(page != NULL)
-    {
+    while (page != NULL) {
         DBG_MM_BLUE("Checking page %i at %p", pagenr, page);
         /* Check the timestamp of the page. If it doesn't have one (0), update it with the new timestamp if the page is completely empty. */
-        if(page->timestamp == 0)
-        {
-            if((page->heap_max_size == page->heap_max_free_space) && (page->slabs_free == page->slabs_max))
-            {
+        if (page->timestamp == 0) {
+            if ((page->heap_max_size == page->heap_max_free_space) && (page->slabs_free == page->slabs_max)) {
                 DBG_MM_BLUE("Page %i empty, updating timestamp", pagenr);
                 page->timestamp = timestamp;
             }
@@ -1328,10 +1217,8 @@ void pico_mem_cleanup(uint32_t timestamp)
         /* > Update the page list */
         /* > Return the page to the system's control */
         /* > Update manager housekeeping */
-        else if(timestamp > page->timestamp)
-        {
-            if(timestamp - page->timestamp > PICO_MEM_PAGE_LIFETIME)
-            {
+        else if (timestamp > page->timestamp) {
+            if (timestamp - page->timestamp > PICO_MEM_PAGE_LIFETIME) {
                 DBG_MM_BLUE("Page %i is empty and has exceeded the lifetime (%u > lifetime=%u)", pagenr, timestamp - page->timestamp, PICO_MEM_PAGE_LIFETIME);
                 /* Remove all the slabs out of the RB tree */
                 byteptr = (uint8_t*) page + sizeof(struct pico_mem_page); /* byteptr points to the start of the heap (a pico_mem_block), after page housekeeping */
@@ -1341,11 +1228,9 @@ void pico_mem_cleanup(uint32_t timestamp)
                 slab_node = slab_block->internals.slab_block.slab_node;
                 /* The corresponding tree_node */
                 tree_node = pico_tree_findNode(&manager->tree, slab_node);
-                for(i = 0; i < page->slabs_max; i++)
-                {
+                for (i = 0; i < page->slabs_max; i++) {
                     DBG_MM("Removing slab %i at %p", i, slab_block);
-                    if(slab_node->prev == NULL && slab_node->next == NULL)
-                    {
+                    if (slab_node->prev == NULL && slab_node->next == NULL) {
                         DBG_MM("This node is the last node in the tree_node, removing tree_node");
                         /* slab_node is the last node in the tree leaf, delete it */
 
@@ -1354,20 +1239,14 @@ void pico_mem_cleanup(uint32_t timestamp)
                         manager_tree_delete(&manager->tree, slab_node);
 
 
-                    }
-                    else if(slab_node->prev == NULL)
-                    {
+                    } else if (slab_node->prev == NULL) {
                         DBG_MM("This node is the first node in the linked list, adjusting tree_node");
                         tree_node->keyValue = slab_node->next;
                         slab_node->next->prev = NULL;
-                    }
-                    else if(slab_node->next == NULL)
-                    {
+                    } else if (slab_node->next == NULL) {
                         DBG_MM("This node is the last node in the linked list");
                         slab_node->prev->next = NULL;
-                    }
-                    else
-                    {
+                    } else {
                         DBG_MM("This node is neither the first, nor the last node in the list");
                         slab_node->prev->next = slab_node->next;
                         slab_node->next->prev = slab_node->prev;
@@ -1380,13 +1259,10 @@ void pico_mem_cleanup(uint32_t timestamp)
                     slab_node = slab_block->internals.slab_block.slab_node;
                 }
                 /* Update the page list */
-                if(prev_page == NULL) /* prev_page == NULL when pagenr=1, or when previous pages were deleted */
-                {
+                if (prev_page == NULL) { /* prev_page == NULL when pagenr=1, or when previous pages were deleted */
                     DBG_MM("Updating page list, manager->first_page = page->next_page");
                     manager->first_page = page->next_page;
-                }
-                else
-                {
+                } else {
                     DBG_MM("Updating page list, prev_page->next_page = page->next_page");
                     prev_page->next_page = page->next_page;
                 }
@@ -1402,14 +1278,10 @@ void pico_mem_cleanup(uint32_t timestamp)
                 page = next_page;
                 pagenr++;
                 continue;
-            }
-            else
-            {
+            } else {
                 DBG_MM_BLUE("Page %i is empty, but has not exceeded the lifetime (%u < lifetime=%u)", pagenr, timestamp - page->timestamp, PICO_MEM_PAGE_LIFETIME);
             }
-        }
-        else /* timestamp < page->timestamp */
-        {
+        } else {   /* timestamp < page->timestamp */
             DBG_MM_RED("Page %i is empty, but the system timestamp < page timestamp! (%u<%u)", pagenr, timestamp, page->timestamp);
             DBG_MM_RED("Updating page %i timestamp!", pagenr);
             page->timestamp = timestamp;
@@ -1423,30 +1295,21 @@ void pico_mem_cleanup(uint32_t timestamp)
     heap_page = manager->manager_extra;
     prev_heap_page = NULL;
     pagenr = 1;
-    while(heap_page != NULL)
-    {
+    while (heap_page != NULL) {
         DBG_MM_BLUE("Checking extra manager page %i at %p", pagenr, heap_page);
-        if(heap_page->timestamp == 0)
-        {
-            if( heap_page->blocks == 0 )
-            {
+        if (heap_page->timestamp == 0) {
+            if (heap_page->blocks == 0) {
                 DBG_MM_BLUE("Extra manager page %i empty, updating timestamp", pagenr);
                 heap_page->timestamp = timestamp;
             }
-        }
-        else if(timestamp > heap_page->timestamp)
-        {
-            if(timestamp - heap_page->timestamp > PICO_MEM_PAGE_LIFETIME)
-            {
+        } else if (timestamp > heap_page->timestamp) {
+            if (timestamp - heap_page->timestamp > PICO_MEM_PAGE_LIFETIME) {
                 DBG_MM_BLUE("Extra manager page %i empty and has exceeded the lifetime (%u > lifetime=%u)", pagenr, timestamp - heap_page->timestamp, PICO_MEM_PAGE_LIFETIME);
                 /* Update the page list */
-                if(prev_heap_page == NULL)
-                {
+                if (prev_heap_page == NULL) {
                     DBG_MM("Updating page list, manager->manager_extra = heap_page->next");
                     manager->manager_extra = heap_page->next;
-                }
-                else
-                {
+                } else {
                     DBG_MM("Updating page list, prev_heap_page->next = heap_page->next");
                     prev_heap_page->next = heap_page->next;
                 }
@@ -1462,14 +1325,10 @@ void pico_mem_cleanup(uint32_t timestamp)
                 heap_page = next;
                 pagenr++;
                 continue;
-            }
-            else
-            {
+            } else {
                 DBG_MM_BLUE("Page %i is empty, but has not exceeded the lifetime (%u < lifetime=%u)", pagenr, timestamp - heap_page->timestamp, PICO_MEM_PAGE_LIFETIME);
             }
-        }
-        else
-        {
+        } else {
             DBG_MM_RED("Page %i is empty, but the system timestamp < page timestamp! (%u<%u)", pagenr, timestamp, heap_page->timestamp);
             DBG_MM_RED("Updating page %i timestamp!", pagenr);
             heap_page->timestamp = timestamp;
@@ -1501,8 +1360,7 @@ static void _pico_mem_print_tree(struct pico_tree_node*root)
     struct pico_mem_slab_node*iterator;
     int j;
 
-    if (root == &LEAF || root == NULL)
-    {
+    if (root == &LEAF || root == NULL) {
         DBG_MM("No tree nodes at this time.\n");
         return;
     }
@@ -1510,8 +1368,7 @@ static void _pico_mem_print_tree(struct pico_tree_node*root)
     iterator = (struct pico_mem_slab_node*) root->keyValue;
     DBG_MM("Tree node for size %u:\n", iterator->slab->internals.slab_block.page->slab_size);
     j = 0;
-    while(iterator != NULL)
-    {
+    while (iterator != NULL) {
         DBG_MM("\tSlab_node %i at %p:\n", j, iterator);
         DBG_MM("\t\tPrev:%p\n", iterator->prev);
         DBG_MM("\t\tNext:%p\n", iterator->next);
@@ -1519,21 +1376,18 @@ static void _pico_mem_print_tree(struct pico_tree_node*root)
         j++;
         iterator = iterator->next;
     }
-    if(root->leftChild != &LEAF && root->leftChild != NULL)
+    if (root->leftChild != &LEAF && root->leftChild != NULL)
         _pico_mem_print_tree(root->leftChild);
 
-    if(root->rightChild != &LEAF && root->rightChild != NULL)
+    if (root->rightChild != &LEAF && root->rightChild != NULL)
         _pico_mem_print_tree(root->rightChild);
 }
 
 void pico_mem_profile_scan_data()
 {
-    if(manager == NULL)
-    {
+    if (manager == NULL) {
         DBG_MM("No memory manager instantiated!\n");
-    }
-    else
-    {
+    } else {
         int manager_pages = 0;
         int pages = 0;
         int counter = 0;
@@ -1547,8 +1401,7 @@ void pico_mem_profile_scan_data()
 
         /* Iterate over every extra manager page: */
         heap_page = manager->manager_extra;
-        while(heap_page != NULL)
-        {
+        while (heap_page != NULL) {
             manager_pages++;
             DBG_MM("Extra manager page %i:\n\tBlocks in use: %u\n\tTimestamp: %u\n", manager_pages, heap_page->blocks, heap_page->timestamp);
             heap_page = heap_page->next;
@@ -1556,15 +1409,13 @@ void pico_mem_profile_scan_data()
         /* Iterate over every page: */
         pages = (manager->used_size / PICO_MEM_PAGE_SIZE) - manager_pages - 1;
         page = manager->first_page;
-        while(page != NULL)
-        {
+        while (page != NULL) {
             counter++;
             DBG_MM("Page %i/%i:\n\tSlabsize: %u\n\tSlabs free: %u/%u\n\tTimestamp: %u\n", counter, pages, page->slab_size, page->slabs_free, page->slabs_max, page->timestamp);
             byteptr = (uint8_t*) page + sizeof(struct pico_mem_page);
             mem_block = (struct pico_mem_block*) byteptr;
             DBG_MM("\tHeap:\n");
-            while(mem_block->type == HEAP_BLOCK_TYPE)
-            {
+            while (mem_block->type == HEAP_BLOCK_TYPE) {
                 DBG_MM("\t\tBlock: size %u, %s\n", mem_block->internals.heap_block.size, (mem_block->internals.heap_block.free == HEAP_BLOCK_FREE) ? "free" : "not free");
                 byteptr = (uint8_t*) mem_block + sizeof(struct pico_mem_block);
                 byteptr += mem_block->internals.heap_block.size;
@@ -1584,25 +1435,19 @@ void pico_mem_profile_collect_data(struct profiling_data*profiling_struct)
     profiling_struct->free_slab_space = 0;
     profiling_struct->used_heap_space = 0;
     profiling_struct->used_slab_space = 0;
-    if(manager != NULL)
-    {
+    if (manager != NULL) {
         struct pico_mem_page*page = manager->first_page;
-        while(page != NULL)
-        {
+        while (page != NULL) {
             profiling_struct->free_slab_space += page->slab_size * page->slabs_free;
             profiling_struct->used_slab_space += page->slab_size * page->slabs_max;
 
             byteptr = (uint8_t*) page + sizeof(struct pico_mem_page);
             mem_block = (struct pico_mem_block*) byteptr;
 
-            while(mem_block->type == HEAP_BLOCK_TYPE)
-            {
-                if(mem_block->internals.heap_block.free == HEAP_BLOCK_FREE)
-                {
+            while (mem_block->type == HEAP_BLOCK_TYPE) {
+                if (mem_block->internals.heap_block.free == HEAP_BLOCK_FREE) {
                     profiling_struct->free_heap_space += mem_block->internals.heap_block.size;
-                }
-                else
-                {
+                } else {
                     /* dbg("Block: size=%u\n", mem_block->internals.heap_block.size); */
                     profiling_struct->used_heap_space += mem_block->internals.heap_block.size;
                 }
@@ -1617,12 +1462,9 @@ void pico_mem_profile_collect_data(struct profiling_data*profiling_struct)
 
 uint32_t pico_mem_profile_used_size()
 {
-    if(manager != NULL)
-    {
+    if (manager != NULL) {
         return manager->used_size;
-    }
-    else
-    {
+    } else {
         return 0;
     }
 }

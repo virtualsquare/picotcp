@@ -95,8 +95,7 @@ void cb_tcpbench(uint16_t ev, struct pico_socket *s)
                 printf("tcpbench> Failed to start exit timer, exiting now\n");
                 exit(1);
             }
-        }
-        else {
+        } else {
             printf("tcpbench> ---- Socket Error: '%s'. Was unexpected! Something went wrong.\n", strerror(pico_err));
             exit(2);
         }
@@ -126,7 +125,7 @@ void cb_tcpbench(uint16_t ev, struct pico_socket *s)
 
                 if (tcpbench_time_start == 0)
                     tcpbench_time_start = PICO_TIME_MS();
-            } while(tcpbench_w > 0);
+            } while (tcpbench_w > 0);
             printf("tcpbench_wr_size = %d      \r", tcpbench_wr_size);
         } else {
             if (!closed && tcpbench_mode == TCP_BENCH_TX) {
@@ -179,7 +178,7 @@ void app_tcpbench(struct pico_stack *S, char *arg)
             exit(255);
         }
 
-        printf ("+++ Dest is %s\n", dest);
+        printf("+++ Dest is %s\n", dest);
         if (nxt) {
             printf("Next arg: %s\n", nxt);
             nxt = cpy_arg(&dport, nxt);
@@ -309,13 +308,13 @@ void app_tcpbench(struct pico_stack *S, char *arg)
         free(dport);
 
     if (dest)
-        free (dest);
+        free(dest);
 
     if (mode)
-        free (mode);
+        free(mode);
 
     if (nagle)
-        free (nagle);
+        free(nagle);
 
     return;
 }

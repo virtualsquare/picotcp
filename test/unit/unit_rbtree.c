@@ -21,7 +21,7 @@ static PICO_TREE_DECLARE(test_tree, compare);
 static PICO_TREE_DECLARE(test_tree2, compare);
 #define RBTEST_SIZE 20000
 
-START_TEST (test_rbtree2)
+START_TEST(test_rbtree2)
 {
     struct pico_tree_node  *s;
     elem *e;
@@ -30,8 +30,7 @@ START_TEST (test_rbtree2)
     gettimeofday(&start, 0);
 
     srand48(RBTEST_SIZE); /* use test-size as salt */
-    for (i = 0; i < (RBTEST_SIZE >> 1); i++)
-    {
+    for (i = 0; i < (RBTEST_SIZE >> 1); i++) {
         e = malloc(sizeof(elem));
         e->value = (int)lrand48() % RBTEST_SIZE;
         if (pico_tree_findKey(&test_tree2, e)) {
@@ -45,7 +44,7 @@ START_TEST (test_rbtree2)
            (int)((end.tv_sec - start.tv_sec) * 1000 + (end.tv_usec - start.tv_usec) / 1000));
     last = 0;
     pico_tree_foreach(s, &test_tree2){
-        fail_if (last > ((elem *)(s->keyValue))->value, "error");
+        fail_if(last > ((elem *)(s->keyValue))->value, "error");
         last = ((elem *)(s->keyValue))->value;
     }
 
@@ -76,7 +75,7 @@ START_TEST (test_rbtree)
     }
     i = 0;
     pico_tree_foreach(s, &test_tree){
-        fail_if (i++ != ((elem *)(s->keyValue))->value, "error");
+        fail_if(i++ != ((elem *)(s->keyValue))->value, "error");
     }
     t.value = RBTEST_SIZE >> 2;
 

@@ -1,5 +1,5 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
@@ -100,7 +100,7 @@ static union pico_address sntp_inaddr_any = {
 /* Converts a sntp time stamp to a pico_timeval struct */
 static int timestamp_convert(const struct pico_sntp_ts *ts, struct pico_timeval *tv, pico_time delay)
 {
-    if(long_be(ts->sec) < SNTP_UNIX_OFFSET) {
+    if (long_be(ts->sec) < SNTP_UNIX_OFFSET) {
         pico_err = PICO_ERR_EINVAL;
         tv->tv_sec = 0;
         tv->tv_msec = 0;
@@ -120,13 +120,13 @@ static int timestamp_convert(const struct pico_sntp_ts *ts, struct pico_timeval 
 static void pico_sntp_cleanup(struct sntp_server_ns_cookie *ck, pico_err_t status)
 {
     sntp_dbg("Cleanup called\n");
-    if(!ck)
+    if (!ck)
         return;
 
     pico_timer_cancel(ck->sock->stack, ck->timer);
 
     ck->cb_synced(status);
-    if(ck->sock)
+    if (ck->sock)
         ck->sock->priv = NULL;
 
     sntp_dbg("FREE!\n");
@@ -142,7 +142,7 @@ static int pico_sntp_parse(char *buf, struct sntp_server_ns_cookie *ck)
     struct pico_sntp_header *hp = (struct pico_sntp_header*) buf;
     struct pico_stack *S;
 
-    if(!ck) {
+    if (!ck) {
         sntp_dbg("pico_sntp_parse: invalid cookie\n");
         return -1;
     }
@@ -153,7 +153,7 @@ static int pico_sntp_parse(char *buf, struct sntp_server_ns_cookie *ck)
     S->sntp_tick_stamp = S->pico_tick;
     /* S->sntp_tick_stamp - ck->stamp is the delay between sending and receiving the ntp packet */
     ret = timestamp_convert(&(hp->trs_ts), &S->sntp_server_time, (S->sntp_tick_stamp - ck->stamp) / 2);
-    if(ret != 0) {
+    if (ret != 0) {
         sntp_dbg("Conversion error!\n");
         pico_sntp_cleanup(ck, PICO_ERR_EINVAL);
         return ret;
@@ -175,7 +175,7 @@ static void pico_sntp_client_wakeup(uint16_t ev, struct pico_socket *s)
     uint32_t peer;
     uint16_t port;
 
-    if(!ck) {
+    if (!ck) {
         sntp_dbg("pico_sntp_client_wakeup: invalid cookie\n");
         return;
     }
@@ -190,19 +190,19 @@ static void pico_sntp_client_wakeup(uint16_t ev, struct pico_socket *s)
 
         do {
             read = pico_socket_recvfrom(s, recvbuf, PICO_SNTP_MAXBUF, &peer, &port);
-        } while(read > 0);
+        } while (read > 0);
         pico_sntp_parse(recvbuf, s->priv);
         s->priv = NULL; /* make sure UDP callback does not try to read from freed mem again */
         PICO_FREE(recvbuf);
     }
     /* socket is closed */
-    else if(ev == PICO_SOCK_EV_CLOSE) {
+    else if (ev == PICO_SOCK_EV_CLOSE) {
         sntp_dbg("Socket is closed. Bailing out.\n");
         pico_sntp_cleanup(ck, PICO_ERR_ENOTCONN);
         return;
     }
     /* process error event, socket error occurred */
-    else if(ev == PICO_SOCK_EV_ERR) {
+    else if (ev == PICO_SOCK_EV_ERR) {
         sntp_dbg("Socket Error received. Bailing out.\n");
         pico_sntp_cleanup(ck, PICO_ERR_ENOTCONN);
         return;
@@ -217,12 +217,12 @@ static void sntp_receive_timeout(pico_time now, void *arg)
     struct sntp_server_ns_cookie *ck = (struct sntp_server_ns_cookie *)arg;
     (void) now;
 
-    if(!ck) {
+    if (!ck) {
         sntp_dbg("sntp_timeout: invalid cookie\n");
         return;
     }
 
-    if(!ck->rec) {
+    if (!ck->rec) {
         pico_sntp_cleanup(ck, PICO_ERR_ETIMEDOUT);
     }
 }
@@ -235,7 +235,7 @@ static void pico_sntp_send(struct pico_socket *sock, union pico_address *dst)
     };
     struct sntp_server_ns_cookie *ck = (struct sntp_server_ns_cookie *)sock->priv;
 
-    if(!ck) {
+    if (!ck) {
         sntp_dbg("pico_sntp_sent: invalid cookie\n");
         return;
     }
@@ -283,17 +283,15 @@ static void dnsCallback(char *ip, void *arg)
     union pico_address address;
     int retval = -1;
 
-    if(!ck) {
+    if (!ck) {
         sntp_dbg("dnsCallback: Invalid argument\n");
         return;
     }
 
-    if (0) {
-
-    }
+    if (0) {}
 
 #ifdef PICO_SUPPORT_IPV6
-    else if(ck->proto == PICO_PROTO_IPV6) {
+    else if (ck->proto == PICO_PROTO_IPV6) {
         if (ip) {
             /* add the ip address to the client, and start a tcp connection socket */
             sntp_dbg("using IPv6 address: %s\n", ip);
@@ -307,8 +305,8 @@ static void dnsCallback(char *ip, void *arg)
 
 #endif
 #ifdef PICO_SUPPORT_IPV4
-    else if(ck->proto == PICO_PROTO_IPV4) {
-        if(ip) {
+    else if (ck->proto == PICO_PROTO_IPV4) {
+        if (ip) {
             sntp_dbg("using IPv4 address: %s\n", ip);
             retval = pico_string_to_ipv4(ip, (uint32_t *)&address.ip4.addr);
         } else {
@@ -358,7 +356,7 @@ static int pico_sntp_sync_start_dns_ipv4(struct pico_stack *S, const char *sntp_
 
     strcpy(ck->hostname, sntp_server);
 
-    if(cb_synced == NULL) {
+    if (cb_synced == NULL) {
         PICO_FREE(ck->hostname);
         PICO_FREE(ck);
         pico_err = PICO_ERR_EINVAL;
@@ -415,7 +413,7 @@ static int pico_sntp_sync_start_ipv4(struct pico_stack *S, union pico_address *a
 static int pico_sntp_sync_start_dns_ipv6(struct pico_stack *S, const char *sntp_server, void (*cb_synced)(pico_err_t status))
 {
     struct sntp_server_ns_cookie *ck6;
-    int  retval6 = -1;
+    int retval6 = -1;
     /* IPv6 query */
     ck6 = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
     if (!ck6) {
@@ -451,7 +449,7 @@ static int pico_sntp_sync_start_dns_ipv6(struct pico_stack *S, const char *sntp_
 static int pico_sntp_sync_start_ipv6(struct pico_stack *S, union pico_address *addr, void (*cb_synced)(pico_err_t status))
 {
     struct sntp_server_ns_cookie *ck6;
-    int  retval6 = -1;
+    int retval6 = -1;
     ck6 = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
     if (!ck6) {
         pico_err = PICO_ERR_ENOMEM;
@@ -499,7 +497,7 @@ int pico_sntp_sync(struct pico_stack *S, const char *sntp_server, void (*cb_sync
         return -1;
     }
 
-    if(cb_synced == NULL) {
+    if (cb_synced == NULL) {
         pico_err = PICO_ERR_EINVAL;
         return -1;
     }

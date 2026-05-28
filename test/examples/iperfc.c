@@ -29,7 +29,7 @@ static struct pico_stack *stack = NULL;
 
 static void panic(void)
 {
-    for(;; ) ;
+    for (;;);
 }
 
 static char buf[MTU] = {};

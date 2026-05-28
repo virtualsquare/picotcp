@@ -1,11 +1,11 @@
 /*********************************************************************
- * PicoTCP-NG 
+ * PicoTCP-NG
  * Copyright (c) 2020 Daniele Lacamera <root@danielinux.net>
  *
  * This file also includes code from:
  * PicoTCP
  * Copyright (c) 2012-2017 Altran Intelligent Systems
- * 
+ *
  * SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only
  *
  * PicoTCP-NG is free software; you can redistribute it and/or modify
@@ -54,7 +54,7 @@ extern struct pico_protocol pico_proto_6lowpan;
  ******************************************************************************/
 
 /* Compares two fragmentation cookies according to RFC4944 5.3 */
-int32_t lp_frag_ctx_cmp(void *a, void *b); 
+int32_t lp_frag_ctx_cmp(void *a, void *b);
 int32_t lp_frag_cmp(void *a, void *b);
 
 int32_t pico_6lowpan_pull(struct pico_frame *f);

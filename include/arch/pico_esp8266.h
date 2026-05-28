@@ -19,8 +19,8 @@
 #define dbg             printf
 
 /* -------------- MEMORY ------------- */
-extern void *pvPortMalloc( size_t xWantedSize );
-extern void vPortFree( void *pv );
+extern void *pvPortMalloc(size_t xWantedSize);
+extern void vPortFree(void *pv);
 
 #define pico_free   vPortFree
 
@@ -28,7 +28,7 @@ static inline void *pico_zalloc(size_t size)
 {
     void *ptr = (void *)pvPortMalloc(size);
 
-    if(ptr)
+    if (ptr)
         memset(ptr, 0u, size);
 
     return ptr;

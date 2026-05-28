@@ -58,7 +58,7 @@ void start_rx(struct pico_stack *stack, struct pico_tftp_session *session, int *
         countdown = 1;
     }
 
-    for(; left; left -= countdown) {
+    for (; left; left -= countdown) {
         usleep(2000); /* PICO_IDLE(); */
         pico_stack_tick(stack);
         if (countdown)
@@ -131,7 +131,7 @@ void start_tx(struct pico_stack *stack, struct pico_tftp_session *session, int *
         countdown = 1;
     }
 
-    for(; left; left -= countdown) {
+    for (; left; left -= countdown) {
         usleep(2000); /* PICO_IDLE(); */
         pico_stack_tick(stack);
         if (countdown)
@@ -225,7 +225,7 @@ int main(int argc, char**argv)
     pico_stack_init(&stack);
     pico_dev = (struct pico_device *) pico_vde_create(stack, "/tmp/vde_switch", "tap0", macaddr);
 
-    if(!pico_dev) {
+    if (!pico_dev) {
         fprintf(stderr, "Error creating pico device, got enough privileges? Exiting...\n");
         exit(1);
     }

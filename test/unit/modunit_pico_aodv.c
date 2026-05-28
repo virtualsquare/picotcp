@@ -218,7 +218,7 @@ int pico_socket_sendto(struct pico_socket *s, const void *buf, const int len, vo
     printf("Sendto called!\n");
     pico_socket_sendto_called++;
     fail_if(remote_port != short_be(PICO_AODV_PORT));
-    fail_if (s != s->stack->aodv_socket);
+    fail_if(s != s->stack->aodv_socket);
     fail_if(pkt[0] > 4);
     fail_if(pkt[0] < 1);
     sent_pkt_type = pkt[0];
@@ -226,8 +226,7 @@ int pico_socket_sendto(struct pico_socket *s, const void *buf, const int len, vo
     if (sent_pkt_type == AODV_TYPE_RREQ) {
         /* struct pico_aodv_rreq *req = (struct pico_aodv_rreq *)(uintptr_t)buf; */
         fail_if(len != sizeof(struct pico_aodv_rreq));
-    }
-    else if (sent_pkt_type == AODV_TYPE_RREP) {
+    } else if (sent_pkt_type == AODV_TYPE_RREP) {
         struct pico_aodv_rrep *rep = (struct pico_aodv_rrep *)(uintptr_t)buf;
         fail_if(len != sizeof(struct pico_aodv_rrep));
         fail_if(rep->dest != 0x11111111);

@@ -26,17 +26,17 @@ START_TEST(tc_q)
     q1.max_frames = 4;
     q2.max_size = 4 * 100;
 
-    fail_if (pico_enqueue(&q1, pico_frame_copy(f0)) < 0);
-    fail_if (pico_enqueue(&q1, pico_frame_copy(f1)) < 0);
-    fail_if (pico_enqueue(&q1, pico_frame_copy(f2)) < 0);
-    fail_if (pico_enqueue(&q1, pico_frame_copy(f3)) < 0);
-    fail_if (pico_enqueue(&q1, pico_frame_copy(f4)) >= 0);
+    fail_if(pico_enqueue(&q1, pico_frame_copy(f0)) < 0);
+    fail_if(pico_enqueue(&q1, pico_frame_copy(f1)) < 0);
+    fail_if(pico_enqueue(&q1, pico_frame_copy(f2)) < 0);
+    fail_if(pico_enqueue(&q1, pico_frame_copy(f3)) < 0);
+    fail_if(pico_enqueue(&q1, pico_frame_copy(f4)) >= 0);
 
-    fail_if (pico_enqueue(&q2, pico_frame_copy(f0)) < 0);
-    fail_if (pico_enqueue(&q2, pico_frame_copy(f1)) < 0);
-    fail_if (pico_enqueue(&q2, pico_frame_copy(f2)) < 0);
-    fail_if (pico_enqueue(&q2, pico_frame_copy(f3)) < 0);
-    fail_if (pico_enqueue(&q2, pico_frame_copy(f4)) >= 0);
+    fail_if(pico_enqueue(&q2, pico_frame_copy(f0)) < 0);
+    fail_if(pico_enqueue(&q2, pico_frame_copy(f1)) < 0);
+    fail_if(pico_enqueue(&q2, pico_frame_copy(f2)) < 0);
+    fail_if(pico_enqueue(&q2, pico_frame_copy(f3)) < 0);
+    fail_if(pico_enqueue(&q2, pico_frame_copy(f4)) >= 0);
 
     fail_if((pico_dequeue(&q1))->buffer != f0->buffer);
     fail_if((pico_dequeue(&q1))->buffer != f1->buffer);

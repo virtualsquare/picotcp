@@ -27,7 +27,7 @@ static inline void *pico_zalloc(size_t size)
 {
     void *ptr = malloc(size);
 
-    if(ptr)
+    if (ptr)
         memset(ptr, 0u, size);
 
     return ptr;
