@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # fragmentation.py
 #
@@ -13,7 +13,7 @@
 #
 
 from  topology import *
-import socket, random, string
+import socket
 
 SRC_ADDR = ''
 DST_ADDR = '172.16.1.1'
@@ -25,7 +25,7 @@ LOOPS = 4
 SUBLOOPS = 1
 UDPCLIENT = "udpclient:" + str(DST_ADDR) + ":" + str(SENDTO_PORT) + ":"  + str(LISTEN_PORT) + ":" + str(DATASIZE) + ":" + str(LOOPS) + ":" + str(SUBLOOPS)
 
-print UDPCLIENT
+print(UDPCLIENT)
 
 T = Topology()
 net1 = Network(T, "pyt0")
@@ -33,28 +33,28 @@ h1 = Host(T, net1, args=UDPCLIENT)
 
 s_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s_udp.bind((SRC_ADDR, SRC_PORT))
-s_udp.settimeout(5);
+s_udp.settimeout(5)
 
-raw_input("Press enter to continue ...")
+input("Press enter to continue ...")
 start(T)
 
 while True:
   data, addr = s_udp.recvfrom(DATASIZE)
   #print data
   if len(data) == DATASIZE:
-    print '\n\n'
-    print '+++++++++++++++++++++++++++++++++++++++++++++'
-    print '+++++ fragmentation test IS successful +++++'
-    print '+++++++++++++++++++++++++++++++++++++++++++++'
-    print '\n\n'
+    print('\n\n')
+    print('+++++++++++++++++++++++++++++++++++++++++++++')
+    print('+++++ fragmentation test IS successful +++++')
+    print('+++++++++++++++++++++++++++++++++++++++++++++')
+    print('\n\n')
     cleanup()
     exit(0)
 
-print '\n\n'
-print '+++++++++++++++++++++++++++++++++++++++++++++'
-print '+++++ fragmentation test NOT successful ++++'
-print '+++++++++++++++++++++++++++++++++++++++++++++'
-print '\n\n'
+print('\n\n')
+print('+++++++++++++++++++++++++++++++++++++++++++++')
+print('+++++ fragmentation test NOT successful ++++')
+print('+++++++++++++++++++++++++++++++++++++++++++++')
+print('\n\n')
 cleanup()
 exit(1)
 

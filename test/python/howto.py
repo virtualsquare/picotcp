@@ -16,7 +16,7 @@
 ########################################################################
 #== Create a test scenario                                           ==#
 ########################################################################
-# Every script file will start with: "#!/usr/bin/python" in the first
+# Every script file will start with: "#!/usr/bin/env python" in the first
 # line, and will have execution permissions. This script is an exception
 # because it is not intended to be run, as it is in fact a walkthrough to
 # all the functionalities.
@@ -115,7 +115,7 @@ host1_4 = Host(T, network1, args="ping:172.16.2.2:")
 #== Start the test                                                   ==#
 ########################################################################
 # All the host will be connected and activated when you call:
-start()
+start(T)
 
 # At this point you may want to define your exit strategy. Valid commands
 # are:

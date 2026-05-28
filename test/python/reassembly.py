@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 # reassembly.py
 #
@@ -24,7 +24,7 @@ SENDTO_PORT = 5555
 DATASIZE = 3400
 UDPECHO = "udpecho:" + str(LINK_ADDR) + ":" + str(LISTEN_PORT) + ":" + str(SENDTO_PORT) + ":" + str(DATASIZE)
 
-print UDPECHO
+print(UDPECHO)
 
 T = Topology()
 net1 = Network(T, "pyt0")
@@ -34,29 +34,29 @@ str_send = ''.join(random.choice(string.ascii_lowercase) for x in range(DATASIZE
 #print str_send
 s_udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 s_udp.bind((SRC_ADDR, SRC_PORT))
-s_udp.settimeout(5);
+s_udp.settimeout(5)
 
-raw_input("Press enter to continue ...")
+input("Press enter to continue ...")
 start(T)
 
 while True:
-  s_udp.sendto(str_send, (LINK_ADDR, LISTEN_PORT))
+  s_udp.sendto(str_send.encode('utf-8'), (LINK_ADDR, LISTEN_PORT))
   data = s_udp.recv(DATASIZE)
   #print len(data)
   if len(data) == DATASIZE:
-    print '\n\n'
-    print '+++++++++++++++++++++++++++++++++++++++++++++'
-    print '+++++ reassembly test IS successful +++++'
-    print '+++++++++++++++++++++++++++++++++++++++++++++'
-    print '\n\n'
+    print('\n\n')
+    print('+++++++++++++++++++++++++++++++++++++++++++++')
+    print('+++++ reassembly test IS successful +++++')
+    print('+++++++++++++++++++++++++++++++++++++++++++++')
+    print('\n\n')
     cleanup()
     exit(0)
 
-print '\n\n'
-print '+++++++++++++++++++++++++++++++++++++++++++++'
-print '+++++ reassembly test NOT successful ++++'
-print '+++++++++++++++++++++++++++++++++++++++++++++'
-print '\n\n'
+print('\n\n')
+print('+++++++++++++++++++++++++++++++++++++++++++++')
+print('+++++ reassembly test NOT successful ++++')
+print('+++++++++++++++++++++++++++++++++++++++++++++')
+print('\n\n')
 cleanup()
 exit(1)
 

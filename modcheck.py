@@ -1,11 +1,10 @@
-#!/usr/bin/python
-import os,sys
+#!/usr/bin/env python
+import sys
 import subprocess
 
-
-print "Scroll down for summary"
-print ""
-print ""
+print("Scroll down for summary")
+print("")
+print("")
 
 f = open('MODTREE')
 mods = {}
@@ -23,7 +22,7 @@ def get_deps(mod):
   return retlist
   
 
-while(True):
+while True:
   r = f.readline()
   if r == '':
     break
@@ -33,7 +32,7 @@ while(True):
     deps = strings[1].rstrip('\n')
     mods[mod] = deps.strip(' ')
 
-for k,v in mods.iteritems():
+for k,v in mods.items():
   command = 'make dummy '
   deps = get_deps(k)
   for i in mods.keys():
@@ -47,7 +46,7 @@ endResult = []
 failed = 0
 
 for i in commands:
-  print 'Checking config:\n\t%s' % i
+  print('Checking config:\n\t%s' % i)
 
   subprocess.call(['make','clean'])
   sys.stdout.flush()
@@ -61,30 +60,30 @@ for i in commands:
   sys.stderr.flush()
 
   if ret == 0:
-    print "**********************************************************"
-    print "*******************  CONFIG PASSED!  *******************"
+    print("**********************************************************")
+    print("*******************  CONFIG PASSED!  *******************")
     endResult.append({"test": i, "result": "PASS"})
   else:
     failed += 1
-    print "**********************************************************"
-    print "*******************  CONFIG FAILED!  *******************"
+    print("**********************************************************")
+    print("*******************  CONFIG FAILED!  *******************")
     endResult.append({"test": i, "result": "FAIL"})
-  print "**********************************************************"
+  print("**********************************************************")
 
-print ""
-print "***************************************************************************"
-print "                           Executive Summary"
-print "***************************************************************************"
-print ""
+print("")
+print("***************************************************************************")
+print("                           Executive Summary")
+print("***************************************************************************")
+print("")
 
 for r in endResult:
-  print "Test:", r["test"]
-  print "Status:", r["result"]
-  print ""
+  print("Test:", r["test"])
+  print("Status:", r["result"])
+  print("")
 
-print "***********************"
-print "%d out of %d Failed" % (failed, len(endResult))
-print "***********************"
+print("***********************")
+print("%d out of %d Failed" % (failed, len(endResult)))
+print("***********************")
 
 if failed:
   sys.exit(1)
