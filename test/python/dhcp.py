@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # dhcp.py
 # Butterfly-like topology test for dhcp
 # One DHCP server, serving on two interface
@@ -28,7 +28,7 @@ r2 = Host(T, net2, args="dhcpclient:eth1")
 r3 = Host(T, net2, args="dhcpclient:eth1")
 r4 = Host(T, net2, args="dhcpclient:eth1")
 
-raw_input("Press enter to continue ...")
+input("Press enter to continue ...")
 start(T)
 
 wait(server)

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # fairness.py
 # A complex test for butterfly-like topology,
 # using 3 TCP connections and 3 ping flows.

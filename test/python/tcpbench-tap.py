@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #
 
 from  topology import *
@@ -10,7 +10,7 @@ recv1 = Host(T, net1, args="tcpbench:r:7770:")
 
 
 sleep(1)
-raw_input("Press enter to continue ...")
+input("Press enter to continue ...")
 
 start(T)
 wait(send1)
