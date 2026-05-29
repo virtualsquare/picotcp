@@ -16,4 +16,3 @@ struct pico_device *pico_pcap_create_live(struct pico_stack *S, char *ifname, ch
 struct pico_device *pico_pcap_create_fromfile(struct pico_stack *S, char *filename, char *name, uint8_t *mac);
 
 #endif
-

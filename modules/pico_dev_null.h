@@ -33,4 +33,3 @@ void pico_null_destroy(struct pico_device *null);
 struct pico_device *pico_null_create(struct pico_stack *S, const char *name);
 
 #endif
-

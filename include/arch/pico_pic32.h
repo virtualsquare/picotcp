@@ -4,8 +4,8 @@
    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
-#ifndef _INCLUDE_PICO_PIC32
-#define _INCLUDE_PICO_PIC32
+#ifndef INCLUDE_PICO_PIC32
+#define INCLUDE_PICO_PIC32
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -50,5 +50,4 @@ static inline void PICO_IDLE(void)
     while (now == pico_ms_tick);
 }
 
-#endif  /* PICO_PIC32 */
-
+#endif /* INCLUDE_PICO_PIC32 */

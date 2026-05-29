@@ -229,4 +229,3 @@ uint16_t pico_udp_recv(struct pico_socket *s, void *buf, uint16_t len, void *src
         }
     } else return 0;
 }
-

@@ -473,4 +473,3 @@ int ipfilter(struct pico_frame *f)
     temp.tos = ipv4_hdr->tos;
     return ipfilter_apply_filter(f, &temp);
 }
-

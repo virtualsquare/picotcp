@@ -24,8 +24,8 @@
  *
  *
  *********************************************************************/
-#ifndef _INCLUDE_PICO_ICMP6
-#define _INCLUDE_PICO_ICMP6
+#ifndef INCLUDE_PICO_ICMP6
+#define INCLUDE_PICO_ICMP6
 #include "pico_addressing.h"
 #include "pico_protocol.h"
 #include "pico_mld.h"

@@ -35,4 +35,3 @@ int pico_tap_WFI(struct pico_device *dev, int timeout_ms);
 void pico_tap_dsr(void *arg);
 
 #endif
-

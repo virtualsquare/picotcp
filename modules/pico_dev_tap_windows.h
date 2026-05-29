@@ -35,4 +35,3 @@ struct pico_device *pico_tap_create(struct pico_stack *S, char *name, uint8_t *m
 /* void pico_tap_destroy(struct pico_device *null); */
 
 #endif
-

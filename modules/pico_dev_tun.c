@@ -126,4 +126,3 @@ struct pico_device *pico_tun_create(struct pico_stack *S, char *name)
     dbg("Device %s created.\n", tun->dev.name);
     return (struct pico_device *)tun;
 }
-

@@ -76,4 +76,3 @@ struct pico_device *pico_null_create(struct pico_stack *S, const char *name)
     dbg("Device %s created.\n", null->dev.name);
     return (struct pico_device *)null;
 }
-

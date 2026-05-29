@@ -66,4 +66,4 @@ int pico_dns_client_getaddr6(struct pico_stack *S, const char *url, void (*callb
 int pico_dns_client_getname6(struct pico_stack *S, const char *ip, void (*callback)(char *, void *), void *arg);
 #endif
 
-#endif /* _INCLUDE_PICO_DNS_CLIENT */
+#endif /* INCLUDE_PICO_DNS_CLIENT */

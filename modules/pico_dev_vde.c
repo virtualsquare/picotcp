@@ -165,4 +165,3 @@ struct pico_device *MOCKABLE pico_vde_create(struct pico_stack *S, char *sock, c
     dbg("Device %s created.\n", vde->dev.name);
     return (struct pico_device *)vde;
 }
-

@@ -19,4 +19,3 @@
 #define PICO_IDLE() do {} while(0)
 
 #endif  /* PICO_SUPPORT_ARCHNONE */
-

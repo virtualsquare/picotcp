@@ -547,4 +547,4 @@ pico_dns_answer_create(struct pico_tree *antree,
                        struct pico_tree *artree,
                        uint16_t *len);
 
-#endif /* _INCLUDE_PICO_DNS_COMMON */
+#endif /* INCLUDE_PICO_DNS_COMMON */

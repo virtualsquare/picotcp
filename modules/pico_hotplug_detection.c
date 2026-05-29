@@ -196,4 +196,3 @@ int pico_hotplug_deregister(struct pico_device *dev, void (*cb)(struct pico_devi
 
     return 0;
 }
-

@@ -1493,4 +1493,3 @@ int pico_setsockopt_mcast(struct pico_socket *s, int option, void *value)
 
 }
 #endif /* PICO_SUPPORT_MCAST */
-

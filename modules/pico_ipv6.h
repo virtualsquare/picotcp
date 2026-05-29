@@ -24,8 +24,8 @@
  *
  *
  *********************************************************************/
-#ifndef _INCLUDE_PICO_IPV6
-#define _INCLUDE_PICO_IPV6
+#ifndef INCLUDE_PICO_IPV6
+#define INCLUDE_PICO_IPV6
 #include "pico_addressing.h"
 #include "pico_protocol.h"
 #include "pico_ipv4.h"

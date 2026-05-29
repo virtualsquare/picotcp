@@ -545,4 +545,3 @@ void pico_arp_register_ipconflict(struct pico_stack *S, struct pico_ip4 *ip, str
     if (mac != NULL)
         memcpy(S->conflict_ipv4.mac.addr, mac, 6);
 }
-

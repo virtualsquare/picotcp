@@ -106,5 +106,4 @@ static inline int pico_ipv4_port_forward(struct pico_ip4 nat_addr, uint16_t nat_
 }
 #endif
 
-#endif /* _INCLUDE_PICO_NAT */
-
+#endif /* INCLUDE_PICO_NAT */

@@ -870,4 +870,3 @@ int pico_dns_client_init(struct pico_stack *S)
 
 
 #endif /* PICO_SUPPORT_DNS_CLIENT */
-

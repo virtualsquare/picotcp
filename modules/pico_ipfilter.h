@@ -46,5 +46,4 @@ int pico_ipv4_filter_del(struct pico_stack *S, uint32_t filter_id);
 int ipfilter(struct pico_frame *f);
 int filter_compare(void *filterA, void *filterB);
 
-#endif /* _INCLUDE_PICO_IPFILTER */
-
+#endif /* INCLUDE_PICO_IPFILTER */

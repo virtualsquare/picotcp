@@ -26,8 +26,8 @@
  *********************************************************************/
 
 
-#ifndef _INCLUDE_PICO_MM
-#define _INCLUDE_PICO_MM
+#ifndef INCLUDE_PICO_MM
+#define INCLUDE_PICO_MM
 
 #include "pico_config.h"
 
@@ -115,4 +115,4 @@ void*pico_mem_profile_manager(void);
 void pico_mem_init_profiling(void*manager, uint32_t memsize);
 #endif /* PICO_SUPPORT_MM_PROFILING */
 
-#endif /* _INCLUDE_PICO_MM */
+#endif /* INCLUDE_PICO_MM */

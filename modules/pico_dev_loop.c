@@ -82,4 +82,3 @@ struct pico_device *pico_loop_create(struct pico_stack *S)
     dbg("Device %s created.\n", loop->name);
     return loop;
 }
-

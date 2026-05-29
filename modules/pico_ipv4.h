@@ -167,6 +167,4 @@ int pico_getsockopt_ipv4(struct pico_socket *s, int option, void *value);
 int pico_socket_ipv4_close(struct pico_socket *arg);
 int ipv4_route_compare(void *ka, void *kb);
 
-
-
-#endif /* _INCLUDE_PICO_IPV4 */
+#endif /* INCLUDE_PICO_IPV4 */

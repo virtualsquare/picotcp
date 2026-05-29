@@ -40,5 +40,4 @@ int pico_hotplug_dev_cmp(void *ka, void *kb);
 int pico_hotplug_register(struct pico_device *dev, void (*cb)(struct pico_device *dev, int event));
 int pico_hotplug_deregister(struct pico_device *dev, void (*cb)(struct pico_device *dev, int event));
 
-#endif /* _INCLUDE_PICO_SUPPORT_HOTPLUG */
-
+#endif /* INCLUDE_PICO_SUPPORT_HOTPLUG */

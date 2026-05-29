@@ -303,5 +303,4 @@ void pico_socket_destroy_all(struct pico_stack *S);
 #define PICO_SOCKET_SETOPT_DIS(socket, index) (socket->opt_flags &= (uint16_t) ~(1 << index))
 #define PICO_SOCKET_GETOPT(socket, index) ((socket->opt_flags & (1u << index)) != 0)
 
-
 #endif
