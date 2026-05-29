@@ -510,4 +510,3 @@ struct pico_device *pico_radiotest_create(struct pico_stack *S, uint8_t addr, ui
 
     return (struct pico_device *)lp;
 }
-

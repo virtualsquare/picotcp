@@ -54,6 +54,4 @@ int pico_setsockopt_ll(struct pico_socket *s, int option, void *value);
 int pico_getsockopt_ll(struct pico_socket *s, int option, void *value);
 int pico_socket_ll_close(struct pico_socket *arg);
 
-
-
 #endif /* INCLUDE_PICO_SOCKET_LL */

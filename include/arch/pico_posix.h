@@ -140,4 +140,3 @@ static inline void PICO_IDLE(void)
 }
 
 #endif  /* PICO_SUPPORT_POSIX */
-

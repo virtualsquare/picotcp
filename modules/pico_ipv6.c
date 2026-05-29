@@ -2229,6 +2229,4 @@ void pico_ipv6_unreachable(struct pico_stack *S, struct pico_frame *f, uint8_t c
 #endif
 }
 
-
-
 #endif

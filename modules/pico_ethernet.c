@@ -449,5 +449,3 @@ int32_t MOCKABLE pico_ethernet_send(struct pico_stack *S, struct pico_frame *f)
 }
 
 #endif /* PICO_SUPPORT_ETH */
-
-

@@ -3,8 +3,8 @@
    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
-#ifndef _INCLUDE_PICO_GCC
-#define _INCLUDE_PICO_GCC
+#ifndef INCLUDE_PICO_GCC
+#define INCLUDE_PICO_GCC
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -111,7 +111,6 @@ static inline void PICO_IDLE(void)
     while (now == pico_ms_tick);
 }
 
-#endif /* IFNDEF RTOS */
+#endif /* PICO_SUPPORT_RTOS */
 
-#endif  /* PICO_GCC */
-
+#endif /* INCLUDE_PICO_GCC */

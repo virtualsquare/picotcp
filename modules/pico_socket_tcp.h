@@ -55,5 +55,4 @@ void transport_flags_update(struct pico_frame *, struct pico_socket *);
 
 #endif
 
-
 #endif

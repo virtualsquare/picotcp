@@ -24,8 +24,8 @@
  *
  *
  *********************************************************************/
-#ifndef _INCLUDE_PICO_ND
-#define _INCLUDE_PICO_ND
+#ifndef INCLUDE_PICO_ND
+#define INCLUDE_PICO_ND
 #include "pico_frame.h"
 #include "pico_ipv6.h"
 

@@ -3,8 +3,8 @@
    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
-#ifndef _INCLUDE_PICO_LPC
-#define _INCLUDE_PICO_LPC
+#ifndef INCLUDE_PICO_LPC
+#define INCLUDE_PICO_LPC
 
 #include <stdint.h>
 #include <stdlib.h>

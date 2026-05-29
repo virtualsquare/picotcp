@@ -58,4 +58,3 @@ int main(void)
     srunner_free(sr);
     return fails;
 }
-

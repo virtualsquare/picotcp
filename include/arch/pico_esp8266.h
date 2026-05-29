@@ -3,8 +3,8 @@
    See COPYING, LICENSE.GPLv2 and LICENSE.GPLv3 for usage.
 
  *********************************************************************/
-#ifndef _INCLUDE_PICO_ESP8266
-#define _INCLUDE_PICO_ESP8266
+#ifndef INCLUDE_PICO_ESP8266
+#define INCLUDE_PICO_ESP8266
 
 #include <stdio.h>
 

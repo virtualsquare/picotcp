@@ -24,8 +24,8 @@
  *
  *
  *********************************************************************/
-#ifndef _INCLUDE_PICO_IPV6_PMTU
-#define _INCLUDE_PICO_IPV6_PMTU
+#ifndef INCLUDE_PICO_IPV6_PMTU
+#define INCLUDE_PICO_IPV6_PMTU
 
 #include "pico_addressing.h"
 #include "pico_stack.h"

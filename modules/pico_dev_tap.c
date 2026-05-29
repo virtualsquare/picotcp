@@ -278,4 +278,3 @@ struct pico_device *pico_tap_create(struct pico_stack *S, char *name)
     dbg("Device %s created.\n", tap->dev.name);
     return (struct pico_device *)tap;
 }
-

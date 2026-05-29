@@ -45,4 +45,5 @@ int igmp_parameters_cmp(void *ka, void *kb);
 int igmp_sources_cmp(void *ka, void *kb);
 
 int pico_igmp_state_change(struct pico_stack *S, struct pico_ip4 *mcast_link, struct pico_ip4 *mcast_group, uint8_t filter_mode, struct pico_tree *_MCASTFilter, uint8_t state);
-#endif /* _INCLUDE_PICO_IGMP */
+
+#endif /* INCLUDE_PICO_IGMP */

@@ -137,4 +137,3 @@ void app_ping(struct pico_stack *S, char *arg)
 }
 #endif
 /*** END PING ***/
-

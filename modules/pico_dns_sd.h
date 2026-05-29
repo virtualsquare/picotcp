@@ -107,6 +107,4 @@ pico_dns_sd_browse_service(const char *type,
 int
 pico_dns_sd_kv_vector_add(kv_vector *vector, char *key, char *value);
 
-
-#endif /* _INCLUDE_PICO_DNS_SD */
-
+#endif /* INCLUDE_PICO_DNS_SD */

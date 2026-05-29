@@ -1474,4 +1474,3 @@ struct pico_mem_manager*pico_mem_profile_manager()
     return manager;
 }
 #endif /* PICO_SUPPORT_MM_PROFILING */
-

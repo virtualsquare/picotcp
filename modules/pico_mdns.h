@@ -230,4 +230,4 @@ pico_mdns_init(struct pico_stack *S,
 int pico_mdns_cookie_cmp(void *ka, void *kb);
 int pico_mdns_record_cmp_name_type(void *a, void *b);
 
-#endif /* _INCLUDE_PICO_MDNS */
+#endif /* INCLUDE_PICO_MDNS */

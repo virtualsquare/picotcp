@@ -274,4 +274,3 @@ int pico_getsockopt_udp(struct pico_socket *s, int option, void *value)
     return -1;
 #endif
 }
-

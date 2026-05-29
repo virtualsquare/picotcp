@@ -346,4 +346,3 @@ uint16_t pico_dualbuffer_checksum(void *inbuf1, uint32_t len1, void *inbuf2, uin
     sum = pico_checksum_adder(sum, inbuf2, len2);
     return pico_checksum_finalize(sum);
 }
-

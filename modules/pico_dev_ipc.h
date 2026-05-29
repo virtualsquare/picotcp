@@ -33,4 +33,3 @@ void pico_ipc_destroy(struct pico_device *ipc);
 struct pico_device *pico_ipc_create(struct pico_stack *S, const char *sock_path, const char *name, const uint8_t *mac);
 
 #endif
-

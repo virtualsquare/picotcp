@@ -53,5 +53,5 @@ int pico_dhcp_server_initiate(struct pico_dhcp_server_setting *setting);
 /* To destroy an existing DHCP server configuration, running on a given interface */
 int pico_dhcp_server_destroy(struct pico_device *dev);
 
-#endif /* _INCLUDE_PICO_DHCP_SERVER */
 #endif
+#endif /* INCLUDE_PICO_DHCP_SERVER */

@@ -33,4 +33,3 @@ void pico_loop_destroy(struct pico_device *loop);
 struct pico_device *pico_loop_create(struct pico_stack *S);
 
 #endif
-

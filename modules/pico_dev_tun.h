@@ -33,4 +33,3 @@ void pico_tun_destroy(struct pico_device *tun);
 struct pico_device *pico_tun_create(struct pico_stack *S, char *name);
 
 #endif
-

@@ -44,5 +44,4 @@ int pico_getsockopt_udp(struct pico_socket *s, int option, void *value);
 #   define pico_setsockopt_udp(...) (-1)
 #endif
 
-
 #endif
