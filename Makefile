@@ -14,7 +14,7 @@ AR:=$(CROSS_COMPILE)ar
 RANLIB:=$(CROSS_COMPILE)ranlib
 SIZE:=$(CROSS_COMPILE)size
 STRIP_BIN:=$(CROSS_COMPILE)strip
-TEST_LDFLAGS=-pthread  $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug
+TEST_LDFLAGS=-pthread $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug
 UNIT_LDFLAGS=-lcheck -lm -pthread
 UNIT_CFLAGS= $(CFLAGS) -Wno-missing-braces -Wno-format-extra-args
 
@@ -22,20 +22,20 @@ ifeq ($(OS),Darwin)
 	BREW_PREFIX_CHECK:=$(shell brew --prefix check)
 	UNIT_CFLAGS+=-I$(BREW_PREFIX_CHECK)/include
 	UNIT_LDFLAGS+=-L$(BREW_PREFIX_CHECK)/lib
-else ifeq ($(OS),FreeBSD)
-    UNIT_CFLAGS+=-I/usr/local/include
-    UNIT_LDFLAGS+=-L/usr/local/lib
+else ifneq ($(filter $(OS),DragonFly FreeBSD MidnightBSD OpenBSD),)
+	UNIT_CFLAGS+=-I/usr/local/include
+	UNIT_LDFLAGS+=-L/usr/local/lib
 else ifeq ($(OS),Haiku)
 	UNIT_CFLAGS+=-I/system/develop/headers
-    UNIT_LDFLAGS+=-L/system/lib -lnetwork
+	UNIT_LDFLAGS+=-L/system/lib -lnetwork
 else ifeq ($(OS),NetBSD)
 	UNIT_CFLAGS+=-I/usr/pkg/include
 	UNIT_LDFLAGS+=-L/usr/pkg/lib -Wl,-R/usr/pkg/lib
-else ifeq ($(OS),OpenBSD)
-	UNIT_CFLAGS+=-I/usr/local/include
-	UNIT_LDFLAGS+=-L/usr/local/lib
+else ifeq ($(OS),SunOS)
+	UNIT_CFLAGS+=-I/opt/local/include
+	UNIT_LDFLAGS+=-L/opt/local/lib -Wl,-R/opt/local/lib -lsocket
 else ifeq ($(OS),Linux)
-    UNIT_LDFLAGS+=-lsubunit
+	UNIT_LDFLAGS+=-lsubunit
 endif
 
 LIBNAME:="libpicotcp.a"
@@ -51,14 +51,9 @@ GENERIC?=0
 PTHREAD?=0
 GCOV?=0
 
-ifeq ($(OS),Haiku)
-	ADDRESS_SANITIZER=0
-else ifeq ($(OS),NetBSD)
-	ADDRESS_SANITIZER=0
-else ifeq ($(OS),OpenBSD)
-	ADDRESS_SANITIZER=0
-else
-	ADDRESS_SANITIZER?=1
+ADDRESS_SANITIZER?=1
+ifneq ($(filter $(OS),DragonFly Haiku NetBSD OpenBSD SunOS),)
+	ADDRESS_SANITIZER:=0
 endif
 
 # Default compiled-in protocols
@@ -130,7 +125,7 @@ endif
 EXTRA_CFLAGS+=-DPICO_COMPILE_TIME=`date +%s`
 EXTRA_CFLAGS+=$(PLATFORM_CFLAGS)
 
-CFLAGS=-I$(PREFIX)/include -Iinclude -Imodules  $(EXTRA_CFLAGS)
+CFLAGS=-I$(PREFIX)/include -Iinclude -Imodules $(EXTRA_CFLAGS)
 # options for adding warnings
 CFLAGS+= -Wall -W -Wextra -Wshadow -Wcast-qual -Wwrite-strings -Wundef -Wdeclaration-after-statement -Wno-address-of-packed-member
 CFLAGS+= -Wconversion -Wcast-align -Wmissing-prototypes
