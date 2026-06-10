@@ -2,6 +2,9 @@ name: Uncrustify
 
 on: [ push, pull_request ]
 
+permissions:
+  contents: read
+
 jobs:
   uncrustify:
     runs-on: ubuntu-slim
