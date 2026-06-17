@@ -15,27 +15,14 @@ RANLIB:=$(CROSS_COMPILE)ranlib
 SIZE:=$(CROSS_COMPILE)size
 STRIP_BIN:=$(CROSS_COMPILE)strip
 TEST_LDFLAGS=-pthread $(PREFIX)/modules/*.o $(PREFIX)/lib/*.o -lvdeplug
-UNIT_LDFLAGS=-lcheck -lm -pthread
-UNIT_CFLAGS= $(CFLAGS) -Wno-missing-braces -Wno-format-extra-args
 
-ifeq ($(OS),Darwin)
-	BREW_PREFIX_CHECK:=$(shell brew --prefix check)
-	UNIT_CFLAGS+=-I$(BREW_PREFIX_CHECK)/include
-	UNIT_LDFLAGS+=-L$(BREW_PREFIX_CHECK)/lib
-else ifneq ($(filter $(OS),DragonFly FreeBSD MidnightBSD OpenBSD),)
-	UNIT_CFLAGS+=-I/usr/local/include
-	UNIT_LDFLAGS+=-L/usr/local/lib
-else ifeq ($(OS),Haiku)
-	UNIT_CFLAGS+=-I/system/develop/headers
-	UNIT_LDFLAGS+=-L/system/lib -lnetwork
-else ifeq ($(OS),NetBSD)
-	UNIT_CFLAGS+=-I/usr/pkg/include
-	UNIT_LDFLAGS+=-L/usr/pkg/lib -Wl,-R/usr/pkg/lib
+PKG_CONFIG:=$(CROSS_COMPILE)pkg-config
+UNIT_CFLAGS=$(CFLAGS) -Wno-missing-braces -Wno-format-extra-args $(shell $(PKG_CONFIG) --cflags check)
+UNIT_LDFLAGS=$(shell $(PKG_CONFIG) --libs check)
+ifeq ($(OS),Haiku)
+	UNIT_LDFLAGS+=-lnetwork
 else ifeq ($(OS),SunOS)
-	UNIT_CFLAGS+=-I/opt/local/include
-	UNIT_LDFLAGS+=-L/opt/local/lib -Wl,-R/opt/local/lib -lsocket
-else ifeq ($(OS),Linux)
-	UNIT_LDFLAGS+=-lsubunit
+	UNIT_LDFLAGS+=-lsocket
 endif
 
 LIBNAME:="libpicotcp.a"
