@@ -20,7 +20,7 @@ jobs:
       - name: Set up build environment (macOS)
         run: |
           brew update
-          brew install check
+          brew install check pkg-config
         if: runner.os == 'macOS'
       - uses: actions/checkout@v6
       - name: Build

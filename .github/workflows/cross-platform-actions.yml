@@ -17,33 +17,34 @@ jobs:
             version: '6.4.2'
             pkginstall: |
               sudo pkg update
-              sudo pkg install -y check gmake
+              sudo pkg install -y check gmake pkgconf
           - operating_system: freebsd
             version: '15.0'
             pkginstall: |
               sudo pkg update
-              sudo pkg install -y check gmake
+              sudo pkg install -y check gmake pkgconf
           - operating_system: haiku
             version: 'r1beta5'
             pkginstall: |
               pkgman update -y
-              pkgman install -y check_devel
+              pkgman install -y check_devel pkgconfig
           - operating_system: midnightbsd
             version: '4.0.4'
             pkginstall: |
               sudo mport upgrade
-              sudo mport install check gmake || true
+              sudo mport install check gmake pkgconf || true
           - operating_system: netbsd
             version: '10.1'
             pkginstall: |
               sudo pkgin update
-              sudo pkgin -y install check clang gmake
+              sudo pkgin -y install check clang gmake pkg-config
           - operating_system: omnios
             version: 'r151058'
             pkginstall: |
               sudo pkg update || true
-              sudo pkg install build-essential
+              sudo pkg install build-essential pkg-config
               sudo ln -s /usr/bin/gcc /usr/bin/cc
+              # From https://pkgsrc.smartos.org/install-on-illumos/
               curl -O https://pkgsrc.smartos.org/packages/SmartOS/bootstrap/bootstrap-trunk-x86_64-20240116.tar.gz
               sudo tar -zxpf bootstrap-trunk-x86_64-*.tar.gz -C /
               sudo /opt/local/bin/pkgin -y update
@@ -52,7 +53,7 @@ jobs:
             version: '7.9'
             pkginstall: |
               sudo pkg_add -u
-              sudo pkg_add check gmake
+              sudo pkg_add check gmake pkg-config
         exclude:
           - operating_system: dragonflybsd
             architecture: arm64
@@ -80,6 +81,9 @@ jobs:
         run: |
           if [ "${{ matrix.operating_system }}" != "haiku" ]; then
             export MAKE=gmake
+          fi
+          if [ "${{ matrix.operating_system }}" = "omnios" ]; then
+            export PKG_CONFIG_PATH=/opt/local/lib/pkgconfig
           fi
           ${MAKE:-make} CC=cc
           ${MAKE:-make} clean
