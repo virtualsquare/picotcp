@@ -22,7 +22,7 @@ jobs:
           brew update
           brew install check pkg-config
         if: runner.os == 'macOS'
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build
         run: make
       - name: Unit tests
