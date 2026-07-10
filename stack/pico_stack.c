@@ -969,7 +969,7 @@ int MOCKABLE pico_stack_init(struct pico_stack **S)
     (*S)->ipv6_path_cache_gc_timer.interval = PICO_PMTU_CACHE_CLEANUP_INTERVAL;
 #endif
 
-#ifdef PICO_SUPPORT_MLD
+#if defined(PICO_SUPPORT_MLD) && defined(PICO_SUPPORT_IPV6) && defined(PICO_SUPPORT_MCAST)
     EMPTY_TREE((*S)->MLDTimers, mld_timer_cmp);
     EMPTY_TREE((*S)->MLDParameters, mcast_parameters_cmp);
     EMPTY_TREE((*S)->MLDAllow, mld_sources_cmp);
