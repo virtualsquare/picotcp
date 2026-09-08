@@ -329,6 +329,14 @@ static int pico_fragments_reassemble(struct pico_tree *tree, unsigned int len, u
         return -3;
     }
 
+    /* A reassembled datagram must fit the 16-bit frame length. Without this
+     * check the (uint16_t) cast below truncates the allocation while the copy
+     * loop writes the full length, overflowing the heap buffer. The fragments
+     * are left for the expiration timer, as on allocation failure below. */
+    if (len > (65535U - header_length)) {
+        return -4;
+    }
+
     full = pico_frame_alloc((uint16_t)(header_length + len));
     if (full) {
         full->net_hdr = full->buffer;
