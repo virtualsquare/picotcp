@@ -675,7 +675,11 @@ static int pico_ipv4_process_in(struct pico_stack *S, struct pico_protocol *self
     f->frag = short_be(hdr->frag);
 #endif
 
-    if (f->transport_len > max_allowed) {
+    /* max_allowed measures the space after the fixed IP header, but the transport
+     * area starts option_len bytes further in; subtract the options so the check
+     * cannot admit a transport region running past the frame (FSCT-2026-0022).
+     * The net_len fit-check above guarantees max_allowed >= option_len. */
+    if (f->transport_len > (uint16_t)(max_allowed - option_len)) {
         pico_frame_discard(f);
         return 0; /* Packet is discarded due to unfeasible length */
     }
