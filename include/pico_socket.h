@@ -234,6 +234,10 @@ int pico_socket_getpeername(struct pico_socket *s, void *remote_addr, uint16_t *
 
 int pico_socket_connect(struct pico_socket *s, const void *remote_addr, uint16_t remote_port);
 int pico_socket_listen(struct pico_socket *s, const int backlog);
+/* `orig` must point to a buffer large enough for the peer address of the
+ * socket's address family: sizeof(struct pico_ip4) for IPv4, sizeof(struct
+ * pico_ip6) for IPv6. Use `union pico_address` to be safe for either family;
+ * a smaller buffer is overflown by the family-sized copy (FSCT-2026-0018). */
 struct pico_socket *pico_socket_accept(struct pico_socket *s, void *orig, uint16_t *port);
 int8_t pico_socket_del(struct pico_socket *s);
 

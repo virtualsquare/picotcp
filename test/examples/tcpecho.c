@@ -58,7 +58,11 @@ void cb_tcpecho(uint16_t ev, struct pico_socket *s)
         struct pico_socket *sock_a = {
             0
         };
-        struct pico_ip4 orig = {
+        /* Family-agnostic buffer: pico_socket_accept() copies the peer address
+         * sized by the socket's family (16 bytes for IPv6), so a bare
+         * struct pico_ip4 here would be overflowed by an IPv6 peer
+         * (FSCT-2026-0018). */
+        union pico_address orig = {
             0
         };
         uint16_t port = 0;
@@ -68,7 +72,7 @@ void cb_tcpecho(uint16_t ev, struct pico_socket *s)
         int yes = 1;
 
         sock_a = pico_socket_accept(s, &orig, &port);
-        pico_ipv4_to_string(peer, orig.addr);
+        pico_ipv4_to_string(peer, orig.ip4.addr);
         printf("Connection established with %s:%d.\n", peer, short_be(port));
         pico_socket_setoption(sock_a, PICO_TCP_NODELAY, &yes);
         /* Set keepalive options */
