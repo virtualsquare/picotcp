@@ -245,7 +245,6 @@ static char *pico_dns_client_seek(char *ptr, const char *end)
 
     while ((ptr < end) && (*ptr != 0))
         ptr++;
-
     /* No terminator within the response: reject instead of walking past it. */
     if (ptr >= end)
         return NULL;
