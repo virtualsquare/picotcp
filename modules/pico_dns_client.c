@@ -237,14 +237,19 @@ static struct pico_dns_query *pico_dns_client_find_query(struct pico_stack *S, u
         return NULL;
 }
 
-/* seek end of string */
-static char *pico_dns_client_seek(char *ptr)
+/* seek end of string, without reading past the end of the response buffer */
+static char *pico_dns_client_seek(char *ptr, const char *end)
 {
-    if (!ptr)
+    if (!ptr || !end)
         return NULL;
 
-    while (*ptr != 0)
+    while ((ptr < end) && (*ptr != 0))
         ptr++;
+
+    /* No terminator within the response: reject instead of walking past it. */
+    if (ptr >= end)
+        return NULL;
+
     return ptr + 1;
 }
 
@@ -358,7 +363,7 @@ static char *pico_dns_client_seek_suffix(char *suf, struct pico_dns_header *pre,
 
         case PICO_DNS_LABEL:
             dns_dbg("DNS: label\n");
-            suf = pico_dns_client_seek(suf);
+            suf = pico_dns_client_seek(suf, (const char *)pre + PICO_IP_MRU);
             break;
 
         default:
@@ -602,7 +607,7 @@ static void pico_dns_client_callback(uint16_t ev, struct pico_socket *s)
 
     /* FIX: what if the query is not a PTR query? */
     domain = (char *)header + sizeof(struct pico_dns_header);
-    qsuffix = (struct pico_dns_question_suffix *)pico_dns_client_seek(domain);
+    qsuffix = (struct pico_dns_question_suffix *)pico_dns_client_seek(domain, dns_response + sizeof(dns_response));
     /* valid asuffix is determined dynamically later on */
 
     if (pico_dns_client_check_qsuffix(qsuffix, q) < 0)
