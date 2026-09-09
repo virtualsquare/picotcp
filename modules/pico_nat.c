@@ -518,6 +518,8 @@ int pico_ipv4_nat_outbound(struct pico_stack *S, struct pico_frame *f, struct pi
         tuple = pico_ipv4_nat_find_tuple(S, 0, &net->src, trans->sport, net->proto);
         if (!tuple)
             tuple = pico_ipv4_nat_generate_tuple(S, f);
+        if (!tuple)
+            return -1;
 
         /* replace src IP and src PORT */
         net->src = tuple->nat_addr;
@@ -536,6 +538,8 @@ int pico_ipv4_nat_outbound(struct pico_stack *S, struct pico_frame *f, struct pi
         tuple = pico_ipv4_nat_find_tuple(S, 0, &net->src, trans->sport, net->proto);
         if (!tuple)
             tuple = pico_ipv4_nat_generate_tuple(S, f);
+        if (!tuple)
+            return -1;
 
         /* replace src IP and src PORT */
         net->src = tuple->nat_addr;
