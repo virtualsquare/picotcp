@@ -428,11 +428,19 @@ static void pico_igmp_v2querier_expired(struct igmp_timer *t)
 static int pico_igmp_is_checksum_valid(struct pico_frame *f)
 {
     struct pico_ipv4_hdr *hdr = NULL;
-    uint8_t ihl = 24, datalen = 0;
+    uint16_t ihl = 20, datalen = 0;
+    uint32_t avail;
 
     hdr = (struct pico_ipv4_hdr *)f->net_hdr;
-    ihl = (uint8_t)((hdr->vhl & 0x0F) * 4); /* IHL is in 32bit words */
-    datalen = (uint8_t)(short_be(hdr->len) - ihl);
+    ihl = (uint16_t)((hdr->vhl & 0x0F) * 4); /* IHL is in 32bit words */
+    datalen = (uint16_t)(short_be(hdr->len) - ihl);
+
+    /* The claimed payload must fit in the received frame. */
+    if ((uint32_t)(f->transport_hdr - f->buffer) >= f->len)
+        return 0;
+    avail = (uint32_t)(f->len - (uint32_t)(f->transport_hdr - f->buffer));
+    if (datalen > avail)
+        return 0;
 
     if (short_be(pico_checksum(f->transport_hdr, datalen)) == 0)
         return 1;
