@@ -9,11 +9,7 @@ Please consider checking the list of known issues before using picoTCP in produc
 
 Vulnerabilities that can be found in picoTCP-NG v.2.1:
 
-* ❗ Improper bound checking against the parsing of domain names may result in remote code execution (CVE-2020-24338)
-  * Triaged. Awaiting assignment.
-
-* ❗ Improper bound checking against the parsing of domain names may result in a denial of service (CVE-2020-24339)
-  * Triaged. Awaiting assignment.
+* None currently known.
 
 Vulnerabilities fixed in this version:
 
@@ -39,5 +35,11 @@ Vulnerabilities fixed in this version:
   *  **Fixed in v2.1** :heavy_check_mark:
 
 * Improper checks in the process of DNS response handling which may lead to memory corruption (CVE-2020-24340)
-  *  **Fixed in master (post-v2.1)** :heavy_check_mark:
+  *  **Fixed in 2.2** :heavy_check_mark:
+
+* Improper bound checking against the parsing of domain names which may result in remote code execution (CVE-2020-24338)
+  *  **Fixed in 2.2** :heavy_check_mark:
+
+* Improper bound checking against the parsing of domain names which may result in a denial of service (CVE-2020-24339)
+  *  **Fixed in 2.2** :heavy_check_mark:
 
