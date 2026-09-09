@@ -43,3 +43,18 @@ Vulnerabilities fixed in this version:
 * Improper bound checking against the parsing of domain names which may result in a denial of service (CVE-2020-24339)
   *  **Fixed in 2.2** :heavy_check_mark:
 
+* Heap buffer overflow in IP fragment reassembly due to a 16-bit length truncation (Forescout FSCT-2026-0017)
+  *  **Fixed in 2.2** :heavy_check_mark:
+
+* Address-buffer overflow in the pico_socket_accept() peer-address copy (Forescout FSCT-2026-0018)
+  *  **Fixed in 2.2** :heavy_check_mark:
+
+* Unsigned integer underflow in UDP receive leading to an out-of-bounds read (Forescout FSCT-2026-0019)
+  *  **Fixed in 2.2** :heavy_check_mark:
+
+* Out-of-bounds read in DNS client name lookup due to an unbounded name walk (Forescout FSCT-2026-0020)
+  *  **Fixed in 2.2** :heavy_check_mark:
+
+* Out-of-bounds read in IPv4 input processing due to an off-by-option-length bound check (Forescout FSCT-2026-0022)
+  *  **Fixed in 2.2** :heavy_check_mark:
+
