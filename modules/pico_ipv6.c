@@ -554,7 +554,7 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
 
         case PICO_IPV6_EXTHDR_OPT_PADN:
             optlen = (uint8_t)((*(option + 1)) + 2); /* plus type and len byte */
-            if (optlen == 0)
+            if ((optlen > len) || (optlen == 0))
                 return -1;
             option += optlen;
             len = (uint8_t)(len - optlen);
@@ -564,7 +564,7 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
             /* MLD package */
             if (*(option + 1) == 2)
                 must_align = 0;
-            if (optlen == 0)
+            if ((optlen > len) || (optlen == 0))
                 return -1;
             option += optlen;
             len = (uint8_t)(len - optlen);
@@ -572,6 +572,8 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
         default:
             /* unknown option */
             optlen = (uint8_t)(*(option + 1) + 2); /* plus type and len byte */
+            if ((optlen > len) || (optlen == 0))
+                return -1;
             switch ((*option) & PICO_IPV6_EXTHDR_OPT_ACTION_MASK) {
             case PICO_IPV6_EXTHDR_OPT_ACTION_SKIP:
                 break;
@@ -588,8 +590,6 @@ static int pico_ipv6_process_hopbyhop(struct pico_ipv6_exthdr *hbh, struct pico_
             }
             ipv6_dbg("IPv6: option with type %u and length %u\n", *option, optlen);
             option += optlen;
-            if (optlen == 0)
-                return -1;
             len = (uint8_t)(len - optlen);
         }
     }
@@ -677,9 +677,13 @@ static int pico_ipv6_check_headers_sequence(struct pico_frame *f)
     struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
     int ptr = sizeof(struct pico_ipv6_hdr);
     int cur_nexthdr = 6; /* Starts with nexthdr field in ipv6 pkt */
+    int end = (int)sizeof(struct pico_ipv6_hdr) + (int)short_be(hdr->len);
     uint8_t nxthdr = hdr->nxthdr;
+    uint8_t optlen;
     for (;;) {
-        uint8_t optlen = *(f->net_hdr + ptr + 1);
+        if (ptr + 2 > end)
+            return -1; /* ext header runs past the end of the packet */
+        optlen = *(f->net_hdr + ptr + 1);
         if (optlen == 0)
             return 0;
         switch (nxthdr) {
@@ -711,6 +715,8 @@ static int pico_ipv6_check_headers_sequence(struct pico_frame *f)
         nxthdr = *(f->net_hdr + ptr);
         if (optlen == 0)
             return -1;
+        if (ptr + (int)optlen > end)
+            return -1; /* ext header length exceeds the packet */
         ptr += optlen;
     }
 }
