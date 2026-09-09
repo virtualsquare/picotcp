@@ -1960,12 +1960,13 @@ pico_mdns_populate_antree(struct pico_stack *S, char *name, uint16_t qtype, uint
  *
  *  @param question DNS question to parse and handle.
  *  @param packet   Received packet in which the DNS question was present.
+ *  @param end      One past the last valid byte of the packet
  *  @return mDNS record tree with possible answer to the question. Can possibly
  *			be empty.
  * ****************************************************************************/
 static pico_mdns_rtree
 pico_mdns_handle_single_question(struct pico_dns_question *question,
-                                 pico_dns_packet *packet)
+                                 pico_dns_packet *packet, uint8_t *end)
 {
     struct pico_mdns_cookie *cookie = NULL;
     PICO_MDNS_RTREE_DECLARE(antree);
@@ -1979,7 +1980,8 @@ pico_mdns_handle_single_question(struct pico_dns_question *question,
     }
 
     /* Decompress single DNS question */
-    qname_original = pico_dns_question_decompress(question, packet);
+    qname_original = pico_dns_question_decompress(question, packet,
+                                                  (size_t)(end - (uint8_t *)packet));
     mdns_dbg("Question RCVD for '%s'\n", question->qname);
     if (NULL != question->qname) {
 
@@ -2201,7 +2203,7 @@ pico_mdns_handle_data_as_questions(struct pico_stack *S,
         question.stack = S;
 
         /* Handle a single question and merge the returned tree */
-        rtree = pico_mdns_handle_single_question(&question, packet);
+        rtree = pico_mdns_handle_single_question(&question, packet, end);
         pico_tree_merge(&antree, &rtree);
         pico_tree_destroy(&rtree, NULL);
 
@@ -2269,7 +2271,8 @@ pico_mdns_handle_data_as_answers_generic(struct pico_stack *S,
         }
 
         /* Make an mDNS record from the DNS answer */
-        orname = pico_dns_record_decompress(&answer, packet);
+        orname = pico_dns_record_decompress(&answer, packet,
+                                            (size_t)(end - (uint8_t *)packet));
         if (NULL != answer.rname) {
             mdns_answer.record = &answer;
             mdns_answer.record->rname_length = (uint16_t)(pico_dns_strlen(answer.rname) + 1u);
@@ -2769,7 +2772,8 @@ pico_mdns_apply_k_a_s(pico_mdns_rtree *rtree,
             return -1;
         }
 
-        pico_dns_record_decompress(&answer, packet);
+        pico_dns_record_decompress(&answer, packet,
+                                   (size_t)(end - (uint8_t *)packet));
         ka.record = &answer;
 
         /* If the answer is in the record vector */

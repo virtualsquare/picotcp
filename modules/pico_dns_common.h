@@ -168,12 +168,13 @@ pico_dns_namelen_comp(char *name);
  *  Returns the uncompressed name in DNS name format when DNS name compression
  *  is applied to the packet-buffer.
  *
- *  @param name   Compressed name, should be in the bounds of the actual packet
- *  @param packet Packet that contains the compressed name
+ *  @param name      Compressed name, must lie within [packet, packet + packet_len)
+ *  @param packet    Packet that contains the compressed name
+ *  @param packet_len Length of the packet in bytes
  *  @return Returns the decompressed name, NULL on failure.
  * ****************************************************************************/
 char *
-pico_dns_decompress_name(char *name, pico_dns_packet *packet);
+pico_dns_decompress_name(char *name, pico_dns_packet *packet, size_t packet_len);
 
 /* ****************************************************************************
  *  Converts a DNS name in DNS name format to a name in URL format. Provides
@@ -314,11 +315,12 @@ pico_dns_question_create(const char *url,
  *
  *  @param question Question you want to decompress the name of
  *  @param packet   Packet in which the DNS question is contained.
+ *  @param packet_len Length of the packet in bytes
  *  @return Pointer to original name of the DNS question before decompressing.
  * ****************************************************************************/
 char *
 pico_dns_question_decompress(struct pico_dns_question *question,
-                             pico_dns_packet *packet);
+                             pico_dns_packet *packet, size_t packet_len);
 
 /* MARK: RESOURCE RECORD FUNCTIONS */
 
@@ -373,11 +375,12 @@ pico_dns_record_create(struct pico_stack *S,
  *
  *  @param record DNS record to decompress the name of.
  *  @param packet Packet in which is DNS record is present
+ *  @param packet_len Length of the packet in bytes
  *  @return Pointer to original name of the DNS record before decompressing.
  * ****************************************************************************/
 char *
 pico_dns_record_decompress(struct pico_dns_record *record,
-                           pico_dns_packet *packet);
+                           pico_dns_packet *packet, size_t packet_len);
 
 /* MARK: COMPARING */
 

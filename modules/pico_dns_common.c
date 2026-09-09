@@ -105,50 +105,86 @@ pico_dns_namelen_comp(char *name)
  *  Returns the uncompressed name in DNS name format when DNS name compression
  *  is applied to the packet-buffer.
  *
- *  @param name   Compressed name, should be in the bounds of the actual packet
- *  @param packet Packet that contains the compressed name
+ *  @param name      Compressed name, must lie within [packet, packet + packet_len)
+ *  @param packet    Packet that contains the compressed name
+ *  @param packet_len Length of the packet in bytes
  *  @return Returns the decompressed name, NULL on failure.
  * ****************************************************************************/
 char *
-pico_dns_decompress_name(char *name, pico_dns_packet *packet)
+pico_dns_decompress_name(char *name, pico_dns_packet *packet, size_t packet_len)
 {
     char decompressed_name[PICO_DNS_NAMEBUF_SIZE] = {
         0
     };
     char *return_name = NULL;
+    const uint8_t *p = (const uint8_t *)name;
+    const uint8_t *end = (const uint8_t *)packet + packet_len;
     uint16_t ptr = 0, nslen = 0;
     uint16_t decompressed_index = 0;
-    char *label = NULL, *next = NULL;
 
-    /* Reading labels until reaching to pointer or NULL terminator.
-     * Only one pointer is allowed in DNS compression, the pointer is always the last according to the RFC */
-    dns_name_foreach_label_safe(label, name, next, PICO_DNS_NAMEBUF_SIZE) {
-
-        uint8_t label_size = (uint8_t)(*label + 1);
-        if (decompressed_index + label_size >= PICO_DNS_NAMEBUF_SIZE) {
-            return NULL;
-        }
-        memcpy(&decompressed_name[decompressed_index], label, label_size);
-        decompressed_index = (uint16_t)(decompressed_index + label_size);
-    }
-
-    if (decompressed_index >= PICO_DNS_NAMEBUF_SIZE) {
+    /* Check params: the name must be fully inside the packet */
+    if (!name || !packet || ((const uint8_t *)name) < (const uint8_t *)packet ||
+        ((const uint8_t *)name) + 1 > end) {
+        pico_err = PICO_ERR_EINVAL;
         return NULL;
     }
 
-    if (*label & 0xC0) {
-        /* Found compression bits */
-        ptr = (uint16_t)((((uint16_t) *label) & 0x003F) << 8);
-        ptr = (uint16_t)(ptr | (uint16_t) *(label + 1));
-        label = (char *)((uint8_t *)packet + ptr);
+    /* Walk labels from the start of the name until a terminator or a
+     * compression pointer. Every read is bounded by the packet end. */
+    while (p < end) {
+        uint8_t c = *p;
 
-        dns_name_foreach_label_safe(label, label, next, PICO_DNS_NAMEBUF_SIZE - decompressed_index) {
-            uint8_t label_size = (uint8_t)(*label + 1);
-            if (decompressed_index + label_size >= PICO_DNS_NAMEBUF_SIZE) {
+        if (c == 0x00 || c >= 0xC0) {
+            break;
+        }
+        if (c > 63 || p + c + 1 > end) {
+            return NULL;
+        }
+        if (decompressed_index + c + 1 >= PICO_DNS_NAMEBUF_SIZE) {
+            return NULL;
+        }
+        memcpy(&decompressed_name[decompressed_index], p, (size_t)(c + 1));
+        decompressed_index = (uint16_t)(decompressed_index + c + 1);
+        p += c + 1;
+    }
+    /* The walk must have stopped on a terminator or a pointer, not run off
+     * the end of the packet. */
+    if (p >= end) {
+        return NULL;
+    }
+
+    if (*p >= 0xC0) {
+        /* Compression pointer: both bytes and the target offset must lie
+         * inside the packet. */
+        if (p + 2 > end) {
+            return NULL;
+        }
+        ptr = (uint16_t)((((uint16_t)*p & 0x003F) << 8) | (uint16_t)*(p + 1));
+        if (ptr >= packet_len) {
+            return NULL;
+        }
+        p = (const uint8_t *)packet + ptr;
+
+        /* Walk the remainder from the pointer target to its terminator. A
+         * second pointer is not valid DNS compression. */
+        while (p < end) {
+            uint8_t c = *p;
+
+            if (c == 0x00) {
+                break;
+            }
+            if (c >= 0xC0 || c > 63 || p + c + 1 > end) {
                 return NULL;
             }
-            memcpy(&decompressed_name[decompressed_index], label, label_size);
-            decompressed_index = (uint16_t) (decompressed_index + label_size);
+            if (decompressed_index + c + 1 >= PICO_DNS_NAMEBUF_SIZE) {
+                return NULL;
+            }
+            memcpy(&decompressed_name[decompressed_index], p, (size_t)(c + 1));
+            decompressed_index = (uint16_t)(decompressed_index + c + 1);
+            p += c + 1;
+        }
+        if (p >= end) {
+            return NULL;
         }
     }
 
@@ -687,16 +723,17 @@ pico_dns_question_create(const char *url,
  *
  *  @param question Question you want to decompress the name of
  *  @param packet   Packet in which the DNS question is contained.
+ *  @param packet_len Length of the packet in bytes
  *  @return Pointer to original name of the DNS question before decompressing.
  * ****************************************************************************/
 char *
 pico_dns_question_decompress(struct pico_dns_question *question,
-                             pico_dns_packet *packet)
+                             pico_dns_packet *packet, size_t packet_len)
 {
     char *qname_original = question->qname;
 
     /* Try to decompress the question name */
-    question->qname = pico_dns_decompress_name(question->qname, packet);
+    question->qname = pico_dns_decompress_name(question->qname, packet, packet_len);
 
     return qname_original;
 }
@@ -1006,16 +1043,17 @@ pico_dns_record_create(struct pico_stack *S,
  *
  *  @param record DNS record to decompress the name of.
  *  @param packet Packet in which is DNS record is present
+ *  @param packet_len Length of the packet in bytes
  *  @return Pointer to original name of the DNS record before decompressing.
  * ****************************************************************************/
 char *
 pico_dns_record_decompress(struct pico_dns_record *record,
-                           pico_dns_packet *packet)
+                           pico_dns_packet *packet, size_t packet_len)
 {
     char *rname_original = record->rname;
 
     /* Try to decompress the record name */
-    record->rname = pico_dns_decompress_name(record->rname, packet);
+    record->rname = pico_dns_decompress_name(record->rname, packet, packet_len);
 
     return rname_original;
 }
