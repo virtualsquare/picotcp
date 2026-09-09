@@ -1527,6 +1527,11 @@ defrag_new(struct pico_frame *f, uint16_t dgram_size, uint16_t tag, uint16_t off
 {
     struct pico_frame *r = pico_proto_6lowpan_ll.alloc(f->dev->stack, &pico_proto_6lowpan_ll, f->dev, dgram_size);
     if (r) {
+        if ((uint32_t)off + (uint32_t)f->len > (uint32_t)dgram_size) {
+            pico_frame_discard(f);
+            pico_frame_discard(r);
+            return -1;
+        }
         r->start = r->buffer + (int32_t)(r->buffer_len - (uint32_t)dgram_size);
         r->len = dgram_size;
         r->net_hdr = r->start;
@@ -1549,6 +1554,10 @@ static int32_t
 defrag_update(struct frag_ctx *frag, uint16_t off, struct pico_frame *f)
 {
     struct pico_frame *r = frag->f;
+    if ((uint32_t)off + (uint32_t)f->len > (uint32_t)frag->dgram_size) {
+        pico_frame_discard(f);
+        return -1;
+    }
     buf_move(r->start + (int32_t)off, f->start, f->len); /* Copy at start */
     frag->copied = (uint16_t)(frag->copied + (uint16_t)f->len);
     pico_frame_discard(f);
