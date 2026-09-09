@@ -1620,7 +1620,8 @@ START_TEST(tc_mdns_handle_data_as_questions) /* MARK: handle_data_as_questions *
 
     ptr = ((uint8_t *)packet + 12);
 
-    antree = pico_mdns_handle_data_as_questions(S, &ptr, 2, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &ptr, 2, packet,
+                                                 (uint8_t *)packet + len);
     fail_unless(2 == pico_tree_count(&antree),
                 "pico_mdns_handle_data_as_questions returned error!\n");
 
@@ -1661,7 +1662,8 @@ START_TEST(tc_mdns_handle_data_as_answers) /* MARK: handle_data_as_answers */
 
     ptr = ((uint8_t *)packet + 12);
 
-    ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 0);
+    ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 0,
+                                                   (uint8_t *)packet + len);
     fail_unless(0 == ret, "mdns_handle_data_as_answers failed!\n");
 
     printf("*********************** ending %s * \n", __func__);
@@ -1701,8 +1703,92 @@ START_TEST(tc_mdns_handle_data_as_authorities) /* MARK: handle_data_as_authoriti
 
     ptr = ((uint8_t *)packet + 12);
 
-    ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 1);
+    ret = pico_mdns_handle_data_as_answers_generic(S, &ptr, 2, packet, 1,
+                                                   (uint8_t *)packet + len);
     fail_unless(0 == ret, "mdns_handle_data_as_answers failed!\n");
+
+    printf("*********************** ending %s * \n", __func__);
+}
+END_TEST
+START_TEST(tc_mdns_recv_truncated_packet) /* MARK: recv_truncated_packet */
+{
+    pico_dns_packet *packet = NULL;
+    struct pico_ip4 peer = {
+        long_be(0x0A000001)
+    };
+    uint8_t buf[64];
+    int ret = 0;
+    struct pico_stack *S = NULL;
+
+    printf("*********************** starting %s * \n", __func__);
+
+    pico_stack_init(&S);
+
+    /* Response with one answer whose name is truncated: no terminator */
+    memset(buf, 0, sizeof(buf));
+    packet = (pico_dns_packet *)buf;
+    packet->ancount = short_be(1);
+    buf[12] = 0x03;
+    buf[13] = 'f';
+    buf[14] = 'o';
+    buf[15] = 'o';
+
+    ret = pico_mdns_recv(S, buf, 16, peer);
+    fail_unless(-1 == ret, "truncated name accepted!\n");
+
+    /* Response with one answer whose rdlength runs past the packet end */
+    memset(buf, 0, sizeof(buf));
+    packet = (pico_dns_packet *)buf;
+    packet->ancount = short_be(1);
+    buf[12] = 0x03;
+    buf[13] = 'f';
+    buf[14] = 'o';
+    buf[15] = 'o';
+    buf[16] = 0x00;
+    buf[17] = 0x00;
+    buf[18] = 0x01;
+    buf[19] = 0x80;
+    buf[20] = 0x01;
+    buf[21] = 0x00;
+    buf[22] = 0x00;
+    buf[23] = 0x00;
+    buf[24] = 0x78;
+    buf[25] = 0x01;
+    buf[26] = 0x00;
+    buf[27] = 0x0A;
+    buf[28] = 0x0A;
+    buf[29] = 0x00;
+    buf[30] = 0x01;
+
+    ret = pico_mdns_recv(S, buf, 31, peer);
+    fail_unless(-1 == ret, "rdlength past packet end accepted!\n");
+
+    /* A fully contained answer is still accepted */
+    memset(buf, 0, sizeof(buf));
+    packet = (pico_dns_packet *)buf;
+    packet->ancount = short_be(1);
+    buf[12] = 0x03;
+    buf[13] = 'f';
+    buf[14] = 'o';
+    buf[15] = 'o';
+    buf[16] = 0x00;
+    buf[17] = 0x00;
+    buf[18] = 0x01;
+    buf[19] = 0x80;
+    buf[20] = 0x01;
+    buf[21] = 0x00;
+    buf[22] = 0x00;
+    buf[23] = 0x00;
+    buf[24] = 0x78;
+    buf[25] = 0x00;
+    buf[26] = 0x04;
+    buf[27] = 0x0A;
+    buf[28] = 0x0A;
+    buf[29] = 0x00;
+    buf[30] = 0x01;
+
+    ret = pico_mdns_recv(S, buf, 31, peer);
+    fail_unless(0 == ret, "valid response rejected!\n");
 
     printf("*********************** ending %s * \n", __func__);
 }
@@ -1839,7 +1925,8 @@ START_TEST(tc_mdns_apply_known_answer_suppression) /* MARK: apply_k_a_s */
 
     printf("Applying Known answer suppression...\n");
 
-    ret = pico_mdns_apply_k_a_s(&rtree, packet, 1, &ptr);
+    ret = pico_mdns_apply_k_a_s(&rtree, packet, 1, &ptr,
+                                (uint8_t *)packet + len);
     fail_unless(0 == ret, "mdns_apply_known_answer_suppression returned error!\n");
 
     fail_unless(1 == pico_tree_count(&rtree),
@@ -2188,6 +2275,7 @@ Suite *pico_suite(void)
     TCase *TCase_mdns_handle_data_as_questions = tcase_create("Unit test for mdns_handle_data_as_questions");
     TCase *TCase_mdns_handle_data_as_answers = tcase_create("Unit test for mdns_handle_data_as_answers");
     TCase *TCase_mdns_handle_data_as_authorities = tcase_create("Unit test for mdns_handle_data_as_authorities");
+    TCase *TCase_mdns_recv_truncated_packet = tcase_create("Unit test for mdns_recv_truncated_packet");
     TCase *TCase_mdns_handle_data_as_additionals = tcase_create("Unit test for mdns_handle_data_as_additionals");
 
     /* Handling query packets */
@@ -2302,6 +2390,8 @@ Suite *pico_suite(void)
     suite_add_tcase(s, TCase_mdns_handle_data_as_answers);
     tcase_add_test(TCase_mdns_handle_data_as_authorities, tc_mdns_handle_data_as_authorities);
     suite_add_tcase(s, TCase_mdns_handle_data_as_authorities);
+    tcase_add_test(TCase_mdns_recv_truncated_packet, tc_mdns_recv_truncated_packet);
+    suite_add_tcase(s, TCase_mdns_recv_truncated_packet);
     tcase_add_test(TCase_mdns_handle_data_as_additionals, tc_mdns_handle_data_as_additionals);
     suite_add_tcase(s, TCase_mdns_handle_data_as_additionals);
 
