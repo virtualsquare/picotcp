@@ -1280,6 +1280,13 @@ frag_update(struct pico_frame *f, struct frag_ctx *frag, uint8_t units, uint16_t
 static void
 frag_fill(uint8_t *frag, uint8_t dispatch, uint16_t dgram_size, uint16_t tag, uint8_t dgram_off, int32_t offset, uint16_t copy, uint16_t copied, uint8_t *buf)
 {
+    /* Never copy past the end of the datagram. */
+    if ((uint32_t)copied + (uint32_t)copy > (uint32_t)dgram_size) {
+        if (copied >= dgram_size)
+            copy = 0;
+        else
+            copy = (uint16_t)(dgram_size - copied);
+    }
     frag[0] = (uint8_t)(dispatch | ((uint8_t)short_be(dgram_size) & 0x07));
     frag[1] = (uint8_t)(short_be(dgram_size) >> 8);
     frag[2] = (uint8_t)(short_be(tag));
