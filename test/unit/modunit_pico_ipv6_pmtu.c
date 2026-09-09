@@ -46,6 +46,7 @@ START_TEST(pico_ipv6_pkt_too_big)
     f = pico_frame_alloc(sizeof(pkt1));
     memcpy(f->buffer, pkt1, sizeof(pkt1));
     f->transport_hdr = f->buffer + PICO_SIZE_ETHHDR + PICO_SIZE_IP6HDR;
+    f->transport_len = (uint16_t)(sizeof(pkt1) - PICO_SIZE_ETHHDR - PICO_SIZE_IP6HDR);
     memcpy(path_id.dst.addr, pkt1 + dst_offset, sizeof(path_id.dst.addr));
     fail_if(pico_ipv6_path_add(S, &path_id, default_mtu) != PICO_PMTU_OK);
     pico_icmp6_process_in(S, NULL, f);
@@ -429,6 +430,7 @@ START_TEST(pico_ipv6_pkt_too_big_ignorecode)
     f_mtu->dev = dummy_device->dev;
     memcpy(f_mtu->buffer, pkt17, sizeof(pkt17));
     f_mtu->transport_hdr = f_mtu->buffer + PICO_SIZE_ETHHDR + PICO_SIZE_IP6HDR;
+    f_mtu->transport_len = (uint16_t)(sizeof(pkt17) - PICO_SIZE_ETHHDR - PICO_SIZE_IP6HDR);
     memcpy(path_id.dst.addr, pkt17 + dst_offset, sizeof(path_id.dst.addr));
     fail_if(pico_ipv6_pmtu_get(S, &path_id) != default_mtu);
     pico_icmp6_process_in(S, NULL, f_mtu);

@@ -933,6 +933,9 @@ static void pico_icmp6_ping_recv_reply(struct pico_frame *f)
     struct pico_icmp6_hdr *hdr = NULL;
 
     hdr = (struct pico_icmp6_hdr *)f->transport_hdr;
+    if ((uint32_t)f->transport_len < (uint32_t)PICO_ICMP6HDR_ECHO_REQUEST_SIZE) {
+        return;
+    }
     test.id  = short_be(hdr->msg.info.echo_reply.id);
     test.seq = short_be(hdr->msg.info.echo_reply.seq);
     cookie = pico_tree_findKey(&f->dev->stack->IPV6Pings, &test);
@@ -1031,6 +1034,10 @@ static void pico_icmp6_update_pmtu(struct pico_stack *S, struct pico_frame *f)
     const struct pico_ipv6_hdr *icmp_payload = NULL;
     struct pico_ipv6_path_id path_id;
 
+    /* The embedded IPv6 header must fit in the received frame. */
+    if ((uint32_t)f->transport_len < (uint32_t)(PICO_ICMP6HDR_PKT_TOO_BIG_SIZE + PICO_SIZE_IP6HDR)) {
+        return;
+    }
     f->net_hdr = f->transport_hdr + PICO_ICMP6HDR_PKT_TOO_BIG_SIZE;
     icmp_payload = (struct pico_ipv6_hdr *)f->net_hdr;
     path_id.dst = icmp_payload->dst;
