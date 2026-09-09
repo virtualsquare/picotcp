@@ -234,7 +234,8 @@ static struct pico_dhcp_server_negotiation *pico_dhcp_server_add_negotiation(str
     if (pico_dhcp_server_find_negotiation(dev->stack, hdr->xid))
         return NULL;
 
-    /* Cap concurrent negotiations; evict one oldest entry when full. */
+    /* Cap concurrent negotiations; evict the lowest-xid entry when full
+     * (the tree is keyed by xid, so firstNode is the smallest xid). */
     pico_tree_foreach(node, &dev->stack->DHCPNegotiations) {
         count++;
     }
@@ -448,6 +449,7 @@ int pico_dhcp_server_destroy(struct pico_device *dev)
         0
     };
     struct pico_tree_node *node, *next;
+    struct pico_dhcp_server_negotiation *n;
     test.dev = dev;
     found = pico_tree_findKey(&dev->stack->DHCPSettings, &test);
     if (!found) {
@@ -458,9 +460,13 @@ int pico_dhcp_server_destroy(struct pico_device *dev)
     pico_tree_delete(&dev->stack->DHCPSettings, found);
     PICO_FREE(found);
 
-    /* Free all in-flight negotiations; pico_tree_delete frees each tree node. */
+    /* Free in-flight negotiations belonging to this device only, so that
+     * destroying one server does not disrupt others on the same stack.
+     * pico_tree_delete frees each tree node. */
     pico_tree_foreach_safe(node, &dev->stack->DHCPNegotiations, next) {
-        PICO_FREE(pico_tree_delete(&dev->stack->DHCPNegotiations, node->keyValue));
+        n = node->keyValue;
+        if (n->dhcps && n->dhcps->dev == dev)
+            PICO_FREE(pico_tree_delete(&dev->stack->DHCPNegotiations, node->keyValue));
     }
     return 0;
 }

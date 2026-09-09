@@ -202,14 +202,16 @@ pico_802154_process_in(struct pico_frame *f)
 {
 #ifndef PICO_6LOWPAN_NOMAC
     struct pico_802154_hdr *hdr = (struct pico_802154_hdr *)f->net_hdr;
-    uint16_t fcf = short_be(hdr->fcf);
-    uint8_t hlen = 0;
+    uint16_t fcf;
+    uint8_t hlen;
 
-    /* The frame must hold at least the minimum 802.15.4 header. */
+    /* The frame must hold at least the minimum 802.15.4 header before any
+     * field is read from it. */
     if (f->len < SIZE_802154_MHR_MIN) {
         return FRAME_6LOWPAN_LL_DISCARD;
     }
 
+    fcf = short_be(hdr->fcf);
     hlen = frame_802154_hdr_len(hdr);
     if (f->len < (uint32_t)hlen) {
         /* Frame shorter than its own header; malformed. */

@@ -677,9 +677,16 @@ static int pico_ipv6_check_headers_sequence(struct pico_frame *f)
     struct pico_ipv6_hdr *hdr = (struct pico_ipv6_hdr *)f->net_hdr;
     int ptr = sizeof(struct pico_ipv6_hdr);
     int cur_nexthdr = 6; /* Starts with nexthdr field in ipv6 pkt */
+    int actual = (int)(f->len - (uint32_t)(f->net_hdr - f->buffer));
     int end = (int)sizeof(struct pico_ipv6_hdr) + (int)short_be(hdr->len);
     uint8_t nxthdr = hdr->nxthdr;
     uint8_t optlen;
+
+    /* A truncated packet may claim more payload than was actually received;
+     * never walk past the bytes we hold. */
+    if (end > actual)
+        end = actual;
+
     for (;;) {
         if (ptr + 2 > end)
             return -1; /* ext header runs past the end of the packet */
