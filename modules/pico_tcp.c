@@ -924,9 +924,19 @@ static int tcp_parse_options(struct pico_frame *f)
             break;
 
         case PICO_TCP_OPTION_SACK:
-            tcp_rcv_sack(t, opt + i, len - 2);
+        {
+            /* The declared SACK length is independent of the options
+             * region, so cap the read to the bytes actually left. */
+            int remaining = (int)f->transport_len - (int)PICO_SIZE_TCPHDR - (int)i;
+            int sack_len = (int)len - 2;
+            if (remaining < 0)
+                remaining = 0;
+            if (sack_len > remaining)
+                sack_len = remaining;
+            tcp_rcv_sack(t, opt + i, sack_len);
             i = i + len - 2;
             break;
+        }
         default:
             tcp_dbg_options("TCP: received unsupported option %u\n", type);
             i = i + len - 2;
