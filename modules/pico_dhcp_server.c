@@ -50,6 +50,10 @@
 /* maximum size of a DHCP message */
 #define DHCP_SERVER_MAXMSGSIZE (PICO_IP_MRU - sizeof(struct pico_ipv4_hdr) - sizeof(struct pico_udp_hdr))
 
+/* Cap on concurrent in-flight negotiations: a flood of DISCOVERs with distinct
+ * xids must not grow the negotiation tree without bound. */
+#define PICO_DHCP_SERVER_MAX_NEGOTIATIONS 16
+
 enum dhcp_server_state {
     PICO_DHCP_STATE_DISCOVER = 0,
     PICO_DHCP_STATE_OFFER,
@@ -224,9 +228,21 @@ static struct pico_dhcp_server_negotiation *pico_dhcp_server_add_negotiation(str
     struct pico_dhcp_server_setting test = {
         0
     };
+    struct pico_tree_node *node, *victim;
+    uint32_t count = 0;
 
     if (pico_dhcp_server_find_negotiation(dev->stack, hdr->xid))
         return NULL;
+
+    /* Cap concurrent negotiations; evict one oldest entry when full. */
+    pico_tree_foreach(node, &dev->stack->DHCPNegotiations) {
+        count++;
+    }
+    if (count >= PICO_DHCP_SERVER_MAX_NEGOTIATIONS) {
+        victim = pico_tree_firstNode(dev->stack->DHCPNegotiations.root);
+        if (victim != &LEAF)
+            PICO_FREE(pico_tree_delete(&dev->stack->DHCPNegotiations, victim->keyValue));
+    }
 
     dhcpn = PICO_ZALLOC(sizeof(struct pico_dhcp_server_negotiation));
     if (!dhcpn) {
@@ -431,6 +447,7 @@ int pico_dhcp_server_destroy(struct pico_device *dev)
     struct pico_dhcp_server_setting *found, test = {
         0
     };
+    struct pico_tree_node *node, *next;
     test.dev = dev;
     found = pico_tree_findKey(&dev->stack->DHCPSettings, &test);
     if (!found) {
@@ -440,6 +457,11 @@ int pico_dhcp_server_destroy(struct pico_device *dev)
 
     pico_tree_delete(&dev->stack->DHCPSettings, found);
     PICO_FREE(found);
+
+    /* Free all in-flight negotiations; pico_tree_delete frees each tree node. */
+    pico_tree_foreach_safe(node, &dev->stack->DHCPNegotiations, next) {
+        PICO_FREE(pico_tree_delete(&dev->stack->DHCPNegotiations, node->keyValue));
+    }
     return 0;
 }
 

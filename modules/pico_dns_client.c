@@ -341,6 +341,7 @@ static int pico_dns_client_check_asuffix(struct pico_dns_record_suffix *suf, str
 static char *pico_dns_client_seek_suffix(char *suf, struct pico_dns_header *pre, struct pico_dns_query *q)
 {
     struct pico_dns_record_suffix *asuffix = NULL;
+    const char *end = (const char *)pre + PICO_IP_MRU;
     uint16_t comp = 0, compression = 0;
     uint16_t i = 0;
 
@@ -348,6 +349,8 @@ static char *pico_dns_client_seek_suffix(char *suf, struct pico_dns_header *pre,
         return NULL;
 
     while (i++ < short_be(pre->ancount)) {
+        if (suf + sizeof(uint16_t) > end)
+            return NULL;
         comp = short_from(suf);
         compression = short_be(comp);
         switch (compression >> 14) {
@@ -355,6 +358,8 @@ static char *pico_dns_client_seek_suffix(char *suf, struct pico_dns_header *pre,
             while (compression >> 14 == PICO_DNS_POINTER) {
                 dns_dbg("DNS: pointer\n");
                 suf += sizeof(uint16_t);
+                if (suf + sizeof(uint16_t) > end)
+                    return NULL;
                 comp = short_from(suf);
                 compression = short_be(comp);
             }
@@ -362,7 +367,9 @@ static char *pico_dns_client_seek_suffix(char *suf, struct pico_dns_header *pre,
 
         case PICO_DNS_LABEL:
             dns_dbg("DNS: label\n");
-            suf = pico_dns_client_seek(suf, (const char *)pre + PICO_IP_MRU);
+            suf = pico_dns_client_seek(suf, end);
+            if (!suf)
+                return NULL;
             break;
 
         default:
@@ -370,11 +377,16 @@ static char *pico_dns_client_seek_suffix(char *suf, struct pico_dns_header *pre,
             return NULL;
         }
 
+        if (suf + sizeof(struct pico_dns_record_suffix) > end)
+            return NULL;
         asuffix = (struct pico_dns_record_suffix *)suf;
         if (!asuffix)
             break;
 
         if (pico_dns_client_check_asuffix(asuffix, q) < 0) {
+            if (suf + sizeof(struct pico_dns_record_suffix) +
+                short_be(asuffix->rdlength) > end)
+                return NULL;
             suf += (sizeof(struct pico_dns_record_suffix) + short_be(asuffix->rdlength));
             continue;
         }
