@@ -1484,9 +1484,9 @@ START_TEST(tc_get_neigh_option)
     f->net_len = sizeof(struct pico_ipv6_hdr);
 
     /* Get neigh options from our RA (which has LL addr option and prefix option) */
-    fail_unless(get_neigh_option(f, &opt_lladdr, PICO_ND_OPT_LLADDR_SRC) == 1, "our RA should have a valid LL addr option");
-    fail_unless(get_neigh_option(f, &opt_prefix, PICO_ND_OPT_PREFIX) == 1, "our RA should have a valid prefix option");
-    fail_unless(get_neigh_option(f, &opt_redirect, PICO_ND_OPT_REDIRECT) == 0, "our RA doesn't have a redirect option");
+    fail_unless(get_neigh_option(f, &opt_lladdr, PICO_ND_OPT_LLADDR_SRC, sizeof(opt_lladdr)) == 1, "our RA should have a valid LL addr option");
+    fail_unless(get_neigh_option(f, &opt_prefix, PICO_ND_OPT_PREFIX, sizeof(opt_prefix)) == 1, "our RA should have a valid prefix option");
+    fail_unless(get_neigh_option(f, &opt_redirect, PICO_ND_OPT_REDIRECT, sizeof(opt_redirect)) == 0, "our RA doesn't have a redirect option");
 
     /* Check if ll addr is valid */
     /* len is stored as a number of bytes */
@@ -1516,8 +1516,8 @@ START_TEST(tc_get_neigh_option)
     f->net_len = sizeof(struct pico_ipv6_hdr);
 
     /* Get neigh options from our RA (which has LL addr option and prefix option, one option has bad length field) */
-    fail_unless(get_neigh_option(f, &opt_lladdr, PICO_ND_OPT_LLADDR_SRC) < 0, "our RA has a bad len field, should have returned failure");
-    fail_unless(get_neigh_option(f, &opt_prefix, PICO_ND_OPT_PREFIX) < 0, "our RA has a bad len field, should have returned failure");
+    fail_unless(get_neigh_option(f, &opt_lladdr, PICO_ND_OPT_LLADDR_SRC, sizeof(opt_lladdr)) < 0, "our RA has a bad len field, should have returned failure");
+    fail_unless(get_neigh_option(f, &opt_prefix, PICO_ND_OPT_PREFIX, sizeof(opt_prefix)) < 0, "our RA has a bad len field, should have returned failure");
 
     /* Cleanup */
     pico_frame_discard(f);
@@ -1528,8 +1528,8 @@ START_TEST(tc_get_neigh_option)
     f->net_len = sizeof(struct pico_ipv6_hdr);
 
     /* Get neigh options from our RA (which has 2 * LL addr option and prefix option) */
-    fail_unless(get_neigh_option(f, &opt_prefix, PICO_ND_OPT_PREFIX) == 1, "our RA has a double option, but not the prefix option. So retrieving this should have returned success");
-    fail_unless(get_neigh_option(f, &opt_lladdr, PICO_ND_OPT_LLADDR_SRC) < 0, "our RA has a double option, should have returned failure");
+    fail_unless(get_neigh_option(f, &opt_prefix, PICO_ND_OPT_PREFIX, sizeof(opt_prefix)) == 1, "our RA has a double option, but not the prefix option. So retrieving this should have returned success");
+    fail_unless(get_neigh_option(f, &opt_lladdr, PICO_ND_OPT_LLADDR_SRC, sizeof(opt_lladdr)) < 0, "our RA has a double option, should have returned failure");
 
     pico_frame_discard(f);
     pico_device_destroy(dummy_device);
