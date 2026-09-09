@@ -895,6 +895,13 @@ static void olsr_recv(struct pico_stack *S, uint8_t *buffer, uint32_t len)
         struct olsr_route_entry *origin;
         msg = (struct olsrmsg *) (buffer + parsed);
 
+        /* Trust msg->size only if it covers the fixed header and stays
+         * within the packet; otherwise stop parsing. */
+        if ((uint32_t)short_be(msg->size) < sizeof(struct olsrmsg) ||
+            (uint32_t)short_be(msg->size) > (len - parsed)) {
+            break;
+        }
+
         if (pico_ipv4_link_find(S, &msg->orig) != NULL) {
             parsed += short_be(msg->size);
             continue;
