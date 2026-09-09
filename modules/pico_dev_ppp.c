@@ -1826,7 +1826,7 @@ static void auth_rsp(struct pico_device_ppp *ppp)
     uint8_t *md5resp = resp + PPP_HDR_SIZE + PPP_PROTO_SLOT_SIZE + sizeof(struct pico_chap_hdr) + 1;
     uint8_t *md5resp_len = resp + PPP_HDR_SIZE + PPP_PROTO_SLOT_SIZE + sizeof(struct pico_chap_hdr);
     uint8_t *challenge;
-    uint32_t i = 0, pwdlen;
+    uint32_t i = 0, pwdlen, recvd_len;
     uint8_t *recvd_challenge_len = ppp->pkt + sizeof(struct pico_chap_hdr);
     uint8_t *recvd_challenge = recvd_challenge_len + 1;
     size_t challenge_size = CHALLENGE_SIZE(ppp, ch);
@@ -1841,8 +1841,13 @@ static void auth_rsp(struct pico_device_ppp *ppp)
     challenge[i++] = ch->id;
     memcpy(challenge + i, ppp->password, pwdlen);
     i += pwdlen;
-    memcpy(challenge + i, recvd_challenge, *recvd_challenge_len);
-    i += *recvd_challenge_len;
+    /* The buffer is sized by ch->len; the on-wire challenge length is an
+     * independent field, so cap the copy to the remaining buffer space. */
+    recvd_len = *recvd_challenge_len;
+    if (recvd_len > challenge_size - i)
+        recvd_len = (uint32_t)(challenge_size - i);
+    memcpy(challenge + i, recvd_challenge, recvd_len);
+    i += recvd_len;
     pico_md5sum(md5resp, challenge, i);
     PICO_FREE(challenge);
     rh->id = ch->id;
