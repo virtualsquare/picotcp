@@ -329,6 +329,8 @@ static int radiotest_poll(struct pico_device *dev, int loop_score)
     if (p.revents & POLLIN) {
         ret_len = (int)recv(connection, &phy, (size_t)1, 0);
         if (ret_len != 1) return loop_score;
+        if (phy > sizeof(buf))
+            return loop_score;
         ret_len = (int)recv(connection, buf, (size_t)phy, 0);
         if (ret_len != (int)phy)
             return loop_score;
@@ -338,7 +340,7 @@ static int radiotest_poll(struct pico_device *dev, int loop_score)
         }
     }
 
-    if (ret_len < 2) { /* Not valid */
+    if (ret_len < 4) { /* Not a valid frame (frame + CRC + address) */
         return loop_score;
     }
 
