@@ -1621,7 +1621,7 @@ START_TEST(tc_mdns_handle_data_as_questions) /* MARK: handle_data_as_questions *
     ptr = ((uint8_t *)packet + 12);
 
     antree = pico_mdns_handle_data_as_questions(S, &ptr, 2, packet,
-                                                 (uint8_t *)packet + len);
+                                                (uint8_t *)packet + len);
     fail_unless(2 == pico_tree_count(&antree),
                 "pico_mdns_handle_data_as_questions returned error!\n");
 
