@@ -1039,15 +1039,39 @@ START_TEST(tc_pico_dns_namelen_comp) /* MARK: dns_namelen_comp */
 END_TEST
 START_TEST(tc_pico_dns_decompress_name) /* MARK: dns_decompress_name */
 {
-    char name[] = "\4mail\xc0\x02";
-    char name2[] = "\xc0\x02";
-    char buf[] = "00\6google\3com";
+    /* Single packet buffers: the compressed name always lies inside the
+     * packet, as in real mDNS/DNS-client usage. */
+    unsigned char buf1[] = {
+        0x04, 'm', 'a', 'i', 'l', 0xC0, 0x08, 0x00,
+        0x06, 'g', 'o', 'o', 'g', 'l', 'e',
+        0x03, 'c', 'o', 'm', 0x00
+    };
+    unsigned char buf2[] = {
+        0xC0, 0x02,
+        0x06, 'g', 'o', 'o', 'g', 'l', 'e',
+        0x03, 'c', 'o', 'm', 0x00
+    };
+    unsigned char buf3[] = {
+        0x03, 'f', 'o', 'o', 0x03, 'b', 'a', 'r', 0x00
+    };
+    unsigned char buf4[] = {
+        0x03, 'f', 'o', 'o', 0xC0, 0x3F
+    };
+    unsigned char buf5[] = {
+        0x03, 'f', 'o', 'o'
+    };
+    unsigned char buf6[] = {
+        0x20, 'a'
+    };
+    unsigned char buf7[] = {
+        0x03, 'f', 'o', 'o', 0xC0, 0x04, 0xC0, 0x05, 0x00
+    };
     char *ret;
 
     printf("*********************** starting %s * \n", __func__);
 
     /* Test normal DNS name compression */
-    ret = pico_dns_decompress_name(name, (pico_dns_packet *)buf);
+    ret = pico_dns_decompress_name((char *)buf1, (pico_dns_packet *)buf1, sizeof(buf1));
 
     /* Fail conditions */
     fail_unless(ret != NULL, "Name ptr returned is NULL");
@@ -1058,7 +1082,7 @@ START_TEST(tc_pico_dns_decompress_name) /* MARK: dns_decompress_name */
     ret = NULL;
 
     /* Test when there is only a pointer */
-    ret = pico_dns_decompress_name(name2, (pico_dns_packet *)buf);
+    ret = pico_dns_decompress_name((char *)buf2, (pico_dns_packet *)buf2, sizeof(buf2));
 
     /* Fail conditions */
     fail_unless(ret != NULL, "Name ptr returned is NULL");
@@ -1067,6 +1091,34 @@ START_TEST(tc_pico_dns_decompress_name) /* MARK: dns_decompress_name */
     /* Free memory */
     PICO_FREE(ret);
     ret = NULL;
+
+    /* Test a plain name without compression */
+    ret = pico_dns_decompress_name((char *)buf3, (pico_dns_packet *)buf3, sizeof(buf3));
+
+    /* Fail conditions */
+    fail_unless(ret != NULL, "Name ptr returned is NULL");
+    fail_unless(strcmp(ret, "\3foo\3bar") == 0, "Not correctly decompressed: '%s'!\n", ret);
+
+    /* Free memory */
+    PICO_FREE(ret);
+    ret = NULL;
+
+    /* Regression: compression pointer past the packet end must be rejected */
+    ret = pico_dns_decompress_name((char *)buf4, (pico_dns_packet *)buf4, sizeof(buf4));
+    fail_unless(ret == NULL, "OOB compression pointer accepted!\n");
+
+    /* Regression: name without terminator running off the packet end */
+    ret = pico_dns_decompress_name((char *)buf5, (pico_dns_packet *)buf5, sizeof(buf5));
+    fail_unless(ret == NULL, "Unterminated name past packet end accepted!\n");
+
+    /* Regression: label length running past the packet end */
+    ret = pico_dns_decompress_name((char *)buf6, (pico_dns_packet *)buf6, sizeof(buf6));
+    fail_unless(ret == NULL, "Label length past packet end accepted!\n");
+
+    /* Regression: a second compression pointer is not valid */
+    ret = pico_dns_decompress_name((char *)buf7, (pico_dns_packet *)buf7, sizeof(buf7));
+    fail_unless(ret == NULL, "Second compression pointer accepted!\n");
+
     printf("*********************** ending %s * \n", __func__);
 }
 END_TEST

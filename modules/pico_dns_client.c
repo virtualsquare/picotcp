@@ -558,7 +558,7 @@ static void pico_dns_try_fallback_cname(struct pico_dns_query *q, struct pico_dn
 
     /* Found CNAME response. Re-initiating query. */
     asuffix = (struct pico_dns_record_suffix *)p_asuffix;
-    cname = pico_dns_decompress_name((char *)asuffix + sizeof(struct pico_dns_record_suffix), (pico_dns_packet *)h); /* allocates memory! */
+    cname = pico_dns_decompress_name((char *)asuffix + sizeof(struct pico_dns_record_suffix), (pico_dns_packet *)h, PICO_IP_MRU); /* allocates memory! */
     cname_orig = cname; /* to free later */
 
     if (cname == NULL)
