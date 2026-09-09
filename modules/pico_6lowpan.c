@@ -1069,6 +1069,10 @@ pico_iphc_reassemble(struct pico_frame *f, uint8_t **chunks, int32_t *chunks_len
 
     /* Calculate buffer size including IPv6 payload */
     payload_len = (int32_t)f->len - handled_len;
+    if (payload_len < 0) {
+        /* Compressed length exceeds the frame; malformed. */
+        return pico_iphc_bail_out(chunks, n);
+    }
     processed_len += payload_len; /* Length of frame after processing */
 
     /* Reallocate frame size if there isn't enough room available */
