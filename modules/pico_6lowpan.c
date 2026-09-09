@@ -104,6 +104,9 @@
 #define FRAG1_DISPATCH      (0xC0)
 #define FRAGN_DISPATCH      (0xE0)
 #define FRAG_TIMEOUT        (5)
+/* Cap on concurrent reassembly entries to bound memory use against a
+ * flood of distinct fragment tags. */
+#define PICO_6LOWPAN_MAX_REASSEMBLY (16)
 /*******************************************************************************
  * Type definitions
  ******************************************************************************/
@@ -1536,7 +1539,34 @@ pico_6lowpan_decompress(struct pico_frame *f)
 static int32_t
 defrag_new(struct pico_frame *f, uint16_t dgram_size, uint16_t tag, uint16_t off)
 {
-    struct pico_frame *r = pico_proto_6lowpan_ll.alloc(f->dev->stack, &pico_proto_6lowpan_ll, f->dev, dgram_size);
+    struct pico_frame *r;
+    struct pico_stack *S = f->dev->stack;
+    struct pico_tree_node *i = NULL, *next = NULL;
+    struct frag_ctx *key = NULL;
+    struct frag_ctx *oldest = NULL;
+    int32_t count = 0;
+
+    /* Cap concurrent reassembly entries to bound memory use. */
+    pico_tree_foreach_safe(i, &S->LPReassemblyTree, next) {
+        if ((key = i->keyValue)) {
+            count++;
+            if (!oldest || key->timestamp < oldest->timestamp) {
+                oldest = key;
+            }
+        }
+    }
+    if (count >= PICO_6LOWPAN_MAX_REASSEMBLY) {
+        /* Tree is full; evict the oldest reassembly to make room. */
+        if (oldest) {
+            pico_tree_delete(&S->LPReassemblyTree, oldest);
+            pico_frame_discard(oldest->f);
+            PICO_FREE(oldest);
+        } else {
+            return -1;
+        }
+    }
+
+    r = pico_proto_6lowpan_ll.alloc(S, &pico_proto_6lowpan_ll, f->dev, dgram_size);
     if (r) {
         if ((uint32_t)off + (uint32_t)f->len > (uint32_t)dgram_size) {
             pico_frame_discard(f);
@@ -1551,7 +1581,7 @@ defrag_new(struct pico_frame *f, uint16_t dgram_size, uint16_t tag, uint16_t off
         r->src = f->src;
         r->dst = f->dst;
         buf_move(r->net_hdr + off, f->start, f->len);
-        if (frag_store(r, dgram_size, tag, 0, (uint16_t)f->len, &f->dev->stack->LPReassemblyTree) < 0) {
+        if (frag_store(r, dgram_size, tag, 0, (uint16_t)f->len, &S->LPReassemblyTree) < 0) {
             pico_frame_discard(f);
             pico_frame_discard(r);
             return -1;
