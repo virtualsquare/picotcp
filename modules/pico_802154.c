@@ -204,6 +204,18 @@ pico_802154_process_in(struct pico_frame *f)
     struct pico_802154_hdr *hdr = (struct pico_802154_hdr *)f->net_hdr;
     uint16_t fcf = short_be(hdr->fcf);
     uint8_t hlen = 0;
+
+    /* The frame must hold at least the minimum 802.15.4 header. */
+    if (f->len < SIZE_802154_MHR_MIN) {
+        return FRAME_6LOWPAN_LL_DISCARD;
+    }
+
+    hlen = frame_802154_hdr_len(hdr);
+    if (f->len < (uint32_t)hlen) {
+        /* Frame shorter than its own header; malformed. */
+        return FRAME_6LOWPAN_LL_DISCARD;
+    }
+
     f->src.pan = frame_802154_src(hdr);
     f->dst.pan = frame_802154_dst(hdr);
 
@@ -213,8 +225,6 @@ pico_802154_process_in(struct pico_frame *f)
     if (fcf & FCF_SEC) {
         f->flags |= PICO_FRAME_FLAG_LL_SEC;
     }
-
-    hlen = frame_802154_hdr_len(hdr);
 
     /* XXX: Generic procedure to move forward in incoming processing function
      * is updating the net_hdr-pointer */

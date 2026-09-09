@@ -349,7 +349,7 @@ pico_6lowpan_ll_process_in(struct pico_stack *S, struct pico_protocol *self, str
         case FRAME_6LOWPAN_LL_DISCARD:
             /* Something went wrong, discard the frame */
             pico_frame_discard(f);
-            break;
+            return -1;
         default:
             /* Success, update link layer header length */
             len = (uint32_t)(len + (uint32_t)ret);
