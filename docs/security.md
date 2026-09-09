@@ -15,9 +15,6 @@ Vulnerabilities that can be found in picoTCP-NG v.2.1:
 * ❗ Improper bound checking against the parsing of domain names may result in a denial of service (CVE-2020-24339)
   * Triaged. Awaiting assignment.
 
-* ❗ Improper checks in the process of DNS response handling which may lead to memory corruption (CVE-2020-24340)
-  * Triaged. Awaiting assignment.
-
 Vulnerabilities fixed in this version:
 
 * Improper checks against the payload length field of IPv6 extension headers which may lead to an information leak or denial of service (CVE-2020-17441)
@@ -40,4 +37,7 @@ Vulnerabilities fixed in this version:
 
 * Improper checks against the length of incoming TCP packets may enable an out-of-bound read and/or memory corruption (CVE-2020-24341)
   *  **Fixed in v2.1** :heavy_check_mark:
+
+* Improper checks in the process of DNS response handling which may lead to memory corruption (CVE-2020-24340)
+  *  **Fixed in master (post-v2.1)** :heavy_check_mark:
 

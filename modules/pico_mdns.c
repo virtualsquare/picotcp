@@ -2120,6 +2120,39 @@ pico_mdns_handle_single_additional(struct pico_stack *S, struct pico_mdns_record
 }
 
 /* ****************************************************************************
+ *  Walks a compressed DNS name in [name, end).
+ *
+ *  @param name  Start of the compressed name in the packet
+ *  @param end   One past the last valid byte of the packet
+ *  @return Byte past the terminating zero or compression pointer, or NULL
+ *          when the name is malformed or not fully contained in the range.
+ * ****************************************************************************/
+static uint8_t *
+pico_mdns_name_end(uint8_t *name, uint8_t *end)
+{
+    uint8_t *label = name;
+
+    while (label < end) {
+        uint8_t c = *label;
+
+        if (c == 0x00)
+            return label + 1;
+
+        if (c >= 0xC0) {
+            if (label + 1 >= end)
+                return NULL;
+            return label + 2;
+        }
+
+        if (c > 63 || label + c + 1 > end)
+            return NULL;
+
+        label += c + 1;
+    }
+    return NULL;
+}
+
+/* ****************************************************************************
  *  Handles a flat chunk of memory as if it were all questions in it.
  *  Generates a tree with responses if there are any questions for records for
  *  which host has the authority to answer.
@@ -2128,13 +2161,15 @@ pico_mdns_handle_single_additional(struct pico_stack *S, struct pico_mdns_record
  *                 Will point to right after the question section on return.
  *  @param qdcount Amount of questions contained in the packet
  *  @param packet  DNS packet where the questions are present.
+ *  @param end    One past the last valid byte of the packet
  *  @return Tree with possible responses on the questions.
  * ****************************************************************************/
 static pico_mdns_rtree
-pico_mdns_handle_data_as_questions (struct pico_stack *S,
-                                    uint8_t **ptr,
-                                    uint16_t qdcount,
-                                    pico_dns_packet *packet)
+pico_mdns_handle_data_as_questions(struct pico_stack *S,
+                                   uint8_t **ptr,
+                                   uint16_t qdcount,
+                                   pico_dns_packet *packet,
+                                   uint8_t *end)
 {
     PICO_MDNS_RTREE_DECLARE(antree);
     PICO_MDNS_RTREE_DECLARE(rtree);
@@ -2148,12 +2183,20 @@ pico_mdns_handle_data_as_questions (struct pico_stack *S,
     }
 
     for (i = 0; i < qdcount; i++) {
+        uint8_t *name_end = pico_mdns_name_end(*ptr, end);
+
+        /* Reject the packet when a question is not fully contained in it */
+        if (!name_end ||
+            name_end + sizeof(struct pico_dns_question_suffix) > end) {
+            pico_err = PICO_ERR_EINVAL;
+            return antree;
+        }
+
         /* Set qname of the question to the correct location */
         question.qname = (char *)(*ptr);
 
         /* Set qsuffix of the question to the correct location */
-        question.qsuffix = (struct pico_dns_question_suffix *)
-                           (question.qname + pico_dns_namelen_comp(question.qname) + 1);
+        question.qsuffix = (struct pico_dns_question_suffix *)name_end;
 
         question.stack = S;
 
@@ -2178,7 +2221,8 @@ pico_mdns_handle_data_as_answers_generic(struct pico_stack *S,
                                          uint8_t **ptr,
                                          uint16_t count,
                                          pico_dns_packet *packet,
-                                         uint8_t type)
+                                         uint8_t type,
+                                         uint8_t *end)
 {
     struct pico_mdns_record mdns_answer = {
         .record = NULL, .current_ttl = 0,
@@ -2199,17 +2243,30 @@ pico_mdns_handle_data_as_answers_generic(struct pico_stack *S,
     /* (just like in pico_mdns_record_am_i_lexi_later) */
 
     for (i = 0; i < count; i++) {
+        uint8_t *name_end = pico_mdns_name_end(*ptr, end);
+
+        /* Reject the packet when a record is not fully contained in it */
+        if (!name_end ||
+            name_end + sizeof(struct pico_dns_record_suffix) > end) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
+
         /* Set rname of the record to the correct location */
         answer.rname = (char *)(*ptr);
 
         /* Set rsuffix of the record to the correct location */
-        answer.rsuffix = (struct pico_dns_record_suffix *)
-                         (answer.rname +
-                          pico_dns_namelen_comp(answer.rname) + 1u);
+        answer.rsuffix = (struct pico_dns_record_suffix *)name_end;
 
         /* Set rdata of the record to the correct location */
         answer.rdata = (uint8_t *) answer.rsuffix +
                        sizeof(struct pico_dns_record_suffix);
+
+        /* The rdata must be fully contained in the packet as well */
+        if (end - answer.rdata < (ptrdiff_t)short_be(answer.rsuffix->rdlength)) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
 
         /* Make an mDNS record from the DNS answer */
         orname = pico_dns_record_decompress(&answer, packet);
@@ -2661,13 +2718,15 @@ pico_mdns_reply(struct pico_stack *S, pico_mdns_rtree *antree, struct pico_ip4 p
  *  @param packet  DNS packet in which to look for known answers
  *  @param ancount Amount of answers in the DNS packet
  *  @param data    Answer section of the DNS packet as a flat chunk of memory.
+ *  @param end    One past the last valid byte of the packet
  *  @return 0 K.A.S. could be properly applied, something else when not.
  * ****************************************************************************/
 static int
 pico_mdns_apply_k_a_s(pico_mdns_rtree *rtree,
                       pico_dns_packet *packet,
                       uint16_t ancount,
-                      uint8_t **data)
+                      uint8_t **data,
+                      uint8_t *end)
 {
     struct pico_tree_node *node = NULL, *next = NULL;
     struct pico_mdns_record *record = NULL, ka = {
@@ -2685,16 +2744,30 @@ pico_mdns_apply_k_a_s(pico_mdns_rtree *rtree,
     }
 
     for (i = 0; i < ancount; i++) {
+        uint8_t *name_end = pico_mdns_name_end(*data, end);
+
+        /* Reject the packet when a record is not fully contained in it */
+        if (!name_end ||
+            name_end + sizeof(struct pico_dns_record_suffix) > end) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
+
         /* Set rname of the record to the correct location */
         answer.rname = (char *)(*data);
 
         /* Set rsuffix of the record to the correct location */
-        answer.rsuffix = (struct pico_dns_record_suffix *)
-                         (answer.rname + pico_dns_namelen_comp(answer.rname) + 1u);
+        answer.rsuffix = (struct pico_dns_record_suffix *)name_end;
 
         /* Set rdata of the record to the correct location */
         answer.rdata = (uint8_t *) answer.rsuffix +
                        sizeof(struct pico_dns_record_suffix);
+
+        /* The rdata must be fully contained in the packet as well */
+        if (end - answer.rdata < (ptrdiff_t)short_be(answer.rsuffix->rdlength)) {
+            pico_err = PICO_ERR_EINVAL;
+            return -1;
+        }
 
         pico_dns_record_decompress(&answer, packet);
         ka.record = &answer;
@@ -2721,10 +2794,12 @@ pico_mdns_apply_k_a_s(pico_mdns_rtree *rtree,
  *
  *  @param packet Received packet
  *  @param peer   IPv4 address of the peer who sent the received packet.
+ *  @param end    One past the last valid byte of the packet
  *  @return Returns 0 when the query packet is properly handled.
  * ****************************************************************************/
 static int
-pico_mdns_handle_query_packet(struct pico_stack *S, pico_dns_packet *packet, struct pico_ip4 peer)
+pico_mdns_handle_query_packet(struct pico_stack *S, pico_dns_packet *packet,
+                              struct pico_ip4 peer, uint8_t *end)
 {
     PICO_MDNS_RTREE_DECLARE(antree);
     uint16_t qdcount = 0, ancount = 0;
@@ -2735,7 +2810,7 @@ pico_mdns_handle_query_packet(struct pico_stack *S, pico_dns_packet *packet, str
 
     /* Generate a list of answers */
     qdcount = short_be(packet->qdcount);
-    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet, end);
     if (pico_tree_count(&antree) == 0) {
         mdns_dbg("No records found that correspond with this query!\n");
         return 0;
@@ -2743,7 +2818,7 @@ pico_mdns_handle_query_packet(struct pico_stack *S, pico_dns_packet *packet, str
 
     /* Apply Known Answer Suppression */
     ancount = short_be(packet->ancount);
-    if (pico_mdns_apply_k_a_s(&antree, packet, ancount, &data)) {
+    if (pico_mdns_apply_k_a_s(&antree, packet, ancount, &data, end)) {
         mdns_dbg("Could not apply known answer suppression!\n");
         return -1;
     }
@@ -2761,10 +2836,12 @@ pico_mdns_handle_query_packet(struct pico_stack *S, pico_dns_packet *packet, str
  *
  *  @param packet Received probe packet.
  *  @param peer   IPv4 address of the peer who sent the probe packet.
+ *  @param end    One past the last valid byte of the packet
  *  @return Returns 0 when the probe packet is properly handled.
  * ****************************************************************************/
 static int
-pico_mdns_handle_probe_packet(struct pico_stack *S, pico_dns_packet *packet, struct pico_ip4 peer)
+pico_mdns_handle_probe_packet(struct pico_stack *S, pico_dns_packet *packet,
+                              struct pico_ip4 peer, uint8_t *end)
 {
     PICO_MDNS_RTREE_DECLARE(antree);
     uint16_t qdcount = 0, nscount = 0;
@@ -2775,11 +2852,11 @@ pico_mdns_handle_probe_packet(struct pico_stack *S, pico_dns_packet *packet, str
 
     /* Generate a list of answers */
     qdcount = short_be(packet->qdcount);
-    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet);
+    antree = pico_mdns_handle_data_as_questions(S, &data, qdcount, packet, end);
 
     /* Check for Simultaneous Probe Tiebreaking */
     nscount = short_be(packet->nscount);
-    pico_mdns_handle_data_as_answers_generic(S, &data, nscount, packet, 1);
+    pico_mdns_handle_data_as_answers_generic(S, &data, nscount, packet, 1, end);
 
     /* Try to reply with the answers */
     if (pico_tree_count(&antree) != 0) {
@@ -2795,10 +2872,12 @@ pico_mdns_handle_probe_packet(struct pico_stack *S, pico_dns_packet *packet, str
  *  Handles a single incoming answer packet.
  *
  *  @param packet Received answer packet.
+ *  @param end    One past the last valid byte of the packet
  *  @return Returns 0 when the response packet is properly handled.
  * ****************************************************************************/
 static int
-pico_mdns_handle_response_packet(struct pico_stack *S, pico_dns_packet *packet)
+pico_mdns_handle_response_packet(struct pico_stack *S, pico_dns_packet *packet,
+                                 uint8_t *end)
 {
     uint8_t *data = NULL;
     uint16_t ancount = 0;
@@ -2808,7 +2887,7 @@ pico_mdns_handle_response_packet(struct pico_stack *S, pico_dns_packet *packet)
 
     /* Generate a list of answers */
     ancount = short_be(packet->ancount);
-    if (pico_mdns_handle_data_as_answers_generic(S, &data, ancount, packet, 0)) {
+    if (pico_mdns_handle_data_as_answers_generic(S, &data, ancount, packet, 0, end)) {
         mdns_dbg("Could not handle data as answers\n");
         return -1;
     }
@@ -2828,11 +2907,23 @@ pico_mdns_handle_response_packet(struct pico_stack *S, pico_dns_packet *packet)
 static int
 pico_mdns_recv(struct pico_stack *S, void *buf, int buflen, struct pico_ip4 peer)
 {
-    pico_dns_packet *packet = (pico_dns_packet *) buf;
-    uint16_t qdcount = short_be(packet->qdcount);
-    uint16_t ancount = short_be(packet->ancount);
-    uint16_t authcount = short_be(packet->nscount);
-    uint16_t addcount = short_be(packet->arcount);
+    pico_dns_packet *packet = NULL;
+    uint8_t *end = NULL;
+    uint16_t qdcount = 0, ancount = 0;
+    uint16_t authcount = 0, addcount = 0;
+
+    /* The DNS header must be fully present before any field is read */
+    if (!buf || buflen < (int)sizeof(struct pico_dns_header)) {
+        pico_err = PICO_ERR_EINVAL;
+        return -1;
+    }
+
+    packet = (pico_dns_packet *)buf;
+    end = (uint8_t *)buf + buflen;
+    qdcount = short_be(packet->qdcount);
+    ancount = short_be(packet->ancount);
+    authcount = short_be(packet->nscount);
+    addcount = short_be(packet->arcount);
 
     /* RFC6762: */
     /* 18.3: Messages received with an opcode other than zero MUST be silently */
@@ -2843,7 +2934,6 @@ pico_mdns_recv(struct pico_stack *S, void *buf, int buflen, struct pico_ip4 peer
         mdns_dbg(">>>>>>> QDcount: %u, ANcount: %u, NScount: %u, ARcount: %u\n",
                  qdcount, ancount, authcount, addcount);
 
-        IGNORE_PARAMETER(buflen);
         IGNORE_PARAMETER(addcount);
 
         /* DNS PACKET TYPE DETERMINATION */
@@ -2851,14 +2941,14 @@ pico_mdns_recv(struct pico_stack *S, void *buf, int buflen, struct pico_ip4 peer
             if (authcount > 0) {
                 mdns_dbg(">>>>>>> RCVD a mDNS probe query:\n");
                 /* Packet is probe query */
-                if (pico_mdns_handle_probe_packet(S, packet, peer) < 0) {
+                if (pico_mdns_handle_probe_packet(S, packet, peer, end) < 0) {
                     mdns_dbg("Could not handle mDNS probe query!\n");
                     return -1;
                 }
             } else {
                 mdns_dbg(">>>>>>> RCVD a plain mDNS query:\n");
                 /* Packet is a plain query */
-                if (pico_mdns_handle_query_packet(S, packet, peer) < 0) {
+                if (pico_mdns_handle_query_packet(S, packet, peer, end) < 0) {
                     mdns_dbg("Could not handle plain DNS query!\n");
                     return -1;
                 }
@@ -2867,7 +2957,7 @@ pico_mdns_recv(struct pico_stack *S, void *buf, int buflen, struct pico_ip4 peer
             if (ancount > 0) {
                 mdns_dbg(">>>>>>> RCVD a mDNS response:\n");
                 /* Packet is a response */
-                if (pico_mdns_handle_response_packet(S, packet) < 0) {
+                if (pico_mdns_handle_response_packet(S, packet, end) < 0) {
                     mdns_dbg("Could not handle DNS response!\n");
                     return -1;
                 }
