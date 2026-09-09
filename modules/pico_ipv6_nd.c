@@ -745,7 +745,7 @@ static int pico_nd_get_length_of_options(struct pico_frame *f, uint8_t **first_o
     return optlen;
 }
 
-static int get_neigh_option(struct pico_frame *f, void *opt, uint8_t expected_opt)
+static int get_neigh_option(struct pico_frame *f, void *opt, uint8_t expected_opt, size_t opt_size)
 {
     /* RFC 4861
      *  * Receivers MUST silently ignore any options they do not recognize
@@ -757,25 +757,32 @@ static int get_neigh_option(struct pico_frame *f, void *opt, uint8_t expected_op
     int len = 0;
     uint8_t type = 0;
     int found = 0;
+    size_t copy_len = 0;
 
     optlen = pico_nd_get_length_of_options(f, &option);
 
     while (optlen > 0) {
         type = ((struct pico_icmp6_opt_na *)option)->type;
         len = ((struct pico_icmp6_opt_na *)option)->len;
-        optlen -= len << 3; /* len in units of 8 octets */
         if (len <= 0)
             return -1; /* malformed option. */
+        if ((size_t)(len << 3) > (size_t)optlen)
+            return -1; /* option extends past the end of the option area. */
+        optlen -= len << 3; /* len in units of 8 octets */
 
         if (type == expected_opt) {
             if (found > 0)
                 return -1; /* malformed option: option is there twice. */
 
-            if (expected_opt == PICO_ND_OPT_REDIRECT) {
-                memcpy(opt, option, sizeof(struct pico_icmp6_opt_redirect));
-            } else {
-                memcpy(opt, option, (size_t)(len << 3));
-            }
+            if (expected_opt == PICO_ND_OPT_REDIRECT)
+                copy_len = sizeof(struct pico_icmp6_opt_redirect);
+            else
+                copy_len = (size_t)(len << 3);
+
+            if (copy_len > opt_size)
+                return -1; /* option larger than the destination buffer. */
+
+            memcpy(opt, option, copy_len);
             found++;
         }
 
@@ -943,7 +950,7 @@ static void pico_ipv6_neighbor_from_unsolicited(struct pico_frame *f)
         0
     };
     struct pico_ipv6_hdr *ip = (struct pico_ipv6_hdr *)f->net_hdr;
-    int valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC);
+    int valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC, sizeof(opt));
 
     if (!pico_ipv6_is_unspecified(ip->src.addr)) {
         n = pico_get_neighbor_from_ncache(f->dev->stack, &ip->src);
@@ -1114,7 +1121,7 @@ static int neigh_sol_validate_unspec(struct pico_frame *f)
     struct pico_icmp6_opt_lladdr opt = {
         0
     };
-    int valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC);
+    int valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC, sizeof(opt));
     if (!f->dev->mode && pico_ipv6_is_solnode_multicast(hdr->dst.addr, f->dev) == 0) {
         return -1;
     }
@@ -1159,7 +1166,7 @@ static int neigh_sol_process(struct pico_frame *f)
     };
     icmp6_hdr = (struct pico_icmp6_hdr *)f->transport_hdr;
 
-    valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC);
+    valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC, sizeof(opt));
 
     if (valid_lladdr < 0)
         return -1; /* Malformed packet. */
@@ -1525,7 +1532,7 @@ static int router_sol_validity_checks(struct pico_frame *f)
      *   source link-layer address option in the message.
      */
     /* Check for SLLAO if the IP source address is UNSPECIFIED */
-    sllao_present = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC);
+    sllao_present = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC, sizeof(opt));
     if (pico_ipv6_is_unspecified(hdr->src.addr)) {
         /* Frame is not valid when SLLAO is present if IP6-SRC is UNSPEC. */
         if (sllao_present) {
@@ -1682,14 +1689,14 @@ static int radv_process(struct pico_frame *f)
     hdr = (struct pico_ipv6_hdr *)f->net_hdr;
     icmp6_hdr = (struct pico_icmp6_hdr *)f->transport_hdr;
 
-    optres_prefix = get_neigh_option(f, &prefix_option, PICO_ND_OPT_PREFIX);
+    optres_prefix = get_neigh_option(f, &prefix_option, PICO_ND_OPT_PREFIX, sizeof(prefix_option));
 
     if (optres_prefix < 0) {
         /* Malformed packet */
         return -1;
     }
 
-    sllao = get_neigh_option(f, &lladdr_src, PICO_ND_OPT_LLADDR_SRC);
+    sllao = get_neigh_option(f, &lladdr_src, PICO_ND_OPT_LLADDR_SRC, sizeof(lladdr_src));
 
     if (sllao < 0) {
         /* Malformed packet */
@@ -1703,7 +1710,7 @@ static int radv_process(struct pico_frame *f)
     }
 
 #ifdef PICO_6LOWPAN_IPHC_ENABLED
-    context_option_valid = get_neigh_option(f, &co, PICO_ND_OPT_6CO);
+    context_option_valid = get_neigh_option(f, &co, PICO_ND_OPT_6CO, sizeof(co));
     if (context_option_valid < 0) {
         /* Malformed packet */
         return -1;
@@ -1716,7 +1723,7 @@ static int radv_process(struct pico_frame *f)
     }
 #endif
 
-    abro_valid = get_neigh_option(f, &abro, PICO_ND_OPT_ABRO);
+    abro_valid = get_neigh_option(f, &abro, PICO_ND_OPT_ABRO, sizeof(abro));
     if (abro_valid < 0) {
         /* Malformed packet */
         return -1;
@@ -1781,7 +1788,7 @@ static int radv_process(struct pico_frame *f)
          * router link has to be set before calling pico_ipv6_set_router_mtu
          */
         struct pico_icmp6_opt_mtu mtu_option;
-        int mtu_valid = get_neigh_option(f, &mtu_option, PICO_ND_OPT_MTU);
+        int mtu_valid = get_neigh_option(f, &mtu_option, PICO_ND_OPT_MTU, sizeof(mtu_option));
         if (mtu_valid > 0) {
             pico_ipv6_set_router_mtu(f->dev->stack, &hdr->src, long_be(mtu_option.mtu));
         }
@@ -1844,7 +1851,7 @@ static int neigh_adv_option_len_validity_check(struct pico_frame *f)
     };
     int valid_lladdr = 0;
 
-    valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC);
+    valid_lladdr = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_SRC, sizeof(opt));
 
     if (valid_lladdr < 0)
         return -1;
@@ -1897,7 +1904,7 @@ static int neigh_adv_process(struct pico_frame *f)
     struct pico_icmp6_opt_lladdr opt = {
         0
     };
-    int optres = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_TGT);
+    int optres = get_neigh_option(f, &opt, PICO_ND_OPT_LLADDR_TGT, sizeof(opt));
     icmp6_hdr = (struct pico_icmp6_hdr *)f->transport_hdr;
 
     if (optres < 0) { /* Malformed packet: option field cannot be processed. */
@@ -2011,8 +2018,8 @@ static int redirect_process(struct pico_frame *f)
     redirect_hdr = &(icmp6_hdr->msg.info.redirect);
 
     /* Check the options */
-    optres_lladdr   = get_neigh_option(f, &opt_ll, PICO_ND_OPT_LLADDR_TGT);
-    optres_redirect = get_neigh_option(f, &opt_redirect, PICO_ND_OPT_REDIRECT);
+    optres_lladdr   = get_neigh_option(f, &opt_ll, PICO_ND_OPT_LLADDR_TGT, sizeof(opt_ll));
+    optres_redirect = get_neigh_option(f, &opt_redirect, PICO_ND_OPT_REDIRECT, sizeof(opt_redirect));
 
     if (optres_lladdr < 0 || optres_redirect < 0) {
         /* Malformed packet */
