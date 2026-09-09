@@ -496,31 +496,43 @@ static void pico_dhcp_client_recv_params(struct pico_dhcp_client_cookie *dhcpc, 
             break;
 
         case PICO_DHCP_OPT_MSGTYPE:
+            if (opt->len < 1)
+                break;
             dhcpc->event = opt->ext.msg_type.type;
             dhcpc_dbg("DHCP client: message type %u\n", dhcpc->event);
             break;
 
         case PICO_DHCP_OPT_LEASETIME:
+            if (opt->len < 4)
+                break;
             dhcpc->lease_time = long_be(opt->ext.lease_time.time);
             dhcpc_dbg("DHCP client: lease time %u\n", dhcpc->lease_time);
             break;
 
         case PICO_DHCP_OPT_RENEWALTIME:
+            if (opt->len < 4)
+                break;
             dhcpc->t1_time = long_be(opt->ext.renewal_time.time);
             dhcpc_dbg("DHCP client: renewal time %u\n", dhcpc->t1_time);
             break;
 
         case PICO_DHCP_OPT_REBINDINGTIME:
+            if (opt->len < 4)
+                break;
             dhcpc->t2_time = long_be(opt->ext.rebinding_time.time);
             dhcpc_dbg("DHCP client: rebinding time %u\n", dhcpc->t2_time);
             break;
 
         case PICO_DHCP_OPT_ROUTER:
+            if (opt->len < 4)
+                break;
             dhcpc->gateway = opt->ext.router.ip;
             dhcpc_dbg("DHCP client: router %08X\n", dhcpc->gateway.addr);
             break;
 
         case PICO_DHCP_OPT_DNS:
+            if (opt->len < 4)
+                break;
             dhcpc->nameserver[0] = opt->ext.dns1.ip;
             dhcpc_dbg("DHCP client: dns1 %08X\n", dhcpc->nameserver[0].addr);
             if (opt->len >= 8) {
@@ -531,11 +543,15 @@ static void pico_dhcp_client_recv_params(struct pico_dhcp_client_cookie *dhcpc, 
             break;
 
         case PICO_DHCP_OPT_NETMASK:
+            if (opt->len < 4)
+                break;
             dhcpc->netmask = opt->ext.netmask.ip;
             dhcpc_dbg("DHCP client: netmask %08X\n", dhcpc->netmask.addr);
             break;
 
         case PICO_DHCP_OPT_SERVERID:
+            if (opt->len < 4)
+                break;
             dhcpc->server_id = opt->ext.server_id.ip;
             dhcpc_dbg("DHCP client: server ID %08X\n", dhcpc->server_id.addr);
             break;
@@ -546,21 +562,23 @@ static void pico_dhcp_client_recv_params(struct pico_dhcp_client_cookie *dhcpc, 
 
         case PICO_DHCP_OPT_HOSTNAME:
         {
-            uint32_t maxlen = PICO_DHCP_HOSTNAME_MAXLEN;
+            uint32_t maxlen = PICO_DHCP_HOSTNAME_MAXLEN - 1;
             if (opt->len < maxlen)
                 maxlen = opt->len;
 
             strncpy(dhcpc->stack->dhcpc_host_name, opt->ext.string.txt, maxlen);
+            dhcpc->stack->dhcpc_host_name[maxlen] = '\0';
         }
         break;
 
         case PICO_DHCP_OPT_DOMAINNAME:
         {
-            uint32_t maxlen = PICO_DHCP_HOSTNAME_MAXLEN;
+            uint32_t maxlen = PICO_DHCP_HOSTNAME_MAXLEN - 1;
             if (opt->len < maxlen)
                 maxlen = opt->len;
 
             strncpy(dhcpc->stack->dhcpc_domain_name, opt->ext.string.txt, maxlen);
+            dhcpc->stack->dhcpc_domain_name[maxlen] = '\0';
         }
         break;
 

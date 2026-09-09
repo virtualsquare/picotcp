@@ -331,6 +331,7 @@ START_TEST(tc_dnsCallback)
 
     ck = PICO_ZALLOC(sizeof(struct sntp_server_ns_cookie));
     ck->sock = sock;
+    ck->stack = S;
 
     dnsCallback(ip, ck);
 }
