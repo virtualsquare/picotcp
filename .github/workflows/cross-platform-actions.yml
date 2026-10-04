@@ -74,6 +74,9 @@ jobs:
       - name: Set up build environment
         run: ${{ matrix.pkginstall }}
         shell: cpa.sh {0}
+      - name: Reboot the VM
+        run: cpa.sh --reboot
+        if: matrix.operating_system == 'haiku'
       - name: Build
         run: |
           if [ "${{ matrix.operating_system }}" != "haiku" ]; then
