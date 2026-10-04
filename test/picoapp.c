@@ -74,7 +74,6 @@ void app_mdns(struct pico_stack *S, char *arg, struct pico_ip4 addr);
 void app_sntp(struct pico_stack *S, char *args);
 void app_tftp(struct pico_stack *S, char *args);
 void app_slaacv4(struct pico_stack *S, char *args);
-void app_udpecho(struct pico_stack *S, char *args);
 void app_sendto_test(struct pico_stack *S, char *args);
 void app_noop(struct pico_stack *S);
 
@@ -321,12 +320,20 @@ int main(int argc, char **argv)
                 cpy_arg(&gw, nxt);
             } while (0);
             if (!nm) {
+                free(name);
+                free(addr);
+                free(nm);
+                free(gw);
                 fprintf(stderr, "Tun: bad configuration...\n");
                 exit(1);
             }
 
             dev = pico_tap_create(stack, name);
             if (!dev) {
+                free(name);
+                free(addr);
+                free(nm);
+                free(gw);
                 perror("Creating tap");
                 exit(1);
             }
@@ -356,6 +363,10 @@ int main(int argc, char **argv)
             }
 
 #endif
+            free(name);
+            free(addr);
+            free(nm);
+            free(gw);
         }
         break;
         case 't':
@@ -381,6 +392,10 @@ int main(int argc, char **argv)
 
             dev = pico_tun_create(stack, name);
             if (!dev) {
+                free(name);
+                free(addr);
+                free(nm);
+                free(gw);
                 perror("Creating tun");
                 exit(1);
             }
@@ -410,6 +425,10 @@ int main(int argc, char **argv)
             }
 
 #endif
+            free(name);
+            free(addr);
+            free(nm);
+            free(gw);
         }
         break;
         case 'v':
@@ -465,6 +484,16 @@ int main(int argc, char **argv)
                 }
             } while (0);
             if (!nm && !nm6) {
+                free(name);
+                free(sock);
+                free(addr);
+                free(nm);
+                free(gw);
+                free(addr6);
+                free(nm6);
+                free(gw6);
+                free(loss_in);
+                free(loss_out);
                 fprintf(stderr, "Vde: bad configuration...\n");
                 exit(1);
             }
@@ -526,6 +555,16 @@ int main(int argc, char **argv)
             }
 
 
+            free(name);
+            free(sock);
+            free(addr);
+            free(nm);
+            free(gw);
+            free(addr6);
+            free(nm6);
+            free(gw6);
+            free(loss_in);
+            free(loss_out);
         }
         break;
 
@@ -549,6 +588,9 @@ int main(int argc, char **argv)
 
             /* Check required arguments */
 check:      if (!name || !area0 || !area1) {
+                free(name);
+                free(area0);
+                free(area1);
                 fprintf(stderr, "Usage: -6,id,area\n");
                 exit(1);
             }
@@ -583,6 +625,10 @@ check:      if (!name || !area0 || !area1) {
                     pico_ipv6_dev_routing_enable(dev);
                 }
             }
+            free(name);
+            free(area0);
+            free(area1);
+            free(dump);
             break;
         }
         case 'b':
@@ -668,6 +714,9 @@ check:      if (!name || !area0 || !area1) {
                 nxt = cpy_arg(&gw, nxt);
             } while (0);
             if (!addr || !nm || !gw) {
+                free(addr);
+                free(nm);
+                free(gw);
                 fprintf(stderr, "--route expects addr:nm:gw:\n");
                 usage(argv[0]);
             }
@@ -680,6 +729,9 @@ check:      if (!name || !area0 || !area1) {
             else
                 fprintf(stderr, "ROUTE ADD: ERROR %s \n", strerror(pico_err));
 
+            free(addr);
+            free(nm);
+            free(gw);
             break;
         }
         case 'd':
@@ -691,6 +743,7 @@ check:      if (!name || !area0 || !area1) {
             cpy_arg(&straddr, optarg);
             pico_string_to_ipv4(straddr, &ipaddr.addr);
             pico_dns_client_nameserver(stack, &ipaddr, PICO_DNS_NS_ADD);
+            free(straddr);
             break;
         }
         case 'a':

@@ -133,6 +133,7 @@ void app_tcpecho(struct pico_stack *S, char *arg)
         nxt = cpy_arg(&lport, nxt);
         if (lport && atoi(lport)) {
             listen_port = short_be(atoi(lport));
+            free(lport);
         } else {
             goto out;
         }
