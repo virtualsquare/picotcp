@@ -180,6 +180,7 @@ static struct pico_dhcp_server_setting *pico_dhcp_server_add_setting(struct pico
     dhcps->pool_start = setting->pool_start;
     dhcps->pool_next = setting->pool_next;
     dhcps->pool_end = setting->pool_end;
+    dhcps->dns_server = setting->dns_server;
     dhcps->dev = link->dev;
     dhcps->server_ip = link->address;
     dhcps->netmask = link->netmask;
@@ -286,7 +287,10 @@ static void dhcpd_make_reply(struct pico_dhcp_server_negotiation *dhcpn, uint8_t
     };
     struct pico_dhcp_hdr *hdr = NULL;
 
-    dns.addr = DHCP_SERVER_OPENDNS;
+    if (dhcpn->dhcps->dns_server.addr)
+        dns.addr = dhcpn->dhcps->dns_server.addr;
+    else
+        dns.addr = DHCP_SERVER_OPENDNS;
     broadcast.addr = dhcpn->dhcps->server_ip.addr | ~(dhcpn->dhcps->netmask.addr);
 
     optlen = PICO_DHCP_OPTLEN_MSGTYPE + PICO_DHCP_OPTLEN_SERVERID + PICO_DHCP_OPTLEN_LEASETIME + PICO_DHCP_OPTLEN_NETMASK + PICO_DHCP_OPTLEN_ROUTER
