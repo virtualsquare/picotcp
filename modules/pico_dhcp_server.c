@@ -457,6 +457,8 @@ int pico_dhcp_server_destroy(struct pico_device *dev)
         return -1;
     }
 
+    if (found->s)
+        pico_socket_close(found->s);
     pico_tree_delete(&dev->stack->DHCPSettings, found);
     PICO_FREE(found);
 

@@ -156,6 +156,7 @@ Suite *pico_suite(void)
     tcase_add_test(dhcp, test_dhcp_server_ipinarp);
     tcase_add_test(dhcp, test_dhcp_server_ipninarp);
     tcase_add_test(dhcp, test_dhcp_server_api);
+    tcase_add_test(dhcp, test_pico_dhcp_server_destroy);
     tcase_add_test(dhcp, test_dhcp);
     suite_add_tcase(s, dhcp);
 
