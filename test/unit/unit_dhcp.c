@@ -141,6 +141,38 @@ START_TEST(test_dhcp_server_api)
 }
 END_TEST
 
+START_TEST(test_pico_dhcp_server_destroy)
+{
+    struct mock_device *mock;
+    struct pico_stack *S;
+    uint8_t macaddr[6] = {
+        0xc1, 0, 0, 0xa, 0xb, 0xf
+    };
+    struct pico_ip4 netmask = {
+        .addr = long_be(0xffffff00)
+    };
+    struct pico_ip4 serverip = {
+        .addr = long_be(0x0A28000A)
+    };
+    struct pico_dhcp_server_setting setting = {
+        0
+    };
+
+    pico_stack_init(&S);
+
+    mock = pico_mock_create(S, macaddr);
+    fail_if(!mock, "MOCK DEVICE creation failed");
+    fail_if(pico_ipv4_link_add(S, mock->dev, serverip, netmask), "add link to mock device failed");
+
+    setting.server_ip = serverip;
+    setting.dev = mock->dev;
+    fail_if(pico_dhcp_server_initiate(&setting), "DHCP_SERVER> failed to start");
+    fail_if(pico_dhcp_server_destroy(mock->dev), "DHCP_SERVER> failed to destroy server");
+    fail_if(pico_dhcp_server_initiate(&setting), "DHCP_SERVER> failed to restart after destroy");
+    fail_if(pico_dhcp_server_destroy(mock->dev), "DHCP_SERVER> failed to destroy restarted server");
+}
+END_TEST
+
 START_TEST (test_dhcp)
 {
 /************************************************************************
