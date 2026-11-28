@@ -42,6 +42,7 @@ struct pico_dhcp_server_setting
     struct pico_socket *s;
     struct pico_ip4 server_ip;
     struct pico_ip4 netmask;
+    struct pico_ip4 dns_server; /* optional, defaults to OpenDNS when 0 */
     uint8_t flags; /* unused atm */
 };
 
